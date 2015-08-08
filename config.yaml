@@ -1,5 +1,5 @@
 --- # Sample config file
-Domain: https://yourdomain.com
+Domain: https://your-jira-domain.com
 Username: YourUsername
 Password: YourPassword
 Project: YourProjectName
