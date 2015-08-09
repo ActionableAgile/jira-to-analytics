@@ -37,4 +37,4 @@ Download jira_to_analytics.linux64 and config.yaml from the releases page on git
 
 
 ### INFO FOR MAC USERS ###
-TBD...
+Download jira_to_analytics.mac64 and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located.  Open a terminal and cd to the directory containing the files. Make the mac64 file executable by typing chmod u+x jira_to_analytics.mac64. Run it by typing ./jira_to_analytics.mac64. When the program finishes, a CSV data file with the name specified in your config file will appear in the same directory as the exe.  Take this file and load it into the ActionableAgile Analytics tool.
