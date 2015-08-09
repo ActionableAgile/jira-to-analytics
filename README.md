@@ -2,7 +2,7 @@
 ## README ##
 
 ### OVERVIEW ###
-The purpose of this program is to extract flow data from Jira for use with the ActionableAgile Analytics tool.  This program reads in a config file, connects to Jira and extracts data using the Jira REST API according to the parameters specified in the config file, and writes out a CSV file that can be directly loaded into ActionableAgile Analytics.  For more information on the ActionableAgile Analytics tool, please visit [https://www.actionableagile.com](https://www.actionableagile.com).
+The purpose of this program is to extract flow data from Jira for use with the ActionableAgile Analytics tool.  This program reads in a config file, connects to Jira and extracts data using the Jira REST API according to the parameters specified in the config file, and writes out a CSV file that can be directly loaded into ActionableAgile Analytics.  For more information on the ActionableAgile Analytics tool, please visit [https://www.actionableagile.com](https://www.actionableagile.com) or sign up for a free trial at [https://www.actionableagile.com/cms/analytics-free-trial-signup.html](https://www.actionableagile.com/cms/analytics-free-trial-signup.html).
 
 This software is written in Go and has been complied into executables for use with these Operating Systems:  Windows, Linux, Mac OS.
 
