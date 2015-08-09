@@ -29,11 +29,11 @@ var retryDelay = 5 // seconds per retry
 // Jira data structures for unmarshalling from JSON
 type JiraIssueKeyList struct {
 	Total int
-    Issues []JiraIssueKey
+	Issues []JiraIssueKey
 }
 
 type JiraIssueKey struct {
-    Key string
+	Key string
 }
 
 type JiraIssueList struct {
@@ -176,7 +176,7 @@ func readConfig(path string) {
 					customNames = append(customNames, strings.TrimSpace(key[1:]))
 					customFields = append(customFields, value)
 				} else if len(value) > 0 { // regular
-					properties[key] = value;
+					properties[key] = value
 				}
 			}
 		}
@@ -187,7 +187,7 @@ func readConfig(path string) {
 
 	// build url root
 	domain = requiredProperty(properties, "Domain")
-	urlAPIRoot = domain + "/rest/api/latest/"
+	urlAPIRoot = domain + "/rest/api/latest/search"
 
 	// build credentials
 	username := requiredProperty(properties, "Username")
@@ -228,14 +228,19 @@ func getKeys(prevMaxKey string, retries int) []string {
 	jql := buffer.String()
 
 	// build url
-	url := fmt.Sprint(urlAPIRoot, "search?jql=", url.QueryEscape(jql), "&fields=key&maxResults=", keyBatchSize)
+	url := fmt.Sprint(urlAPIRoot, "?jql=", url.QueryEscape(jql), "&fields=key&maxResults=",
+		keyBatchSize)
 
 	// send the request
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Basic " + credentials)
-	resp, _ := client.Do(req)
+	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Authorization", "Basic " + credentials)
+	resp, err := client.Do(req)
+	if (err != nil) {
+		fmt.Printf("HTTP GET request failed for %s\n%s\n", urlAPIRoot, err)
+		os.Exit(1)
+	}
 
 	// process the response
 	if resp != nil {
@@ -247,7 +252,7 @@ func getKeys(prevMaxKey string, retries int) []string {
 			for i, item := range items.Issues {
 				batch[i] = item.Key
 			}
-    	} else {
+		} else {
 			fmt.Println("Error: Response Status Code", resp.StatusCode)
 			os.Exit(1)
 		}
@@ -275,7 +280,8 @@ func getIssues(keys []string) bool {
 	jql := buffer.String()
 
 	// build url
-	url := fmt.Sprint(urlAPIRoot, "search?jql=", url.QueryEscape(jql), "&maxResults=", issueBatchSize, "&expand=changelog")
+	url := fmt.Sprint(urlAPIRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", issueBatchSize,
+		"&expand=changelog")
 
 	// send the request
 	client := http.Client{}
@@ -290,8 +296,8 @@ func getIssues(keys []string) bool {
 
 		/*
 		// print the json
-        bodyBytes, _ := ioutil.ReadAll(resp.Body)
-        bodyString := string(bodyBytes)
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyString := string(bodyBytes)
 		fmt.Println(bodyString)
 		return true
 		*/
@@ -350,7 +356,7 @@ func getIssues(keys []string) bool {
 				}
 			}
 		}
-    } else {
+	} else {
 		fmt.Println("Error: Response Status Code", resp.StatusCode)
 		success = false
 	}
