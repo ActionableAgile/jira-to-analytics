@@ -1,9 +1,9 @@
-// Overview:
+// Approach:
 // 1. Read config file (must be named "config.yaml" for now)
 // 2. Use config file to set properties needed throughout
 // 3. Fetch Jira Issue Keys in batches
-// 4. Fetch Jira Issues in batches, using them to build Work Items
-// 5. Write out CSV, one Work Item per line
+// 4. Fetch Jira Issues by key in batches, using them to build WorkItems
+// 5. Write out CSV, one WorkItem per line
 
 package main
 
@@ -24,11 +24,25 @@ import (
 var keyBatchSize = 500
 var issueBatchSize = 100
 var maxTries = 5
-var retryDelay = 5 // seconds per retry
+var retryDelay = 5                     // seconds per retry
+var validProperties = map[string]bool{ // used as a Set, so bool value isn't used
+	"Domain":   true,
+	"Username": true,
+	"Password": true,
+	"Projects": true,
+	"Workflow": true,
+	"Optional": true,
+	"Releases": true,
+	"Custom":   true,
+	"Filename": true,
+}
+var validOptionalProperties = map[string]bool{ // used as a Set, so bool value isn't used
+	"Types": true,
+}
 
 // Jira data structures for unmarshalling from JSON
 type JiraIssueKeyList struct {
-	Total int
+	Total  int
 	Issues []JiraIssueKey
 }
 
@@ -41,34 +55,34 @@ type JiraIssueList struct {
 }
 
 type JiraIssue struct {
-	Key string
-	Fields interface{}
+	Key       string
+	Fields    interface{}
 	Changelog JiraChangelog
 }
 
 type JiraChangelog struct {
-	Total int
+	Total     int
 	Histories []JiraHistory
 }
 
 type JiraHistory struct {
-	Id string
-	Items []JiraItem
+	Id      string
+	Items   []JiraItem
 	Created string
 }
 
 type JiraItem struct {
-	Field string
+	Field    string
 	ToString string
 }
 
 // collect work items for writing to file
 type WorkItem struct {
-	Id string
+	Id         string
 	StageDates []string
-	Name string
-	Type string
-	Custom []string
+	Name       string
+	Type       string
+	Custom     []string
 }
 
 var workItems = make(map[string]*WorkItem)
@@ -78,8 +92,8 @@ var domain string
 var urlAPIRoot string
 var credentials string
 var fileName string
-var projectName string
-var stages []string
+var projectNames []string
+var stageNames []string
 var stageMap = make(map[string]int)
 var types []string
 var customNames []string
@@ -117,9 +131,9 @@ func main() {
 				success = true
 				break
 			}
-			if tries < maxTries - 1 {
+			if tries < maxTries-1 {
 				fmt.Print("\tRetrying issues ", i, "-", end-1, ": ")
-				time.Sleep(time.Duration(tries * (retryDelay + 1)) * time.Second) // delay longer each retry
+				time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
 			}
 		}
 		if !success {
@@ -160,30 +174,74 @@ func readConfig(path string) {
 		return
 	}
 
-	// extract the keys
+	// parse the contents
 	properties := make(map[string]string)
-	for _, line := range lines {
-		if strings.HasPrefix(line, "---") {
-			// ignore yaml indicator (really should be on first line only)
-		} else if line[0] == '#' {
-			// skip comments
+	inWorkflow := false
+	inCustom := false
+	inOptional := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "---") { // skip yaml indicator
+		} else if strings.HasPrefix(line, "#") { // skip comments
+		} else if len(strings.TrimSpace(line)) == 0 { // skip blank lines
 		} else {
 			parts := strings.SplitN(line, ":", 2)
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			if len(key) > 0 {
-				if strings.HasPrefix(key, "-") { // custom
-					customNames = append(customNames, strings.TrimSpace(key[1:]))
-					customFields = append(customFields, value)
-				} else if len(value) > 0 { // regular
-					properties[key] = value
+				indented := strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")
+				if indented {
+					if inWorkflow {
+						stageIndex := len(stageNames)
+						stageNames = append(stageNames, key)
+						for _, value := range strings.Split(value, ",") {
+							stageMap[strings.TrimSpace(value)] = stageIndex
+						}
+					} else if inCustom {
+						customNames = append(customNames, strings.TrimSpace(key))
+						customFields = append(customFields, value)
+					} else if inOptional {
+						if _, ok := validOptionalProperties[key]; ok {
+							properties[key] = value
+						} else {
+							fmt.Println("Error: Unexpected optional property", key, "at line", i)
+							os.Exit(1)
+						}
+					} else {
+						fmt.Println("Can't parse config file at line", i)
+					}
+				} else { // not indented
+					inCustom = false
+					inWorkflow = false
+					inOptional = false
+					if key == "Custom" {
+						inCustom = true
+					} else if key == "Workflow" {
+						inWorkflow = true
+					} else if key == "Optional" {
+						inOptional = true
+					} else { // normal property
+						if _, ok := validProperties[key]; ok {
+							properties[key] = value
+						} else {
+							fmt.Println("Error: Unexpected property", key, "at line", i)
+							os.Exit(1)
+						}
+					}
 				}
 			}
 		}
 	}
 
-	projectName = requiredProperty(properties, "Project")
+	// collect project names
+	if projects, ok := properties["Projects"]; ok {
+		projectNames = parseList(projects)
+	}
+
+	// determine output file name
 	fileName = requiredProperty(properties, "Filename")
+	if !strings.HasSuffix(fileName, ".csv") {
+		fileName = fileName + ".csv"
+	}
 
 	// build url root
 	domain = requiredProperty(properties, "Domain")
@@ -191,24 +249,16 @@ func readConfig(path string) {
 
 	// build credentials
 	username := requiredProperty(properties, "Username")
-	password := requiredProperty(properties, "Password")
-	credentials = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-
-	// build stages
-	stages = strings.Split(requiredProperty(properties, "Workflow"), ",")
-	for i, s := range stages {
-		s = strings.TrimSpace(s)
-		stages[i] = s
-		stageMap[s] = i
+	password, ok := properties["Password"]
+	if !ok {
+		password = getPassword()
 	}
 
+	credentials = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+
 	// extract work item types
-	typesString := properties["Types"]
-	if len(typesString) > 0 {
-		types = strings.Split(typesString, ",")
-		for i, t := range types {
-			types[i] = "\"" + strings.TrimSpace(t) + "\""
-		}
+	if typesString, ok := properties["Types"]; ok {
+		types = parseList(typesString)
 	}
 }
 
@@ -217,12 +267,22 @@ func getKeys(prevMaxKey string, retries int) []string {
 
 	// build jql
 	var buffer bytes.Buffer
-	buffer.WriteString("project=" + projectName)
+	if len(projectNames) == 1 {
+		buffer.WriteString("project=" + projectNames[0])
+	} else if len(projectNames) > 1 {
+		buffer.WriteString("project in (" + strings.Join(projectNames, ",") + ")")
+	}
 	if len(types) > 0 {
-		buffer.WriteString(" AND (issuetype in (" + strings.Join(types, ",") + "))")
+		if len(projectNames) > 0 {
+			buffer.WriteString(" AND ")
+		}
+		buffer.WriteString("(issuetype in (" + strings.Join(types, ",") + "))")
 	}
 	if len(prevMaxKey) > 0 {
-		buffer.WriteString(" AND key > " + prevMaxKey)
+		if len(projectNames) > 0 && len(types) > 0 {
+			buffer.WriteString(" AND ")
+		}
+		buffer.WriteString("key > " + prevMaxKey)
 	}
 	buffer.WriteString(" order by key")
 	jql := buffer.String()
@@ -235,9 +295,9 @@ func getKeys(prevMaxKey string, retries int) []string {
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
-	req.Header.Add("Authorization", "Basic " + credentials)
+	req.Header.Add("Authorization", "Basic "+credentials)
 	resp, err := client.Do(req)
-	if (err != nil) {
+	if err != nil {
 		fmt.Printf("HTTP GET request failed for %s\n%s\n", urlAPIRoot, err)
 		os.Exit(1)
 	}
@@ -287,7 +347,7 @@ func getIssues(keys []string) bool {
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Basic " + credentials)
+	req.Header.Set("Authorization", "Basic "+credentials)
 	resp, _ := client.Do(req)
 
 	// process the response
@@ -295,11 +355,11 @@ func getIssues(keys []string) bool {
 		defer resp.Body.Close()
 
 		/*
-		// print the json
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		fmt.Println(bodyString)
-		return true
+			// print the json
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			bodyString := string(bodyBytes)
+			fmt.Println(bodyString)
+			return true
 		*/
 
 		// decode json
@@ -308,27 +368,46 @@ func getIssues(keys []string) bool {
 
 		// make sure we got the right number back
 		if len(list.Issues) != len(keys) {
-			fmt.Println("Warning: Requested data for", len(keys), "keys but received", len(list.Issues), "issues")
+			fmt.Println("Warning: Requested data for", len(keys),
+				"keys but received", len(list.Issues), "issues")
 		}
 
 		// extract work item info
 		for _, issue := range list.Issues {
 			workItem := getWorkItem(issue.Key)
+
+			// accumulate out-of-order events so we can handle backward flow
+			events := make([][]string, len(stageNames))
 			for _, history := range issue.Changelog.Histories {
 				for _, item := range history.Items {
 					if item.Field == "status" {
 						stageString := item.ToString
-						stageIndex, found := stageMap[stageString]
-						if found {
-							prevDate := workItem.StageDates[stageIndex]
+						if stageIndex, found := stageMap[stageString]; found {
 							date := strings.SplitN(history.Created, "T", 2)[0]
-							if len(prevDate) == 0 || date < prevDate {
-								workItem.StageDates[stageIndex] = date
-							}
-						} else {
-							//fmt.Println("Warning: Stage", stageString, "is not a listed stage")
+							events[stageIndex] = append(events[stageIndex], date)
 						}
 					}
+				}
+			}
+
+			// for each stage use min date that is >= max date from previous stages
+			previousMaxDate := ""
+			for stageIndex := range stageNames {
+				stageBestDate := ""
+				stageMaxDate := ""
+				for _, date := range events[stageIndex] {
+					if date >= previousMaxDate && (stageBestDate == "" || date < stageBestDate) {
+						stageBestDate = date
+					}
+					if date > stageMaxDate {
+						stageMaxDate = date
+					}
+				}
+				if stageBestDate != "" {
+					workItem.StageDates[stageIndex] = stageBestDate
+				}
+				if stageMaxDate != "" && stageMaxDate > previousMaxDate {
+					previousMaxDate = stageMaxDate
 				}
 			}
 
@@ -342,7 +421,7 @@ func getIssues(keys []string) bool {
 
 			// extract work item type
 			if len(types) > 0 {
-				typeStruct := fields["issuetype"]	// interface{}
+				typeStruct := fields["issuetype"] // interface{}
 				typeName := typeStruct.(map[string]interface{})
 				workItem.Type = typeName["name"].(string)
 			}
@@ -370,7 +449,7 @@ func getWorkItem(key string) *WorkItem {
 	if !found {
 		w := new(WorkItem)
 		w.Id = key
-		w.StageDates = make([]string, len(stageMap))
+		w.StageDates = make([]string, len(stageNames))
 		w.Custom = make([]string, len(customFields))
 		workItems[key] = w
 		result = w
@@ -387,11 +466,31 @@ func requiredProperty(properties map[string]string, name string) string {
 	return result
 }
 
+// extracts items from string, and quotes them
+func parseList(commaDelimited string) []string {
+	result := strings.Split(commaDelimited, ",")
+	for i, s := range result {
+		result[i] = "\"" + strings.TrimSpace(s) + "\""
+	}
+	return result
+}
+
+func (w *WorkItem) HasDate() bool {
+	result := false
+	for _, date := range w.StageDates {
+		if len(date) > 0 {
+			result = true
+			break
+		}
+	}
+	return result
+}
+
 func (w *WorkItem) String(writeLink bool) string {
 	var buffer bytes.Buffer
 	buffer.WriteString(w.Id)
 	buffer.WriteString(",")
-	if (writeLink) {
+	if writeLink {
 		buffer.WriteString(domain + "/browse/" + w.Id)
 	}
 	buffer.WriteString("," + w.Name)
@@ -418,7 +517,7 @@ func writeCSV(fileName string) {
 
 	// write the header line
 	file.WriteString("ID,Link,Name")
-	for _, stage := range stages {
+	for _, stage := range stageNames {
 		file.WriteString("," + stage)
 	}
 	if len(types) > 0 {
@@ -431,11 +530,20 @@ func writeCSV(fileName string) {
 
 	// write a line for each work item
 	writeLink := true
+	counter := 0
 	for _, workItem := range workItems {
-		file.WriteString(workItem.String(writeLink))
-		file.WriteString("\n")
-		writeLink = false
+		if workItem.HasDate() {
+			file.WriteString(workItem.String(writeLink))
+			file.WriteString("\n")
+			writeLink = false
+			counter++
+		}
 	}
 
-	fmt.Println(len(workItems), "work items written")
+	// display some stats
+	skipped := len(workItems) - counter
+	if skipped > 0 {
+		fmt.Println(skipped, "empty work items omitted")
+	}
+	fmt.Println(counter, "work items written")
 }
