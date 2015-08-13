@@ -50,10 +50,10 @@ If you do not supply a password in the config file, you will be prompted for a p
 
 An example of what this section might look like is:
 
-Connection:
-  Domain: https://www.myjiradomain.com  
-  Username: MyUsername  
-  Password: MyPassword  
+Connection:  
+&nbsp;&nbsp;Domain: https://www.myjiradomain.com  
+&nbsp;&nbsp;Username: MyUsername  
+&nbsp;&nbsp;Password: MyPassword  
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 
