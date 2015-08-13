@@ -1,17 +1,8 @@
----
-# Sample yaml config file
+Connection:
+  Domain: https://your-jira-domain.com
+  Username: YourUsername
+  Password: YourPassword
 
-# Required information for connecting to Jira
-Domain: https://your-jira-domain.com
-Username: YourUsername
-
-# Password is optional--we'll prompt if necessary
-Password: YourPassword
-
-# Projects is optional--use commas to delimit multiple project names
-Projects: YourProjectName
-
-# Required workflow (CSV column name and Jira statuses to be mapped to that name) 
 Workflow:
   Ready: Ready Queue, Open, Approved
   Dev: Development
@@ -19,14 +10,10 @@ Workflow:
   Test: Test
   Done: Closed, Cancelled
 
-# Optional Attributes (standard Jira Attributes in well-known locations)
 Optional:
+  Projects: Project1, Project2
   Types: Epic, User Story, Defect
 
-# Custom Attributes (from custom fields in Jira--all are optional)
 Custom:
   Team: customfield_10001
   Release: customfield_10002
-
-# Required name of output CSV file (we'll append .csv if necessary)
-Filename: Data.csv
