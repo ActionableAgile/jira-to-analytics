@@ -1,9 +1,8 @@
-// Approach:
-// 1. Read config file (must be named "config.yaml" for now)
-// 2. Use config file to set properties needed throughout
-// 3. Fetch Jira Issue Keys in batches
-// 4. Fetch Jira Issues by key in batches, using them to build WorkItems
-// 5. Write out CSV, one WorkItem per line
+// Method:
+// 1. Parse command-line flags and config file
+// 2. Fetch Jira Issue Keys in batches
+// 3. Fetch Jira Issues by key in batches, using them to build WorkItems
+// 4. Write out CSV, one WorkItem per line
 
 package main
 
@@ -12,6 +11,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	//"io/ioutil"
 	"net/http"
@@ -21,24 +21,14 @@ import (
 	"time"
 )
 
+var version = "1.0-beta"
 var keyBatchSize = 500
 var issueBatchSize = 100
 var maxTries = 5
-var retryDelay = 5                     // seconds per retry
-var validProperties = map[string]bool{ // used as a Set, so bool value isn't used
-	"Domain":   true,
-	"Username": true,
-	"Password": true,
-	"Projects": true,
-	"Workflow": true,
-	"Optional": true,
-	"Releases": true,
-	"Custom":   true,
-	"Filename": true,
-}
-var validOptionalProperties = map[string]bool{ // used as a Set, so bool value isn't used
-	"Types": true,
-}
+var retryDelay = 5 // seconds per retry
+var sectionKeys = []string{"Connection", "Workflow", "Optional", "Custom"}
+var connectionKeys = []string{"Domain", "Username", "Password"}
+var optionalKeys = []string{"Types", "Projects"}
 
 // Jira data structures for unmarshalling from JSON
 type JiraIssueKeyList struct {
@@ -91,7 +81,6 @@ var workItems = make(map[string]*WorkItem)
 var domain string
 var urlAPIRoot string
 var credentials string
-var fileName string
 var projectNames []string
 var stageNames []string
 var stageMap = make(map[string]int)
@@ -102,8 +91,26 @@ var customFields []string
 func main() {
 	start := time.Now()
 
+	// parse command-line args
+	yamlName := flag.String("i", "config.yaml", "set the input config file name")
+	csvName := flag.String("o", "data.csv", "set the output CSV file name")
+	printVersion := flag.Bool("v", false, "print the version number")
+	flag.Parse()
+	if flag.NArg() > 0 {
+		fmt.Println("Unexpected argument \"" + flag.Args()[0] + "\"")
+		fmt.Println("For help use", os.Args[0], "-h")
+		os.Exit(1)
+	}
+	if *printVersion {
+		fmt.Println(version)
+		os.Exit(0)
+	}
+	if !strings.HasSuffix(*csvName, ".csv") {
+		*csvName = *csvName + ".csv"
+	}
+
 	// read config file and set global variables
-	readConfig("config.yaml")
+	readConfig(*yamlName)
 
 	// collect all the keys
 	fmt.Println("Fetching issue keys...")
@@ -143,8 +150,8 @@ func main() {
 	}
 
 	// output workItems
-	fmt.Println("Writing", fileName)
-	writeCSV(fileName)
+	fmt.Println("Writing", *csvName)
+	writeCSV(*csvName)
 
 	// show elapsed time
 	elapsed := time.Since(start)
@@ -153,15 +160,15 @@ func main() {
 
 // read config file and set properties
 func readConfig(path string) {
-	fmt.Println("Reading config file", path)
 
 	// open the file
 	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil {
-		fmt.Println("Error: Can't open " + path + ": " + err.Error())
-		return
+		fmt.Println("Error:", err.Error())
+		os.Exit(1)
 	}
+	fmt.Println("Reading config file", path)
 
 	// read the file
 	var lines []string
@@ -170,15 +177,13 @@ func readConfig(path string) {
 		lines = append(lines, scanner.Text())
 	}
 	if scanner.Err() != nil {
-		fmt.Println("Can't read " + path + ": " + scanner.Err().Error())
-		return
+		fmt.Println("Error:", scanner.Err().Error())
+		os.Exit(1)
 	}
 
 	// parse the contents
-	properties := make(map[string]string)
-	inWorkflow := false
-	inCustom := false
-	inOptional := false
+	properties := make(map[string]string) // for all predefined keys (in Connection or Optional)
+	section := ""
 	for i, line := range lines {
 		if strings.HasPrefix(line, "---") { // skip yaml indicator
 		} else if strings.HasPrefix(line, "#") { // skip comments
@@ -188,59 +193,44 @@ func readConfig(path string) {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			if len(key) > 0 {
-				indented := strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")
-				if indented {
-					if inWorkflow {
+				if line[0] == ' ' || line[0] == '\t' { // indented
+					switch section {
+					case "Workflow":
 						stageIndex := len(stageNames)
 						stageNames = append(stageNames, key)
 						for _, value := range strings.Split(value, ",") {
 							stageMap[strings.TrimSpace(value)] = stageIndex
 						}
-					} else if inCustom {
+					case "Custom":
 						customNames = append(customNames, strings.TrimSpace(key))
 						customFields = append(customFields, value)
-					} else if inOptional {
-						if _, ok := validOptionalProperties[key]; ok {
+					case "Connection":
+						if isKey(key, connectionKeys) {
 							properties[key] = value
 						} else {
-							fmt.Println("Error: Unexpected optional property", key, "at line", i)
+							fmt.Println("Error: Unexpected Connection property", key, "at line", i)
 							os.Exit(1)
 						}
-					} else {
-						fmt.Println("Can't parse config file at line", i)
+					case "Optional":
+						if isKey(key, optionalKeys) {
+							properties[key] = value
+						} else {
+							fmt.Println("Error: Unexpected Optional property", key, "at line", i)
+							os.Exit(1)
+						}
+					default:
+						fmt.Println("Can't parse config file at line", i, "(extra indentation?)")
 					}
 				} else { // not indented
-					inCustom = false
-					inWorkflow = false
-					inOptional = false
-					if key == "Custom" {
-						inCustom = true
-					} else if key == "Workflow" {
-						inWorkflow = true
-					} else if key == "Optional" {
-						inOptional = true
-					} else { // normal property
-						if _, ok := validProperties[key]; ok {
-							properties[key] = value
-						} else {
-							fmt.Println("Error: Unexpected property", key, "at line", i)
-							os.Exit(1)
-						}
+					if isKey(key, sectionKeys) {
+						section = key
+					} else {
+						fmt.Println("Error: Unexpected Section", key, "at line", i)
+						os.Exit(1)
 					}
 				}
 			}
 		}
-	}
-
-	// collect project names
-	if projects, ok := properties["Projects"]; ok {
-		projectNames = parseList(projects)
-	}
-
-	// determine output file name
-	fileName = requiredProperty(properties, "Filename")
-	if !strings.HasSuffix(fileName, ".csv") {
-		fileName = fileName + ".csv"
 	}
 
 	// build url root
@@ -253,8 +243,12 @@ func readConfig(path string) {
 	if !ok {
 		password = getPassword()
 	}
-
 	credentials = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+
+	// collect project names
+	if projects, ok := properties["Projects"]; ok {
+		projectNames = parseList(projects)
+	}
 
 	// extract work item types
 	if typesString, ok := properties["Types"]; ok {
@@ -276,10 +270,10 @@ func getKeys(prevMaxKey string, retries int) []string {
 		if len(projectNames) > 0 {
 			buffer.WriteString(" AND ")
 		}
-		buffer.WriteString("(issuetype in (" + strings.Join(types, ",") + "))")
+		buffer.WriteString("issuetype in (" + strings.Join(types, ",") + ")")
 	}
 	if len(prevMaxKey) > 0 {
-		if len(projectNames) > 0 && len(types) > 0 {
+		if len(projectNames) > 0 || len(types) > 0 {
 			buffer.WriteString(" AND ")
 		}
 		buffer.WriteString("key > " + prevMaxKey)
@@ -504,6 +498,15 @@ func (w *WorkItem) String(writeLink bool) string {
 		buffer.WriteString("," + value)
 	}
 	return buffer.String()
+}
+
+func isKey(key string, validKeys []string) bool {
+	for _, k := range validKeys {
+		if k == key {
+			return true
+		}
+	}
+	return false
 }
 
 func writeCSV(fileName string) {
