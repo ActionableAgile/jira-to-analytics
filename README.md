@@ -15,8 +15,8 @@ The config file conforms to the YAML format standard (http://yaml.org/spec/) and
 
 Setup  
 Workflow  
-Optional Attributes  
-Custom Attributes  
+Optional   
+Custom  
 
 You can find an example config file here: [https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml](https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml).  Feel free to follow along with that example as we run through the details of each section of the file.
 
