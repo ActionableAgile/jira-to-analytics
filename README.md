@@ -17,14 +17,14 @@ The executable supports the following command-line flags, all of which are optio
 - -v displays the version number
 - -h displays this list
 
-For example, to run the Linux version using a config file named myconfig.yaml that creates an output file named mydata.csv:
-jira_to_analytics.linux -i myconfig.yaml -o mydata.csv
+For example, to run the Linux version that reads myconfig.yaml and outputs mydata.csv:
+- jira_to_analytics.linux -i myconfig.yaml -o mydata.csv
 
-To run the Windows version using a config file named config.yaml (the default) that outputs jira.csv:
-jira_to_analytics.win64.exe -o jira.csv
+To run the Windows version using a config file named config.yaml (the default) and outputs jira.csv:
+- jira_to_analytics.win64.exe -o jira.csv
 
 To run the Mac version using all the defaults:
-jira_to_analytics.mac64
+- jira_to_analytics.mac64
   
 ##THE CONFIG FILE##
 The config file conforms to the YAML format standard (http://yaml.org/spec/) and is completely case sensitive.  The file itself is broken up into the four sections:  
