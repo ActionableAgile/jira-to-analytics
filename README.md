@@ -12,10 +12,10 @@ This software is written in Go and has been complied into executables for use wi
 ##RUNNING THE EXECUTABLE
 The executable supports the following command-line flags, all of which are optional:
 
--i specifies input yaml file name (defaults to config.yaml)
--o specifies output csv file name (defaults to data.csv)
--v displays the version number
--h displays this list
+- -i specifies input yaml file name (defaults to config.yaml)
+- -o specifies output csv file name (defaults to data.csv)
+- -v displays the version number
+- -h displays this list
 
 For example, to run the Linux version using a config file named myconfig.yaml that creates an output file named mydata.csv:
 jira_to_analytics.linux -i myconfig.yaml -o mydata.csv
