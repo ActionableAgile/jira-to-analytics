@@ -51,9 +51,9 @@ If you do not supply a password in the config file, you will be prompted for a p
 An example of what this section might look like is:
 
 Connection:  
-&nbsp;&nbsp;Domain: https://www.myjiradomain.com  
-&nbsp;&nbsp;Username: MyUsername  
-&nbsp;&nbsp;Password: MyPassword  
+&nbsp;&nbsp;&nbsp;&nbsp;Domain: https://www.myjiradomain.com  
+&nbsp;&nbsp;&nbsp;&nbsp;Username: MyUsername  
+&nbsp;&nbsp;&nbsp;&nbsp;Password: MyPassword  
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 
@@ -64,9 +64,10 @@ Dev: Development Active, Development Done, Staging
 
 will tell the software to look for the Jira statuses "Development Active", "Development Done", and "Staging" and map those statuses to a column in the output data file called "Dev".  The simplest form of this section is to have a one-to-one mapping of all Jira statuses to a corresponding column name in the data file.  For example, assume your Jira workflow is ToDo, Doing, Done.  Then a simple Workflow section of the config file that produces a data file that captures each of those statuses in a respectively named column would be:
 
-ToDo: ToDo  
-Doing: Doing  
-Done: Done
+Workflow:  
+&nbsp;&nbsp;&nbsp;&nbsp;ToDo: ToDo  
+&nbsp;&nbsp;&nbsp;&nbsp;Doing: Doing  
+&nbsp;&nbsp;&nbsp;&nbsp;Done: Done
 
 Again, please refer to the sample config file for an example of what the workflow section looks like. 
 
@@ -80,8 +81,9 @@ The Optional Section of the config file is simply named "Optional" (without the 
 
 An example of what this section might look like would be:
 
-Project: My Project1, My Project2  
-Types: Epic, User Story
+Optional:  
+&nbsp;&nbsp;&nbsp;&nbsp;Project: My Project1, My Project2  
+&nbsp;&nbsp;&nbsp;&nbsp;Types: Epic, User Story
 
 **NOTE**:  By definition, none of the fields in this section is required--in fact, this section as a whole is optional.
 
@@ -90,10 +92,11 @@ The Custom Section of the config file is simply named "Custom" (without the quot
 
 - 	Custom Field Name: ID of the custom field.  
 
-Each custom field should be on its own line underneath the “Custom” heading—see the example config file for more detail.  An example of what some lines in this section would look like is:
+Each custom field should be on its own line underneath the “Custom” heading—see the example config file for more detail.  An example of what this section might look like is:
 
-Team: customfield_10000  
-Regulatory Requirement: customfield_10001
+Custom:  
+&nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
+&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001
 
 These custom fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
 
