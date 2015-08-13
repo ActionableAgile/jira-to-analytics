@@ -11,6 +11,7 @@ This software is written in Go and has been complied into executables for use wi
 
 ##RUNNING THE EXECUTABLE
 The executable supports the following command-line flags, all of which are optional:
+
 -i specifies input yaml file name (defaults to config.yaml)
 -o specifies output csv file name (defaults to data.csv)
 -v displays the version number
