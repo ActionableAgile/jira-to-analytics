@@ -48,11 +48,12 @@ And one optional fields:
 
 If you do not supply a password in the config file, you will be prompted for a password at runtime.
 
-An example of what the elements in this section might look like is:
+An example of what this section might look like is:
 
-Domain: https://www.myjiradomain.com  
-Username: MyUsername  
-Password: MyPassword  
+Connection:
+  Domain: https://www.myjiradomain.com  
+  Username: MyUsername  
+  Password: MyPassword  
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 
