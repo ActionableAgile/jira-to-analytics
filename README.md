@@ -15,6 +15,7 @@ The executable supports the following command-line flags, all of which are optio
 - -i specifies input config file name (defaults to config.yaml)
 - -o specifies output csv file name (defaults to data.csv)
 - -v displays the version number
+- -j displays the jql used
 - -h displays this list
 
 For example, to run the Linux version using a config file named myconfig.yaml and creating mydata.csv:
@@ -76,8 +77,9 @@ Again, please refer to the sample config file for an example of what the workflo
 ### The Optional Section ###
 The Optional Section of the config file is simply named "Optional" (without the quotes) and contains optional Jira attributes that you may want to use to further refine your data set. Each line in this section contains the name of the Jira attribute you want in your data followed by a colon (:) followed by its corresponding value in your Jira instance.  The fields in this section that we support are:
 
-- 	Projects: a comma separated list of the name(s) of the Jira Project(s) you are querying)
-- 	Types: the names of the Jira issuetypes you want to extract
+- 	Projects: a comma-separated list of the names of the Jira Projects you are querying
+- 	Types: a comma-separated list of the names of the Jira issuetypes you want to extract
+- 	Filters: a comma-separated list of the names of the filters you want to apply
 
 An example of what this section might look like would be:
 
