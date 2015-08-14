@@ -21,11 +21,11 @@ import (
 	"time"
 )
 
-var version = "1.0-beta"
-var keyBatchSize = 500
-var issueBatchSize = 100
-var maxTries = 5
-var retryDelay = 5 // seconds per retry
+const version = "1.0-beta.3"
+const keyBatchSize = 500
+const issueBatchSize = 100
+const maxTries = 5
+const retryDelay = 5 // seconds per retry
 var sectionKeys = []string{"Connection", "Workflow", "Optional", "Custom"}
 var connectionKeys = []string{"Domain", "Username", "Password"}
 var optionalKeys = []string{"Types", "Projects"}
@@ -81,9 +81,9 @@ var workItems = make(map[string]*WorkItem)
 var domain string
 var urlAPIRoot string
 var credentials string
-var projectNames []string
 var stageNames []string
 var stageMap = make(map[string]int)
+var projectNames []string
 var types []string
 var customNames []string
 var customFields []string
