@@ -21,14 +21,14 @@ import (
 	"time"
 )
 
-const version = "1.0-beta.3"
+const version = "1.0-beta.4"
 const keyBatchSize = 500
 const issueBatchSize = 100
 const maxTries = 5
 const retryDelay = 5 // seconds per retry
 var sectionKeys = []string{"Connection", "Workflow", "Optional", "Custom"}
 var connectionKeys = []string{"Domain", "Username", "Password"}
-var optionalKeys = []string{"Types", "Projects"}
+var optionalKeys = []string{"Types", "Projects", "Filters"}
 
 // Jira data structures for unmarshalling from JSON
 type JiraIssueKeyList struct {
@@ -79,14 +79,17 @@ var workItems = make(map[string]*WorkItem)
 
 // properties derived from config file
 var domain string
-var urlAPIRoot string
+var urlRoot string
 var credentials string
 var stageNames []string
 var stageMap = make(map[string]int)
 var projectNames []string
 var types []string
+var filters []string
 var customNames []string
 var customFields []string
+
+var showJQL bool
 
 func main() {
 	start := time.Now()
@@ -94,7 +97,8 @@ func main() {
 	// parse command-line args
 	yamlName := flag.String("i", "config.yaml", "set the input config file name")
 	csvName := flag.String("o", "data.csv", "set the output CSV file name")
-	printVersion := flag.Bool("v", false, "print the version number")
+	printVersion := flag.Bool("v", false, "print the version number and exit")
+	flag.BoolVar(&showJQL, "j", false, "display the jql used")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Println("Unexpected argument \"" + flag.Args()[0] + "\"")
@@ -235,7 +239,7 @@ func readConfig(path string) {
 
 	// build url root
 	domain = requiredProperty(properties, "Domain")
-	urlAPIRoot = domain + "/rest/api/latest/search"
+	urlRoot = domain + "/rest/api/latest/search"
 
 	// build credentials
 	username := requiredProperty(properties, "Username")
@@ -246,13 +250,18 @@ func readConfig(path string) {
 	credentials = base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 
 	// collect project names
-	if projects, ok := properties["Projects"]; ok {
-		projectNames = parseList(projects)
+	if s, ok := properties["Projects"]; ok {
+		projectNames = parseList(s)
 	}
 
 	// extract work item types
-	if typesString, ok := properties["Types"]; ok {
-		types = parseList(typesString)
+	if s, ok := properties["Types"]; ok {
+		types = parseList(s)
+	}
+
+	// extract filters
+	if s, ok := properties["Filters"]; ok {
+		filters = parseList(s)
 	}
 }
 
@@ -260,29 +269,28 @@ func getKeys(prevMaxKey string, retries int) []string {
 	var batch []string
 
 	// build jql
-	var buffer bytes.Buffer
+	var clauses []string
 	if len(projectNames) == 1 {
-		buffer.WriteString("project=" + projectNames[0])
+		clauses = append(clauses, "project=" + projectNames[0])
 	} else if len(projectNames) > 1 {
-		buffer.WriteString("project in (" + strings.Join(projectNames, ",") + ")")
+		clauses = append(clauses, "project in (" + strings.Join(projectNames, ",") + ")")
 	}
 	if len(types) > 0 {
-		if len(projectNames) > 0 {
-			buffer.WriteString(" AND ")
-		}
-		buffer.WriteString("issuetype in (" + strings.Join(types, ",") + ")")
+		clauses = append(clauses, "issuetype in (" + strings.Join(types, ",") + ")")
+	}
+	for _, filter := range filters {
+		clauses = append(clauses, "filter=" + filter)
 	}
 	if len(prevMaxKey) > 0 {
-		if len(projectNames) > 0 || len(types) > 0 {
-			buffer.WriteString(" AND ")
-		}
-		buffer.WriteString("key > " + prevMaxKey)
+		clauses = append(clauses, "key > " + prevMaxKey)
 	}
-	buffer.WriteString(" order by key")
-	jql := buffer.String()
+	jql := strings.Join(clauses, " AND ") + " order by key"
+	if showJQL && len(prevMaxKey) == 0 {
+		fmt.Println("JQL:", jql)
+	}
 
 	// build url
-	url := fmt.Sprint(urlAPIRoot, "?jql=", url.QueryEscape(jql), "&fields=key&maxResults=",
+	url := fmt.Sprint(urlRoot, "?jql=", url.QueryEscape(jql), "&fields=key&maxResults=",
 		keyBatchSize)
 
 	// send the request
@@ -292,7 +300,10 @@ func getKeys(prevMaxKey string, retries int) []string {
 	req.Header.Add("Authorization", "Basic "+credentials)
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("HTTP GET request failed for %s\n%s\n", urlAPIRoot, err)
+		fmt.Println("Error: HTTP GET request failed for", domain)
+		fmt.Println("Possible causes:")
+		fmt.Println(" - No network connection")
+		fmt.Println(" - Misspelled domain")
 		os.Exit(1)
 	}
 
@@ -307,7 +318,29 @@ func getKeys(prevMaxKey string, retries int) []string {
 				batch[i] = item.Key
 			}
 		} else {
-			fmt.Println("Error: Response Status Code", resp.StatusCode)
+			name := ""
+			info := ""
+			switch resp.StatusCode {
+			case 400:
+				name = "(Bad Request)"
+				info = "Possible causes:\n" +
+					" - A project doesn't exist\n" +
+					" - A filter doesn't exist\n" +
+					" - Nested comma, quote, or backslash"
+			case 401:
+				name = "(Not Authorized)"
+				info = "Possible causes\n:" +
+					" - Incorrect username or password\n" +
+					" - Your server doesn't support basic authentication\n" +
+					" - You are trying to use OAuth"
+			case 404:
+				name = "(Not Found)"
+				info = "Perhaps your domain is mispelled?"
+			}
+			fmt.Println("Error: Response Status Code", resp.StatusCode, name)
+			fmt.Println(info)
+			fmt.Println("URL: ", urlRoot)
+			fmt.Println("JQL: ", jql)
 			os.Exit(1)
 		}
 	} else {
@@ -334,7 +367,7 @@ func getIssues(keys []string) bool {
 	jql := buffer.String()
 
 	// build url
-	url := fmt.Sprint(urlAPIRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", issueBatchSize,
+	url := fmt.Sprint(urlRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", issueBatchSize,
 		"&expand=changelog")
 
 	// send the request
@@ -345,7 +378,7 @@ func getIssues(keys []string) bool {
 	resp, _ := client.Do(req)
 
 	// process the response
-	if resp.StatusCode == 200 { // OK
+	if resp != nil && resp.StatusCode == 200 { // OK
 		defer resp.Body.Close()
 
 		/*
@@ -430,7 +463,8 @@ func getIssues(keys []string) bool {
 			}
 		}
 	} else {
-		fmt.Println("Error: Response Status Code", resp.StatusCode)
+		// it doesn't matter why because we're going to retry
+		fmt.Println("Failed")
 		success = false
 	}
 
