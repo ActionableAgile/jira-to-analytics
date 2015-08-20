@@ -28,14 +28,16 @@ To run the Mac version using all the defaults:
 - jira_to_analytics.mac64
   
 ##THE CONFIG FILE##
-The config file conforms to the YAML format standard (http://yaml.org/spec/) and is completely case sensitive.  The file itself is broken up into the four sections:  
+In order for this utility to run properly, you must create a config file that contains the parameters of your Jira instance, and the necessary details of your workflow.  The config file is what tells the executuable what Jira instance to connect to, what data to grab, and how to format the resultant file to be uploaded into the ActionableAgile Analytics tool.
+
+The config file we use conforms to the YAML format standard (http://yaml.org/spec/) and is completely case sensitive.  You can find an example config file here: [https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml](https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml).  Feel free to follow along with that example as we run through the details of each section of the file.
+
+The file itself is broken up into the four sections:  
 
 Connection  
 Workflow  
 Optional   
 Custom  
-
-You can find an example config file here: [https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml](https://github.com/ActionableAgile/jira-to-analytics/blob/master/config.yaml).  Feel free to follow along with that example as we run through the details of each section of the file.
 
 ### The Connection Section ###
 The Connection Section of the config file is simply named "Connection" (without the quotes).  Each line of the this section contains the name of a connection property followed by a colon (:) followed by the required value.  This section has two required fields:
