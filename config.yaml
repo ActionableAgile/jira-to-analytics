@@ -4,7 +4,7 @@ Connection:
   Password: YourPassword
 
 Workflow:
-  Ready: Ready Queue, Open, Approved
+  Ready: Ready Queue, Open, (Created)
   Dev: Development
   Dev Done: Dev Done
   Test: Test
