@@ -19,20 +19,19 @@ type JiraIssueKey struct {
 }
 
 // fetch up to n keys that are greater than prevMaxKey
-func getKeys(n int, prevMaxKey string, config *Config) (keys []string, jql string, error *string) {
-	error = nil
+func getKeys(n int, prevMaxKey string, config *Config) (keys []string, jql string, err error) {
 
 	// build jql
 	var clauses []string
-	if len(config.projectNames) == 1 {
-		clauses = append(clauses, "project="+config.projectNames[0])
-	} else if len(config.projectNames) > 1 {
-		clauses = append(clauses, "project in ("+strings.Join(config.projectNames, ",")+")")
+	if len(config.ProjectNames) == 1 {
+		clauses = append(clauses, "project="+config.ProjectNames[0])
+	} else if len(config.ProjectNames) > 1 {
+		clauses = append(clauses, "project in ("+strings.Join(config.ProjectNames, ",")+")")
 	}
-	if len(config.types) > 0 {
-		clauses = append(clauses, "issuetype in ("+strings.Join(config.types, ",")+")")
+	if len(config.Types) > 0 {
+		clauses = append(clauses, "issuetype in ("+strings.Join(config.Types, ",")+")")
 	}
-	for _, filter := range config.filters {
+	for _, filter := range config.Filters {
 		clauses = append(clauses, "filter="+filter)
 	}
 	if len(prevMaxKey) > 0 {
@@ -41,13 +40,12 @@ func getKeys(n int, prevMaxKey string, config *Config) (keys []string, jql strin
 	jql = strings.Join(clauses, " AND ") + " order by key"
 
 	// build url
-	url := fmt.Sprint(config.urlRoot, "?jql=", url.QueryEscape(jql), "&fields=key&maxResults=", n)
+	url := fmt.Sprint(config.UrlRoot, "?jql=", url.QueryEscape(jql), "&fields=key&maxResults=", n)
 
 	// get credentials
-	credentials, err := config.getCredentials()
+	credentials, err := config.GetCredentials()
 	if err != nil {
-		error = err
-		return
+		return nil, "", err
 	}
 
 	// send the request
@@ -55,13 +53,13 @@ func getKeys(n int, prevMaxKey string, config *Config) (keys []string, jql strin
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept", "application/json")
 	req.Header.Add("Authorization", "Basic "+credentials)
-	resp, e := client.Do(req)
-	if e != nil {
-		*error = "HTTP GET request failed for " + config.domain + "\n" +
-			"Possible causes:\n" +
-			" - No network connection\n" +
-			" - Misspelled domain\n"
-		return
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("HTTP GET request failed for %s\n"+
+			"Possible causes:\n"+
+			" - No network connection\n"+
+			" - Misspelled domain\n",
+			config.Domain)
 	}
 
 	// process the response
@@ -94,16 +92,12 @@ func getKeys(n int, prevMaxKey string, config *Config) (keys []string, jql strin
 				name = "404 (Not Found)"
 				info = "Perhaps your domain is mispelled?"
 			}
-			*error = "Response Status Code " + name + "\n" +
-				info + "\n" +
-				"URL: " + config.urlRoot + "\n" +
-				"JQL: " + jql + "\n"
-			return
+			return nil, "", fmt.Errorf("Response Status Code %s\n%s\nURL: %s\nJQL: %s\n",
+				name, info, config.UrlRoot, jql)
 		}
 	} else {
-		*error = "No response from " + config.domain
-		return
+		return nil, "", fmt.Errorf("No response from %s", config.Domain)
 	}
 
-	return
+	return keys, jql, nil
 }
