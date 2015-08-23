@@ -35,9 +35,9 @@ The config file we use conforms to the YAML format standard (http://yaml.org/spe
 The file itself is broken up into the four sections:  
 
 Connection  
+Optional  
 Workflow  
-Optional   
-Custom  
+Attributes  
 
 ### The Connection Section ###
 The Connection Section of the config file is simply named "Connection" (without the quotes).  Each line of the this section contains the name of a connection property followed by a colon (:) followed by the required value.  This section has two required fields:
@@ -60,6 +60,22 @@ Connection:
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 
+### The Criteria Section ###
+The Criteria Section of the config file is simply named "Criteria" (without the quotes) and contains optional Jira attributes that can use to control your data set. Each line in this section contains the name of the Jira attribute you want in your data followed by a colon (:) followed by its corresponding value in your Jira instance.  The fields in this section that we support are:
+
+- 	Projects: a comma-separated list of the names of the Jira Projects you are querying
+- 	Types: a comma-separated list of the names of the Jira issuetypes you want to extract
+- 	Filters: a comma-separated list of the names of the filters you want to apply
+
+An example of what this section might look like would be:
+
+Criteria:  
+&nbsp;&nbsp;&nbsp;&nbsp;Project: My Project1, My Project2  
+&nbsp;&nbsp;&nbsp;&nbsp;Filters: Filter1, Filter2  
+&nbsp;&nbsp;&nbsp;&nbsp;Types: Epic, User Story
+
+**NOTE**:  The fields in this section are optional
+
 ### The Workflow Section ###
 The Workflow Section of the config file is simply named "Workflow" (without the quotes) and contains all the information needed to configure your workflow data.  Each line of the this section contains the name of the workflow column as you want it to appear in the data file, followed by a colon (:) followed by a comma-separated list of all the Jira statuses that you want to map to that column.  For example, a row in your Workflow section that looks like:
 
@@ -76,33 +92,21 @@ Again, please refer to the sample config file for an example of what the workflo
 
 **NOTE**:  The Workflow section requires a minimum of TWO (2) workflow steps, and the names of the workflow steps must be specified in the order you want them to appear in the output CSV.  The expectation is that all Jira issue types that are requested will follow the exact same workflow steps in the exact same order.
 
-### The Optional Section ###
-The Optional Section of the config file is simply named "Optional" (without the quotes) and contains optional Jira attributes that you may want to use to further refine your data set. Each line in this section contains the name of the Jira attribute you want in your data followed by a colon (:) followed by its corresponding value in your Jira instance.  The fields in this section that we support are:
 
-- 	Projects: a comma-separated list of the names of the Jira Projects you are querying
-- 	Types: a comma-separated list of the names of the Jira issuetypes you want to extract
-- 	Filters: a comma-separated list of the names of the filters you want to apply
+### The Attributes Section ###
+The Attributes Section of the config file is simply named "Attributes" (without the quotes) and is another optional section that includes name-value pairs that you want included in your extracted data set. They may be Jira custom fields that are unique to your Jira instance, or certain standard Jira fields that we support. Each line in this section contains the name you want to appear as the attribute column name in the CSV file, and the name of the custom field in Jira or the standard field name that we support.
 
-An example of what this section might look like would be:
+- 	CSV Column Name: ID of the custom field
+- 	CSV Column Name: Supported field name
 
-Optional:  
-&nbsp;&nbsp;&nbsp;&nbsp;Project: My Project1, My Project2  
-&nbsp;&nbsp;&nbsp;&nbsp;Types: Epic, User Story
-
-**NOTE**:  By definition, none of the fields in this section is required--in fact, this section as a whole is optional.
-
-### The Custom Section ###
-The Custom Section of the config file is simply named "Custom" (without the quotes) and is another optional section that includes name value pairs of custom fields that you may have added to your Jira instance that you want included in your extracted data set.  Each line in this section contains the name you have assigned to your custom field followed by a colon (:) followed by the value of the ID of the custom field in Jira.
-
-- 	Custom Field Name: ID of the custom field.  
-
-Each custom field should be on its own line underneath the “Custom” heading—see the example config file for more detail.  An example of what this section might look like is:
+An example of what this section might look like is:
 
 Custom:  
 &nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
-&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001
+&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
+&nbsp;&nbsp;&nbsp;&nbsp;Stage: Status  
 
-These custom fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
+These fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
 
 **NOTE**:  None of the fields in this section is required--in fact, this section as a whole is optional.
 
