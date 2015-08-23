@@ -49,8 +49,8 @@ func main() {
 		fmt.Println("Error:", err)
 		os.Exit(0)
 	}
-	if len(config.password) == 0 {
-		config.password = getPassword()
+	if len(config.Password) == 0 {
+		config.Password = getPassword()
 	}
 
 	// collect all the keys
@@ -119,14 +119,14 @@ func writeCSV(items []*Item, config *Config, fileName string) {
 
 	// write the header line
 	file.WriteString("ID,Link,Name")
-	for _, stage := range config.stageNames {
+	for _, stage := range config.StageNames {
 		file.WriteString("," + stage)
 	}
-	if len(config.types) > 0 {
+	if len(config.Types) > 0 {
 		file.WriteString(",Type")
 	}
-	for _, name := range config.customNames {
-		file.WriteString("," + name)
+	for _, attr := range config.Attributes {
+		file.WriteString("," + attr.ColumnName)
 	}
 	file.WriteString("\n")
 
