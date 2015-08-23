@@ -42,22 +42,21 @@ type Item struct {
 	StageDates []string
 	Name       string
 	Type       string
-	Custom     []string
+	Attributes []string
 }
 
-func getItems(keys []string, config *Config) (items []*Item, error *string) {
-	error = nil
+func getItems(keys []string, config *Config) ([]*Item, error) {
+	var items []*Item
 
 	// build url
 	jql := "key in (" + strings.Join(keys, ",") + ")"
-	url := fmt.Sprint(config.urlRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", len(keys),
+	url := fmt.Sprint(config.UrlRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", len(keys),
 		"&expand=changelog")
 
 	// get credentials
-	credentials, err := config.getCredentials()
+	credentials, err := config.GetCredentials()
 	if err != nil {
-		error = err
-		return
+		return nil, err
 	}
 
 	// send the request
@@ -88,8 +87,8 @@ func getItems(keys []string, config *Config) (items []*Item, error *string) {
 			item.Name = "\"" + name + "\""
 
 			// accumulate out-of-order events so we can handle backward flow
-			events := make([][]string, len(config.stageNames))
-			if config.createInFirstStage {
+			events := make([][]string, len(config.StageNames))
+			if config.CreateInFirstStage {
 				creationDate := strings.SplitN(fields["created"].(string), "T", 2)[0]
 				events[0] = append(events[0], creationDate)
 			}
@@ -97,7 +96,7 @@ func getItems(keys []string, config *Config) (items []*Item, error *string) {
 				for _, jItem := range history.Items {
 					if jItem.Field == "status" {
 						stageString := jItem.ToString
-						if stageIndex, found := config.stageMap[stageString]; found {
+						if stageIndex, found := config.StageMap[stageString]; found {
 							date := strings.SplitN(history.Created, "T", 2)[0]
 							events[stageIndex] = append(events[stageIndex], date)
 						}
@@ -107,7 +106,7 @@ func getItems(keys []string, config *Config) (items []*Item, error *string) {
 
 			// for each stage use min date that is >= max date from previous stages
 			previousMaxDate := ""
-			for stageIndex := range config.stageNames {
+			for stageIndex := range config.StageNames {
 				stageBestDate := ""
 				stageMaxDate := ""
 				for _, date := range events[stageIndex] {
@@ -127,18 +126,33 @@ func getItems(keys []string, config *Config) (items []*Item, error *string) {
 			}
 
 			// extract work item type
-			if len(config.types) > 0 {
+			if len(config.Types) > 0 {
 				typeStruct := fields["issuetype"] // interface{}
 				typeName := typeStruct.(map[string]interface{})
 				item.Type = typeName["name"].(string)
 			}
 
-			// extract custom fields
-			for k, v := range config.customFields {
-				customStruct := fields[v] // interface{}
-				if customStruct != nil {
-					customName := customStruct.(map[string]interface{})
-					item.Custom[k] = customName["value"].(string)
+			// extract attributes
+			for i, a := range config.Attributes {
+
+				// handle customfield
+				if strings.HasPrefix(a.FieldName, "customfield_") {
+					genericStruct := fields[a.FieldName] // interface{}
+					if genericStruct != nil {
+						genericFields := genericStruct.(map[string]interface{})
+						item.Attributes[i] = genericFields["value"].(string)
+					}
+
+					// handle predefined fields
+				} else {
+					switch a.FieldName {
+					case "Status":
+						genericStruct := fields["status"] // interface{}
+						if genericStruct != nil {
+							genericFields := genericStruct.(map[string]interface{})
+							item.Attributes[i] = genericFields["name"].(string)
+						}
+					}
 				}
 			}
 
@@ -146,18 +160,17 @@ func getItems(keys []string, config *Config) (items []*Item, error *string) {
 		}
 	} else {
 		// it doesn't matter why because since all the ids worked we're just going to retry
-		*error = "Failed"
-		return
+		return nil, fmt.Errorf("Failed")
 	}
 
-	return
+	return items, nil
 }
 
 func NewItem(key string, config *Config) *Item {
 	return &Item{
 		Id:         key,
-		StageDates: make([]string, len(config.stageNames)),
-		Custom:     make([]string, len(config.customFields)),
+		StageDates: make([]string, len(config.StageNames)),
+		Attributes: make([]string, len(config.Attributes)),
 	}
 }
 
@@ -177,16 +190,16 @@ func (w *Item) String(config *Config, writeLink bool) string {
 	buffer.WriteString(w.Id)
 	buffer.WriteString(",")
 	if writeLink {
-		buffer.WriteString(config.domain + "/browse/" + w.Id)
+		buffer.WriteString(config.Domain + "/browse/" + w.Id)
 	}
 	buffer.WriteString("," + w.Name)
 	for _, stageDate := range w.StageDates {
 		buffer.WriteString("," + stageDate)
 	}
-	if len(config.types) > 0 {
+	if len(config.Types) > 0 {
 		buffer.WriteString("," + w.Type)
 	}
-	for _, value := range w.Custom {
+	for _, value := range w.Attributes {
 		buffer.WriteString("," + value)
 	}
 	return buffer.String()
