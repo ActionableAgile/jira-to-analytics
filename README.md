@@ -35,7 +35,7 @@ The config file we use conforms to the YAML format standard (http://yaml.org/spe
 The file itself is broken up into the four sections:  
 
 Connection  
-Optional  
+Criteria  
 Workflow  
 Attributes  
 
