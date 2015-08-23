@@ -8,36 +8,48 @@ import (
 	"strings"
 )
 
-var sectionKeys = []string{"Connection", "Workflow", "Optional", "Custom"}
+var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
 var connectionKeys = []string{"Domain", "Username", "Password"}
-var optionalKeys = []string{"Types", "Projects", "Filters"}
+var criteriaKeys = []string{"Types", "Projects", "Filters"}
+var attributeFields = []string{"Status"}
 
-type Config struct {
-	domain             string
-	urlRoot            string
-	username           string
-	password           string
-	stageNames         []string
-	stageMap           map[string]int
-	projectNames       []string
-	types              []string
-	filters            []string
-	customNames        []string
-	customFields       []string
-	createInFirstStage bool
+type ConfigAttr struct {
+	ColumnName string // CSV column name
+	FieldName  string // Jira field from attributeFields above or a customfield_...
 }
 
-func (c *Config) getCredentials() (credentials string, error *string) {
-	if len(c.password) > 0 {
-		credentials = base64.StdEncoding.EncodeToString([]byte(c.username + ":" + c.password))
+type Config struct {
+	// connection stuff
+	Domain   string
+	UrlRoot  string
+	Username string
+	Password string
+
+	// criteria stuff
+	ProjectNames []string
+	Types        []string
+	Filters      []string
+
+	// workflow stuff
+	StageNames         []string
+	StageMap           map[string]int
+	CreateInFirstStage bool
+
+	// attributes stuff
+	Attributes []ConfigAttr
+}
+
+func (c *Config) GetCredentials() (credentials string, err error) {
+	if len(c.Password) > 0 {
+		credentials = base64.StdEncoding.EncodeToString([]byte(c.Username + ":" + c.Password))
 	} else {
-		*error = "Missing password"
+		err = fmt.Errorf("Missing password")
 	}
 	return
 }
 
-func LoadConfigFromLines(lines []string) (c *Config, error *string) {
-	c = &Config{stageMap: make(map[string]int), createInFirstStage: false}
+func LoadConfigFromLines(lines []string) (*Config, error) {
+	config := Config{StageMap: make(map[string]int), CreateInFirstStage: false}
 
 	// parse the contents
 	properties := make(map[string]string) // for all predefined keys (in Connection or Optional)
@@ -51,52 +63,51 @@ func LoadConfigFromLines(lines []string) (c *Config, error *string) {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			if len(key) > 0 {
-				if line[0] == ' ' || line[0] == '\t' { // indented
+				if line[0] != ' ' && line[0] != '\t' { // not indented, so start a new section
+					if in(key, sections) {
+						section = key
+					} else {
+						return nil, fmt.Errorf("Unexpected section %v at line %v", key, i+1)
+					}
+				} else { // indented, so handle section content
 					switch section {
+					case "Connection":
+						if in(key, connectionKeys) {
+							properties[key] = value
+						} else {
+							return nil, fmt.Errorf("Unexpected property %v at line %v", key, i+1)
+						}
+					case "Criteria":
+						if in(key, criteriaKeys) {
+							properties[key] = value
+						} else {
+							return nil, fmt.Errorf("Unexpected property %v at line %v", key, i+1)
+						}
 					case "Workflow":
-						stageIndex := len(c.stageNames)
-						c.stageNames = append(c.stageNames, key)
+						stageIndex := len(config.StageNames)
+						config.StageNames = append(config.StageNames, key)
 						for _, value := range strings.Split(value, ",") {
 							value = strings.TrimSpace(value)
 							if strings.ToLower(value) == "(created)" {
 								if stageIndex == 0 {
-									c.createInFirstStage = true
+									config.CreateInFirstStage = true
 								} else {
-									*error = fmt.Sprint("Unexpected (Created) in non-first stage",
-										c.stageNames[stageIndex], "at line", i)
-									return
+									return nil, fmt.Errorf("(Created) cannot be used in non-first"+
+										" stage %v at line %v", config.StageNames[stageIndex], i+1)
 								}
 							} else {
-								c.stageMap[value] = stageIndex
+								config.StageMap[value] = stageIndex
 							}
 						}
-					case "Custom":
-						c.customNames = append(c.customNames, strings.TrimSpace(key))
-						c.customFields = append(c.customFields, value)
-					case "Connection":
-						if isKey(key, connectionKeys) {
-							properties[key] = value
+					case "Attributes":
+						if in(value, attributeFields) || strings.HasPrefix(value, "customfield_") {
+							config.Attributes = append(config.Attributes, ConfigAttr{key, value})
 						} else {
-							*error = fmt.Sprint("Unexpected property", key, "at line", i)
-							return
-						}
-					case "Optional":
-						if isKey(key, optionalKeys) {
-							properties[key] = value
-						} else {
-							*error = fmt.Sprint("Unexpected property", key, "at line", i)
-							return
+							return nil, fmt.Errorf("Unknown attribute %v at line %v", value, i+1)
 						}
 					default:
-						*error = fmt.Sprint("Can't parse config file at line", i, "(extra indent?)")
-						return
-					}
-				} else { // not indented
-					if isKey(key, sectionKeys) {
-						section = key
-					} else {
-						*error = fmt.Sprint("Unexpected Section", key, "at line", i)
-						return
+						return nil, fmt.Errorf("Can't parse config file at line %v (extra indent?)",
+							i+1)
 					}
 				}
 			}
@@ -104,47 +115,44 @@ func LoadConfigFromLines(lines []string) (c *Config, error *string) {
 	}
 
 	// extract required domain and build url root
-	c.domain = properties["Domain"]
-	if len(c.domain) == 0 {
-		*error = fmt.Sprint("Config file has no property \"Domain\"")
-		return
+	config.Domain = properties["Domain"]
+	if len(config.Domain) == 0 {
+		return nil, fmt.Errorf("Config file has no property \"Domain\"")
 	}
-	c.urlRoot = c.domain + "/rest/api/latest/search"
+	config.UrlRoot = config.Domain + "/rest/api/latest/search"
 
 	// extract required username and optional password
-	c.username = properties["Username"]
-	if len(c.username) == 0 {
-		*error = fmt.Sprint("Config file has no property \"Username\"")
-		return
+	config.Username = properties["Username"]
+	if len(config.Username) == 0 {
+		return nil, fmt.Errorf("Config file has no property \"Username\"")
 	}
-	c.password = properties["Password"]
+	config.Password = properties["Password"]
 
 	// collect project names
 	if s, ok := properties["Projects"]; ok {
-		c.projectNames = parseList(s)
+		config.ProjectNames = parseList(s)
 	}
 
 	// extract work item types
 	if s, ok := properties["Types"]; ok {
-		c.types = parseList(s)
+		config.Types = parseList(s)
 	}
 
 	// extract filters
 	if s, ok := properties["Filters"]; ok {
-		c.filters = parseList(s)
+		config.Filters = parseList(s)
 	}
 
-	return
+	return &config, nil
 }
 
-func LoadConfigFromFile(path string) (c *Config, error *string) {
+func LoadConfigFromFile(path string) (*Config, error) {
 
 	// open the file
 	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil {
-		*error = fmt.Sprint(err.Error())
-		return
+		return nil, err
 	}
 
 	// read in the lines
@@ -154,14 +162,13 @@ func LoadConfigFromFile(path string) (c *Config, error *string) {
 		lines = append(lines, scanner.Text())
 	}
 	if scanner.Err() != nil {
-		*error = fmt.Sprint(scanner.Err().Error())
-		return
+		return nil, scanner.Err()
 	}
 
 	return LoadConfigFromLines(lines)
 }
 
-// extracts items from string, and quotes them
+// extract items from string and quote them
 func parseList(commaDelimited string) []string {
 	result := strings.Split(commaDelimited, ",")
 	for i, s := range result {
@@ -170,9 +177,10 @@ func parseList(commaDelimited string) []string {
 	return result
 }
 
-func isKey(key string, validKeys []string) bool {
-	for _, k := range validKeys {
-		if k == key {
+// return whether the string s is found in array a
+func in(s string, a []string) bool {
+	for _, as := range a {
+		if as == s {
 			return true
 		}
 	}
