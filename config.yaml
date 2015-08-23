@@ -3,6 +3,11 @@ Connection:
   Username: YourUsername
   Password: YourPassword
 
+Criteria:
+  Projects: Project1, Project2
+  Filters: Filter1, Filter2
+  Types: Epic, User Story, Defect
+  
 Workflow:
   Ready: Ready Queue, Open, (Created)
   Dev: Development
@@ -10,10 +15,7 @@ Workflow:
   Test: Test
   Done: Closed, Cancelled
 
-Optional:
-  Projects: Project1, Project2
-  Types: Epic, User Story, Defect
-
-Custom:
+Attributes:
   Team: customfield_10001
   Release: customfield_10002
+  Stage: Status
