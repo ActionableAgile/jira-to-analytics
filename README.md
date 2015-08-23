@@ -94,14 +94,14 @@ Again, please refer to the sample config file for an example of what the workflo
 
 
 ### The Attributes Section ###
-The Attributes Section of the config file is simply named "Attributes" (without the quotes) and is another optional section that includes name-value pairs that you want included in your extracted data set. They may be Jira custom fields that are unique to your Jira instance, or certain standard Jira fields that we support. Each line in this section contains the name you want to appear as the attribute column name in the CSV file, and the name of the custom field in Jira or the standard field name that we support.
+The Attributes Section of the config file is simply named "Attributes" (without the quotes) and is another optional section that includes name-value pairs that you want included in your extracted data set. They may be Jira custom fields that are unique to your Jira instance, or certain standard Jira fields that we support. Each line in this section contains the name you want to appear as the attribute column name in the CSV file, followed by a colon, followed by the name of a Jira custom field or a supported standard field, like this:
 
 - 	CSV Column Name: ID of the custom field
 - 	CSV Column Name: Supported field name
 
 An example of what this section might look like is:
 
-Custom:  
+Attributes:  
 &nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
 &nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
 &nbsp;&nbsp;&nbsp;&nbsp;Stage: Status  
