@@ -111,7 +111,7 @@ Attributes:
 &nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
 &nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
 &nbsp;&nbsp;&nbsp;&nbsp;Status: status  
-&nbsp;&nbsp;&nbsp;&nbsp;Type: issuetype
+&nbsp;&nbsp;&nbsp;&nbsp;Type: issuetype  
 &nbsp;&nbsp;&nbsp;&nbsp;Level: priority  
 
 These fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
