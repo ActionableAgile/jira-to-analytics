@@ -122,9 +122,6 @@ func writeCSV(items []*Item, config *Config, fileName string) {
 	for _, stage := range config.StageNames {
 		file.WriteString("," + stage)
 	}
-	if len(config.Types) > 0 {
-		file.WriteString(",Type")
-	}
 	for _, attr := range config.Attributes {
 		file.WriteString("," + attr.ColumnName)
 	}
