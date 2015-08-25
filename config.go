@@ -11,7 +11,7 @@ import (
 var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
 var connectionKeys = []string{"Domain", "Username", "Password"}
 var criteriaKeys = []string{"Types", "Projects", "Filters"}
-var attributeFields = []string{"Status"}
+var attributeFields = []string{"status", "issuetype", "priority", "resolution"}
 
 type ConfigAttr struct {
 	ColumnName string // CSV column name
