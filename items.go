@@ -146,8 +146,26 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 					// handle predefined fields
 				} else {
 					switch a.FieldName {
-					case "Status":
+					case "status":
 						genericStruct := fields["status"] // interface{}
+						if genericStruct != nil {
+							genericFields := genericStruct.(map[string]interface{})
+							item.Attributes[i] = genericFields["name"].(string)
+						}
+					case "issuetype":
+						genericStruct := fields["issuetype"] // interface{}
+						if genericStruct != nil {
+							genericFields := genericStruct.(map[string]interface{})
+							item.Attributes[i] = genericFields["name"].(string)
+						}
+					case "priority":
+						genericStruct := fields["priority"] // interface{}
+						if genericStruct != nil {
+							genericFields := genericStruct.(map[string]interface{})
+							item.Attributes[i] = genericFields["name"].(string)
+						}
+					case "resolution":
+						genericStruct := fields["resolution"] // interface{}
 						if genericStruct != nil {
 							genericFields := genericStruct.(map[string]interface{})
 							item.Attributes[i] = genericFields["name"].(string)
@@ -195,9 +213,6 @@ func (w *Item) String(config *Config, writeLink bool) string {
 	buffer.WriteString("," + w.Name)
 	for _, stageDate := range w.StageDates {
 		buffer.WriteString("," + stageDate)
-	}
-	if len(config.Types) > 0 {
-		buffer.WriteString("," + w.Type)
 	}
 	for _, value := range w.Attributes {
 		buffer.WriteString("," + value)
