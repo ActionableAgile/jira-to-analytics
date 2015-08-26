@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+//	"io/ioutil" // for displaying json
 )
 
 // Jira data structures for unmarshalling from JSON
@@ -69,6 +70,14 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 	// process the response
 	if resp != nil && resp.StatusCode == 200 { // OK
 		defer resp.Body.Close()
+
+/*
+		// print the json
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyString := string(bodyBytes)
+		fmt.Println(bodyString)
+		return items, nil
+*/
 
 		// decode json
 		var list JiraIssueList
@@ -143,33 +152,19 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 						item.Attributes[i] = genericFields["value"].(string)
 					}
 
-					// handle predefined fields
+				// handle predefined fields (can be struct, array of strings, array of structs)
 				} else {
 					switch a.FieldName {
 					case "status":
-						genericStruct := fields["status"] // interface{}
-						if genericStruct != nil {
-							genericFields := genericStruct.(map[string]interface{})
-							item.Attributes[i] = genericFields["name"].(string)
-						}
+						item.Attributes[i] = genericStructValue(fields, "status", "name");
 					case "issuetype":
-						genericStruct := fields["issuetype"] // interface{}
-						if genericStruct != nil {
-							genericFields := genericStruct.(map[string]interface{})
-							item.Attributes[i] = genericFields["name"].(string)
-						}
+						item.Attributes[i] = genericStructValue(fields, "issuetype", "name");
 					case "priority":
-						genericStruct := fields["priority"] // interface{}
-						if genericStruct != nil {
-							genericFields := genericStruct.(map[string]interface{})
-							item.Attributes[i] = genericFields["name"].(string)
-						}
+						item.Attributes[i] = genericStructValue(fields, "priority", "name");
 					case "resolution":
-						genericStruct := fields["resolution"] // interface{}
-						if genericStruct != nil {
-							genericFields := genericStruct.(map[string]interface{})
-							item.Attributes[i] = genericFields["name"].(string)
-						}
+						item.Attributes[i] = genericStructValue(fields, "resolution", "name");
+					case "labels":
+						item.Attributes[i] = genericStructValue(fields, "labels", "");
 					}
 				}
 			}
@@ -182,6 +177,42 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 	}
 
 	return items, nil
+}
+
+// if child refers to a struct, return the named field
+// if child refers to an array, it could be an array of strings or structs. Either way,
+// return a list of the fields as [a\,b\,c] or just a (no brackets) if only one
+func genericStructValue(parent map[string]interface{}, child, field string) (result string) {
+	genericChild := parent[child] // interface{}
+	if genericChild != nil {
+		switch genericChild.(type) {
+		case map[string]interface{}:
+			result = strings.TrimSpace(genericChild.(map[string]interface{})[field].(string))
+		case []interface{}:
+			genericArray := genericChild.([]interface{})
+			stringArray := make([]string, 0, len(genericArray))
+			for _, element := range genericArray {
+				var s string
+				switch element.(type) {
+				case map[string]interface{}:
+					s = element.(map[string]interface{})[field].(string)
+				case string:
+					s = element.(string)
+					fmt.Println(s)
+				}
+				s = strings.TrimSpace(s)
+				if len(s) > 0 {
+					stringArray = append(stringArray, s)
+				}
+			}
+			if len(stringArray) == 1 {
+				result = stringArray[0]
+			} else if len(stringArray) > 1 {
+				result = "[" + strings.Join(stringArray, "\\,") + "]"
+			}
+		}
+	}
+	return
 }
 
 func NewItem(key string, config *Config) *Item {
