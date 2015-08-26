@@ -104,6 +104,7 @@ Here are the standard Jira fields that we support:
 -  issuetype
 -  priority
 -  resolution
+-  labels
 
 An example of what this section might look like is:
 
