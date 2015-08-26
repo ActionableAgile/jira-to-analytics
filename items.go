@@ -198,7 +198,6 @@ func genericStructValue(parent map[string]interface{}, child, field string) (res
 					s = element.(map[string]interface{})[field].(string)
 				case string:
 					s = element.(string)
-					fmt.Println(s)
 				}
 				s = strings.TrimSpace(s)
 				if len(s) > 0 {
