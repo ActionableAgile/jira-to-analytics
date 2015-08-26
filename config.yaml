@@ -21,3 +21,4 @@ Attributes:
   Stage: status
   Type: issuetype
   Level: priority
+  Labels: labels
