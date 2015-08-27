@@ -11,11 +11,13 @@ import (
 var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
 var connectionKeys = []string{"Domain", "Username", "Password"}
 var criteriaKeys = []string{"Types", "Projects", "Filters"}
-var attributeFields = []string{"status", "issuetype", "priority", "resolution", "labels"}
+var attributeFields = []string{"status", "issuetype", "priority", "resolution", "project",
+	"labels", "fixVersions", "components"}
 
 type ConfigAttr struct {
-	ColumnName string // CSV column name
-	FieldName  string // Jira field from attributeFields above or a customfield_...
+	ColumnName  string // CSV column name
+	FieldName   string // Jira field from attributeFields above or a customfield_...
+	ContentName string // Struct field to pull the value from (default to "value", n/a for arrays)
 }
 
 type Config struct {
@@ -100,8 +102,18 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 							}
 						}
 					case "Attributes":
-						if in(value, attributeFields) || strings.HasPrefix(value, "customfield_") {
-							config.Attributes = append(config.Attributes, ConfigAttr{key, value})
+						if strings.HasPrefix(value, "customfield_") {
+							valueParts := strings.SplitN(value, ".", 2)
+							fieldName := valueParts[0]
+							contentName := "value"
+							if len(valueParts) > 1 {
+								contentName = valueParts[1]
+							}
+							attr := ConfigAttr{key, fieldName, contentName}
+							config.Attributes = append(config.Attributes, attr)
+						} else if in(value, attributeFields) {
+							attr := ConfigAttr{key, value, ""}
+							config.Attributes = append(config.Attributes, attr)
 						} else {
 							return nil, fmt.Errorf("Unknown attribute %v at line %v", value, i+1)
 						}
