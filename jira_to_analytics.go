@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const version = "1.0-beta.8"
+const version = "1.0-beta.9"
 const keyBatchSize = 500
 const issueBatchSize = 100
 const maxTries = 5
