@@ -146,25 +146,27 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 
 				// handle customfield
 				if strings.HasPrefix(a.FieldName, "customfield_") {
-					genericStruct := fields[a.FieldName] // interface{}
-					if genericStruct != nil {
-						genericFields := genericStruct.(map[string]interface{})
-						item.Attributes[i] = genericFields["value"].(string)
-					}
+					item.Attributes[i] = getValue(fields, a.FieldName, a.ContentName)
 
 				// handle predefined fields (can be struct, array of strings, array of structs)
 				} else {
 					switch a.FieldName {
 					case "status":
-						item.Attributes[i] = genericStructValue(fields, "status", "name");
+						item.Attributes[i] = getValue(fields, "status", "name")
 					case "issuetype":
-						item.Attributes[i] = genericStructValue(fields, "issuetype", "name");
+						item.Attributes[i] = getValue(fields, "issuetype", "name")
 					case "priority":
-						item.Attributes[i] = genericStructValue(fields, "priority", "name");
+						item.Attributes[i] = getValue(fields, "priority", "name")
 					case "resolution":
-						item.Attributes[i] = genericStructValue(fields, "resolution", "name");
+						item.Attributes[i] = getValue(fields, "resolution", "name")
+					case "project":
+						item.Attributes[i] = getValue(fields, "project", "name")
 					case "labels":
-						item.Attributes[i] = genericStructValue(fields, "labels", "");
+						item.Attributes[i] = getValue(fields, "labels", "")
+					case "fixVersions":
+						item.Attributes[i] = getValue(fields, "fixVersions", "")
+					case "components":
+						item.Attributes[i] = getValue(fields, "components", "")
 					}
 				}
 			}
@@ -179,24 +181,30 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 	return items, nil
 }
 
-// if child refers to a struct, return the named field
+// if child refers to a struct, return its named content field
 // if child refers to an array, it could be an array of strings or structs. Either way,
-// return a list of the fields as [a\,b\,c] or just a (no brackets) if only one
-func genericStructValue(parent map[string]interface{}, child, field string) (result string) {
+//   return a list of the content as [a\,b\,c] or just a (no brackets) if only one
+func getValue(parent map[string]interface{}, child, contentName string) (result string) {
 	genericChild := parent[child] // interface{}
 	if genericChild != nil {
 		switch genericChild.(type) {
-		case map[string]interface{}:
-			result = strings.TrimSpace(genericChild.(map[string]interface{})[field].(string))
-		case []interface{}:
+		case map[string]interface{}: // actually a struct
+			genericStruct := genericChild.(map[string]interface{})
+			if content, ok := genericStruct[contentName]; ok {
+				result = content.(string)
+			}
+		case []interface{}: // an array of something
 			genericArray := genericChild.([]interface{})
 			stringArray := make([]string, 0, len(genericArray))
 			for _, element := range genericArray {
 				var s string
 				switch element.(type) {
-				case map[string]interface{}:
-					s = element.(map[string]interface{})[field].(string)
-				case string:
+				case map[string]interface{}: // the array contains structs
+					genericStruct := element.(map[string]interface{})
+					if content, ok := genericStruct[contentName]; ok {
+						s = content.(string)
+					}
+				case string: // the array contains strings
 					s = element.(string)
 				}
 				s = strings.TrimSpace(s)
@@ -209,6 +217,8 @@ func genericStructValue(parent map[string]interface{}, child, field string) (res
 			} else if len(stringArray) > 1 {
 				result = "[" + strings.Join(stringArray, "\\,") + "]"
 			}
+		case string:
+			result = genericChild.(string)
 		}
 	}
 	return
