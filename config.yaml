@@ -17,7 +17,7 @@ Workflow:
 
 Attributes:
   Team: customfield_10001
-  Release: customfield_10002
+  Release: customfield_10002.name
   Stage: status
   Type: issuetype
   Level: priority
