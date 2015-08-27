@@ -96,21 +96,28 @@ Again, please refer to the sample config file for an example of what the workflo
 ### The Attributes Section ###
 The Attributes Section of the config file is simply named "Attributes" (without the quotes) and is another optional section that includes name-value pairs that you want included in your extracted data set. They may be Jira custom fields that are unique to your Jira instance, or certain standard Jira fields that we support. Each line in this section contains the name you want to appear as the attribute column name in the CSV file, followed by a colon, followed by the name of a Jira custom field or a supported standard field, like this:
 
-- 	CSV Column Name: ID of the custom field
+- 	CSV Column Name: ID of the custom field with optional dot notation (see following paragraph)
 - 	CSV Column Name: Supported field name
 
-Here are the standard Jira fields that we support:  
+In the returned JSON, a custom field may contain a single string, a struct, an array of strings, or an array of structs. If a struct is present (whether singly or in an array), we use the "value" field by default. If you want to use a different field, say, "color", you can specify it with the dot notation: customfield_10010.color
+
+If the returned JSON contains an array, the content of each element is extracted normally. If there are multiple non-empty values, all the values are joined with an escaped comma and surrounded by square brackets like this: [red\,green\,blue]
+
+Here are the standard Jira fields that you can use:  
 -  status
 -  issuetype
 -  priority
 -  resolution
+-  project
 -  labels
+-  fixVersions
+-  components
 
 An example of what this section might look like is:
 
 Attributes:  
 &nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
-&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
+&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001.name  
 &nbsp;&nbsp;&nbsp;&nbsp;Status: status  
 &nbsp;&nbsp;&nbsp;&nbsp;Type: issuetype  
 &nbsp;&nbsp;&nbsp;&nbsp;Level: priority  
