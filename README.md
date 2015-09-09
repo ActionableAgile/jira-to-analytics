@@ -117,7 +117,7 @@ An example of what this section might look like is:
 
 Attributes:  
 &nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
-&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001.name  
+&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
 &nbsp;&nbsp;&nbsp;&nbsp;Status: status  
 &nbsp;&nbsp;&nbsp;&nbsp;Type: issuetype  
 &nbsp;&nbsp;&nbsp;&nbsp;Level: priority  
