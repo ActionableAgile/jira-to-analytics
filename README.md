@@ -5,7 +5,7 @@
 ## OVERVIEW ##
 The purpose of this software is to extract flow data from Jira and put that data into a proper format for use with the ActionableAgile&trade; Analytics tool (for more information on the ActionableAgile&trade; Analytics tool, please visit [https://www.actionableagile.com](https://www.actionableagile.com) or sign up for a free trial of the tool at [https://www.actionableagile.com/cms/analytics-free-trial-signup.html](https://www.actionableagile.com/cms/analytics-free-trial-signup.html).)  
 
-This program reads in a well-formed config file (see The Config File section below), connects to Jira and extracts data using the Jira REST API according to the parameters specified in the config file (see the Extraction Procedure Section below), and writes out a CSV file that can be directly loaded into ActionableAgile&trade; Analytics (see The Output File section below).  
+This program reads in a well-formed config file (see The Config File section below), connects to Jira and extracts data using the Jira REST API according to the parameters specified in the config file (see the Extraction Procedure Section below), and writes out a CSV file or JSON file that can be directly loaded into ActionableAgile&trade; Analytics (see The Output File section below).  
 
 This software is written in Go and has been complied into executables for use with these Operating Systems:  Windows, Linux, Mac OS.
 
@@ -13,16 +13,16 @@ This software is written in Go and has been complied into executables for use wi
 The executable supports the following command-line flags, all of which are optional:
 
 - -i specifies input config file name (defaults to config.yaml)
-- -o specifies output csv file name (defaults to data.csv)
+- -o specifies output file name (must end with .csv or .json, defaults to data.csv)
 - -v displays the version number
-- -j displays the jql used
+- -q displays the query used
 - -h displays this list
 
 For example, to run the Linux version using a config file named myconfig.yaml and creating mydata.csv:
 - jira_to_analytics.linux -i myconfig.yaml -o mydata.csv
 
-To run the Windows version using config.yaml (the default) and writing jira.csv:
-- jira_to_analytics.win64.exe -o jira.csv
+To run the Windows version using config.yaml (the default) and writing jira.json:
+- jira_to_analytics.win64.exe -o jira.json
 
 To run the Mac version using all the defaults:
 - jira_to_analytics.mac64
@@ -127,16 +127,21 @@ These fields will show up as filter attributes in the generated data file (pleas
 **NOTE**:  None of the fields in this section is required--in fact, this section as a whole is optional.
 
 ## EXTRACTION PROCEDURE ##
-The program will read in the properly formatted config file (see The Config File section above) and attempt to connect to Jira using the url and authentication parameters specified (or will prompt you for a password if you did not specify one).  When a connection is established, the software will extract data using Jira’s REST API according to the parameters specified in the config file.  REST calls are “batched” so as to stay under Jira’s “maxResult” size limit as well as to minimize the chances of server timeout errors when retrieving large datasets.  If a non-fatal error is encountered, the extraction program will retry up to five time before terminating.  The program ignores any Jira issue types that have workflow stages not specified in the config and it handles Jira issues that have moved backward and forward through the workflow.  If all goes well, the extraction program will write out a CSV file that contains all extracted data to the same directory where the program is running.  That CSV can then be loaded directly into the ActionableAgile Analytics tool.
+The program will read in the properly formatted config file (see The Config File section above) and attempt to connect to Jira using the url and authentication parameters specified (or will prompt you for a password if you did not specify one).  When a connection is established, the software will extract data using Jira’s REST API according to the parameters specified in the config file.  REST calls are “batched” so as to stay under Jira’s “maxResult” size limit as well as to minimize the chances of server timeout errors when retrieving large datasets.  If a non-fatal error is encountered, the extraction program will retry up to five time before terminating.  The program ignores any Jira issue types that have workflow stages not specified in the config and it handles Jira issues that have moved backward and forward through the workflow.
+If all goes well, the extraction program will write out a CSV or JSON file that contains all extracted data to the same directory where the program is running.
 
 ## THE OUTPUT FILE ##
-The output CSV file follows the format required by the ActionableAgile Analytics tool as specified here:  [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/). 
+The output file follows the format required by the ActionableAgile Analytics tool as specified here:  [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/). 
+
+If the output file is a CSV file, it can be loaded directly into the ActionableAgile Analytics tool from the Home tab using the Load Data button.
+
+If the output file is a JSON file, it can be loaded with Analytics via the URL parameter url=your-url/filename.json. For example, if you are hosting Analytics from www.mysite.com/Analytics and the JSON file is named data.json in the same directory as Analytics, the full url would be www.mysite.com/Analytics?url=data.json or www.mysite.com/Analytics?url=www.mysite.com/data.json. If you are using the SaaS version of Analytics from https://www.actionableagile.com and want to serve the JSON file from your own website, you must enable Cross-Origin Resource Sharing (CORS) for the URLs that serve your JSON.
 
 ## INFO FOR WINDOWS USERS ##
-Download jira_to_analytics.win64.exe and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located.  Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  You can either launch the exe by double clicking it in an explorer view or open a command prompt and run it from there.  If running from a command prompt simply type the name of the exe in and hit enter (no additional command line parameters are needed).  If the program succeeds, a CSV data file will be written in the same directory as the exe.  You can now take this file and load it directly into the ActionableAgile Analytics tool.
+Download jira_to_analytics.win64.exe and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located.  Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  You can either launch the exe by double clicking it in an explorer view or open a command prompt and run it from there.  If running from a command prompt simply type the name of the exe in and hit enter (no additional command line parameters are needed).  If the program succeeds, the output data file will be written in the same directory as the exe.
 
 ## INFO FOR LINUX USERS ##
-Download jira_to_analytics.linux64 and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  Open a terminal and cd to the directory containing the files. Make the linux64 file executable by typing chmod u+x jira_to_analytics.linux64. Run it by typing ./jira_to_analytics.linux64. If the program succeeds, a CSV data file will be written in the same directory as the executable.  You can now take this file and load it directly into the ActionableAgile Analytics tool.
+Download jira_to_analytics.linux64 and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  Open a terminal and cd to the directory containing the files. Make the linux64 file executable by typing chmod u+x jira_to_analytics.linux64. Run it by typing ./jira_to_analytics.linux64. If the program succeeds, the output data file will be written in the same directory as the executable.
 
 ## INFO FOR MAC USERS ##
-Download jira_to_analytics.mac64 and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  Open a terminal and cd to the directory containing the files. Make the mac64 file executable by typing chmod u+x jira_to_analytics.mac64. Run it by typing ./jira_to_analytics.mac64. If the program succeeds, a CSV data file will be written in the same directory as the executable.  You can now take this file and load it directly into the ActionableAgile Analytics tool.
+Download jira_to_analytics.mac64 and config.yaml from the releases page on github ([https://github.com/actionableagile/jira-to-analytics/releases](https://github.com/actionableagile/jira-to-analytics/releases)) and put both files in the same directory.  Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README.  Open a terminal and cd to the directory containing the files. Make the mac64 file executable by typing chmod u+x jira_to_analytics.mac64. Run it by typing ./jira_to_analytics.mac64. If the program succeeds, the output data file will be written in the same directory as the executable.
