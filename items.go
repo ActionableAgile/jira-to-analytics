@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-//	"io/ioutil" // for displaying json
+	//	"io/ioutil" // for displaying json
 )
 
 // Jira data structures for unmarshalling from JSON
@@ -71,13 +71,13 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 	if resp != nil && resp.StatusCode == 200 { // OK
 		defer resp.Body.Close()
 
-/*
-		// print the json
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-		bodyString := string(bodyBytes)
-		fmt.Println(bodyString)
-		return items, nil
-*/
+		/*
+			// print the json
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			bodyString := string(bodyBytes)
+			fmt.Println(bodyString)
+			return items, nil
+		*/
 
 		// decode json
 		var list JiraIssueList
@@ -93,7 +93,7 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 			name = strings.Replace(name, "\"", "", -1)
 			name = strings.Replace(name, ",", "", -1)
 			name = strings.Replace(name, "\\", "", -1)
-			item.Name = "\"" + name + "\""
+			item.Name = name
 
 			// accumulate out-of-order events so we can handle backward flow
 			events := make([][]string, len(config.StageNames))
@@ -148,7 +148,7 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 				if strings.HasPrefix(a.FieldName, "customfield_") {
 					item.Attributes[i] = getValue(fields, a.FieldName, a.ContentName)
 
-				// handle predefined fields (can be struct, array of strings, array of structs)
+					// handle predefined fields (can be struct, array of strings, array of structs)
 				} else {
 					switch a.FieldName {
 					case "status":
@@ -183,7 +183,7 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 
 // if child refers to a struct, return its named content field
 // if child refers to an array, it could be an array of strings or structs. Either way,
-//   return a list of the content as [a\,b\,c] or just a (no brackets) if only one
+//   return a list of the content as [a;b;c] or just a (no brackets) if only one
 func getValue(parent map[string]interface{}, child, contentName string) (result string) {
 	genericChild := parent[child] // interface{}
 	if genericChild != nil {
@@ -215,13 +215,22 @@ func getValue(parent map[string]interface{}, child, contentName string) (result 
 			if len(stringArray) == 1 {
 				result = stringArray[0]
 			} else if len(stringArray) > 1 {
-				result = "[" + strings.Join(stringArray, "\\,") + "]"
+				result = "[" + strings.Join(stringArray, ";") + "]"
 			}
 		case string:
 			result = genericChild.(string)
 		}
 	}
 	return
+}
+
+// put quotes around it unless it already has them
+func quoteString(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "\"") {
+		return s
+	}
+	return "\"" + s + "\""
 }
 
 func NewItem(key string, config *Config) *Item {
@@ -232,9 +241,9 @@ func NewItem(key string, config *Config) *Item {
 	}
 }
 
-func (w *Item) HasDate() bool {
+func (item *Item) HasDate() bool {
 	result := false
-	for _, date := range w.StageDates {
+	for _, date := range item.StageDates {
 		if len(date) > 0 {
 			result = true
 			break
@@ -243,19 +252,39 @@ func (w *Item) HasDate() bool {
 	return result
 }
 
-func (w *Item) String(config *Config, writeLink bool) string {
+func (item *Item) toCSV(config *Config, writeLink bool) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(w.Id)
+	buffer.WriteString(item.Id)
 	buffer.WriteString(",")
 	if writeLink {
-		buffer.WriteString(config.Domain + "/browse/" + w.Id)
+		buffer.WriteString(config.Domain + "/browse/" + item.Id)
 	}
-	buffer.WriteString("," + w.Name)
-	for _, stageDate := range w.StageDates {
+	buffer.WriteString("," + quoteString(item.Name))
+	for _, stageDate := range item.StageDates {
 		buffer.WriteString("," + stageDate)
 	}
-	for _, value := range w.Attributes {
+	for _, value := range item.Attributes {
 		buffer.WriteString("," + value)
 	}
+	return buffer.String()
+}
+
+func (item *Item) toJSON(config *Config, writeLink bool) string {
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+	buffer.WriteString(quoteString(item.Id))
+	if writeLink {
+		buffer.WriteString("," + quoteString(config.Domain+"/browse/"+item.Id))
+	} else {
+		buffer.WriteString("," + quoteString(""))
+	}
+	buffer.WriteString("," + quoteString(item.Name))
+	for _, stageDate := range item.StageDates {
+		buffer.WriteString("," + quoteString(stageDate))
+	}
+	for _, value := range item.Attributes {
+		buffer.WriteString("," + quoteString(value))
+	}
+	buffer.WriteString("]")
 	return buffer.String()
 }
