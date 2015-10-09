@@ -46,13 +46,29 @@ type Item struct {
 	Attributes []string
 }
 
-func getItems(keys []string, config *Config) ([]*Item, error) {
+func getItems(issueBatchSize int, currentStartIndex int, showQuery bool, config *Config) ([]*Item, error) {
 	var items []*Item
 
 	// build url
-	jql := "key in (" + strings.Join(keys, ",") + ")"
-	url := fmt.Sprint(config.UrlRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", len(keys),
-		"&expand=changelog")
+	jql := ""
+	var clauses []string
+	if len(config.ProjectNames) == 1 {
+		clauses = append(clauses, "project="+config.ProjectNames[0])
+	} else if len(config.ProjectNames) > 1 {
+		clauses = append(clauses, "project in ("+strings.Join(config.ProjectNames, ",")+")")
+	}
+	if len(config.Types) > 0 {
+		clauses = append(clauses, "issuetype in ("+strings.Join(config.Types, ",")+")")
+	}
+
+	for _, filter := range config.Filters {
+		clauses = append(clauses, "filter="+filter)
+	}
+
+	jql = strings.Join(clauses, " AND ") + " order by id"
+
+	// build url
+	url := fmt.Sprint(config.UrlRoot, "?jql=", url.QueryEscape(jql), "&maxResults=", issueBatchSize, "&startAt=", currentStartIndex, "&expand=changelog")
 
 	// get credentials
 	credentials, err := config.GetCredentials()
@@ -60,6 +76,10 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 		return nil, err
 	}
 
+	if(showQuery) {
+		fmt.Println("\t==> Requested URL:")
+		fmt.Println("\t==>", url)	
+	}
 	// send the request
 	client := http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
@@ -174,8 +194,28 @@ func getItems(keys []string, config *Config) ([]*Item, error) {
 			items = append(items, item)
 		}
 	} else {
-		// it doesn't matter why because since all the ids worked we're just going to retry
-		return nil, fmt.Errorf("Failed")
+		name := ""
+		info := ""
+		switch resp.StatusCode {
+		case 400:
+			name = "400 (Bad request)"
+			info = "Possible causes:\n" +
+				   " - A project doesn't exist\n" +
+				   " - A filter doesn't exist\n" +
+                   " - Nested comma, quote, or backslash"
+            case 401:
+                name = "401 (Not Authorized)"
+                info = "Possible causes\n:" +
+                    " - Incorrect username or password\n" +
+                    " - Your server doesn't support basic authentication\n" +
+                    " - You are trying to use OAuth"
+            case 404:
+                name = "404 (Not Found)"
+                info = "Perhaps your domain is mispelled?"
+		}
+		return nil, fmt.Errorf("Response Status Code %s\n%s\nURL: %s\nJQL: %s\n",
+            			name, info, config.UrlRoot, jql)
+
 	}
 
 	return items, nil
