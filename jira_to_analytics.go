@@ -15,7 +15,6 @@ import (
 )
 
 const version = "1.0-beta.9"
-const keyBatchSize = 500
 const issueBatchSize = 100
 const maxTries = 5
 const retryDelay = 5 // seconds per retry
@@ -54,50 +53,40 @@ func main() {
 		config.Password = getPassword()
 	}
 
-	// collect all the keys
-	fmt.Println("Fetching issue keys...")
-	var keys, keyBatch []string
-	var query string
-	maxKey := ""
-	for keyBatch, query, err = getKeys(keyBatchSize, maxKey, config); err == nil && len(keyBatch) > 0; keyBatch, _, err = getKeys(keyBatchSize, maxKey, config) {
-		keys = append(keys, keyBatch...)
-		maxKey = keyBatch[len(keyBatch)-1]
-		if len(maxKey) == 0 { // first time only
-			if *showQuery {
-				fmt.Println("Query: ", query)
-			}
-			fmt.Println("\tLoaded", len(keyBatch), "keys")
-		} else {
-			fmt.Println("\tLoaded", len(keyBatch), "keys,", len(keys), "total")
-		}
-	}
-
 	// collect the work items for the keys
 	fmt.Println("Fetching issues...")
+	currentStartIndex := 0
 	var items []*Item
-	for i := 0; i < len(keys); i += issueBatchSize {
-		end := i + issueBatchSize
-		if end >= len(keys) {
-			end = len(keys)
-		}
-		success := false
-		fmt.Print("\tLoading Issues ", i+1, "-", end, ": ")
-		for tries := 0; tries < maxTries; tries++ {
-			if itemBatch, err := getItems(keys[i:end], config); err == nil {
-				items = append(items, itemBatch...)
-				fmt.Println("ok")
-				success = true
+
+	success := false
+	for tries := 0; tries < maxTries; tries++ {
+		fmt.Println("Loading Issues ", currentStartIndex, "-", currentStartIndex + issueBatchSize)
+		itemBatch, err := getItems(issueBatchSize, currentStartIndex, *showQuery, config);
+
+		if err == nil {
+			items = append(items, itemBatch...)
+			fmt.Println("\t\t==> Request ok")
+			fmt.Println("\t\t==> Fetched ", len(itemBatch), " items")
+			success = true
+			currentStartIndex += issueBatchSize
+			tries = 0
+
+			if( itemBatch == nil || len(itemBatch) == 0) {
 				break
 			}
-			if tries < maxTries-1 {
-				fmt.Print("\tRetrying issues ", i+1, "-", end, ": ")
-				time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
-			}
+		} else {
+			fmt.Println("\t\t ==> Request caused an error")
+			fmt.Println("\t\t ==>", err)
+			break
 		}
-		if !success {
-			fmt.Println("Error: Issues", i+1, "-", end, "failed to load")
-			os.Exit(1)
+		if (tries > 0 && tries < maxTries-1) {
+			fmt.Println("\t\tRetrying issues ", currentStartIndex, "-", currentStartIndex + issueBatchSize, ": ")
+			time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
 		}
+	}
+	if !success {
+		fmt.Println("Error: Issues", currentStartIndex, "-", currentStartIndex + issueBatchSize, "failed to load")
+		os.Exit(1)
 	}
 
 	// output work items
