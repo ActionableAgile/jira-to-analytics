@@ -225,8 +225,8 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 					item.Attributes[i] = getValue(fields, "project", "name")
 				case "labels":
 					item.Attributes[i] = getValue(fields, "labels", "")
-				case "fixVersions":
-					item.Attributes[i] = getValue(fields, "fixVersions", "")
+				case "fixVersion":
+					item.Attributes[i] = getValue(fields, "fixVersion", "")
 				case "components":
 					item.Attributes[i] = getValue(fields, "components", "")
 				}
