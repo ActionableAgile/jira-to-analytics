@@ -16,7 +16,8 @@ The executable supports the following command-line flags, all of which are optio
 - -o specifies output file name (must end with .csv or .json, defaults to data.csv)
 - -v displays the version number
 - -q displays the query used
-- -h displays this list
+- -u displays unused Jira stages
+- -h displays help (this list)
 
 For example, to run the Linux version using a config file named myconfig.yaml and creating mydata.csv:
 - jira_to_analytics.linux -i myconfig.yaml -o mydata.csv
