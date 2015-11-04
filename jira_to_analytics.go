@@ -1,8 +1,7 @@
 // Method:
 // 1. Parse command-line flags and config file
-// 2. Fetch Jira Issue Keys in batches
-// 3. Fetch Jira Issues by key in batches, using them to build work items
-// 4. Write out CSV or JSON, one work item per line
+// 2. Fetch Jira Issues in batches, using them to build work items
+// 3. Write out CSV or JSON, one work item per line
 
 package main
 
@@ -14,8 +13,8 @@ import (
 	"time"
 )
 
-const version = "1.0-beta.9"
-const issueBatchSize = 100
+const version = "1.0-beta.11"
+const batchSize = 20
 const maxTries = 5
 const retryDelay = 5 // seconds per retry
 
@@ -27,6 +26,7 @@ func main() {
 	outName := flag.String("o", "data.csv", "set the output file name (.csv or .json)")
 	printVersion := flag.Bool("v", false, "print the version number and exit")
 	showQuery := flag.Bool("q", false, "display the query used")
+	showUnusedStages := flag.Bool("u", false, "display unused stages")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Println("Unexpected argument \"" + flag.Args()[0] + "\"")
@@ -53,40 +53,89 @@ func main() {
 		config.Password = getPassword()
 	}
 
-	// collect the work items for the keys
-	fmt.Println("Fetching issues...")
-	currentStartIndex := 0
-	var items []*Item
-
-	success := false
-	for tries := 0; tries < maxTries; tries++ {
-		fmt.Println("Loading Issues ", currentStartIndex, "-", currentStartIndex + issueBatchSize)
-		itemBatch, err := getItems(issueBatchSize, currentStartIndex, *showQuery, config);
-
-		if err == nil {
-			items = append(items, itemBatch...)
-			fmt.Println("\t\t==> Request ok")
-			fmt.Println("\t\t==> Fetched ", len(itemBatch), " items")
-			success = true
-			currentStartIndex += issueBatchSize
-			tries = 0
-
-			if( itemBatch == nil || len(itemBatch) == 0) {
-				break
-			}
-		} else {
-			fmt.Println("\t\t ==> Request caused an error")
-			fmt.Println("\t\t ==>", err)
-			break
+	// an example of how to get the stages
+	/*
+		query := getQuery(300, 200, config)
+		if *showQuery {
+			fmt.Println("\nQuery:", query)
 		}
-		if (tries > 0 && tries < maxTries-1) {
-			fmt.Println("\t\tRetrying issues ", currentStartIndex, "-", currentStartIndex + issueBatchSize, ": ")
-			time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
+		if stageScores, err := getStages(query, config); err == nil {
+			fmt.Println("ok")
+			fmt.Printf("%v\n", stageScores)
+		} else {
+			fmt.Print("failed\nError: ", err, "\n")
+			os.Exit(1)
+		}
+	*/
+
+	// test with a minimal query
+	fmt.Print("\tTesting connection: ")
+	query := getQuery(0, 1, config)
+	if _, _, err := getItems(query, config); err == nil {
+		fmt.Println("ok")
+	} else {
+		fmt.Print("failed\nError: ", err, "\n")
+		os.Exit(1)
+	}
+
+	// collect the work items in batches until we get none back or an error
+	batchStart := 0
+	accumulatedUnusedStages := make(map[string]int)
+	var items []*Item
+	for {
+		end := batchStart + batchSize
+		fmt.Print("\tLoading Issues ", batchStart+1, "-", end, ": ")
+
+		query := getQuery(batchStart, batchSize, config)
+		if *showQuery {
+			fmt.Println("\nQuery:", query)
+		}
+
+		// try each batch multiple times if it fails
+		batchOk := false
+		done := false
+		for tries := 0; tries < maxTries; tries++ {
+			if itemBatch, unusedStages, err := getItems(query, config); err == nil {
+
+				// accumulate results of batch
+				items = append(items, itemBatch...)
+				for k, v := range unusedStages {
+					accumulatedUnusedStages[k] = accumulatedUnusedStages[k] + v
+				}
+
+				fmt.Print("ok (", len(itemBatch), " issues)\n")
+				if len(itemBatch) == batchSize {
+					batchOk = true
+				} else {
+					done = true
+				}
+				break
+			} else {
+				fmt.Print("failed\n\t\tRetrying issues ", batchStart+1, "-", end, ": ")
+				time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
+			}
+		}
+		if done {
+			break
+		} else if batchOk {
+			batchStart = end
+		} else {
+			fmt.Println("Error: Issues ", batchStart+1, "-", end, " failed to load")
+			os.Exit(1)
 		}
 	}
-	if !success {
-		fmt.Println("Error: Issues", currentStartIndex, "-", currentStartIndex + issueBatchSize, "failed to load")
-		os.Exit(1)
+
+	// show unused stages
+	if *showUnusedStages && len(accumulatedUnusedStages) > 0 {
+		fmt.Println("Unused Jira workflow stages:")
+		for k, v := range accumulatedUnusedStages {
+			fmt.Print("\t", k, " (", v, " entr")
+			if v > 1 {
+				fmt.Println("ies)")
+			} else {
+				fmt.Println("y)")
+			}
+		}
 	}
 
 	// output work items
@@ -153,10 +202,10 @@ func writeJSON(items []*Item, config *Config, fileName string) {
 	// write the header line
 	file.WriteString("[[\"ID\",\"Link\",\"Name\"")
 	for _, stage := range config.StageNames {
-		file.WriteString("," + quoteString(stage))
+		file.WriteString(",\"" + stage + "\"")
 	}
 	for _, attr := range config.Attributes {
-		file.WriteString("," + quoteString(attr.ColumnName))
+		file.WriteString(",\"" + attr.ColumnName + "\"")
 	}
 	file.WriteString("]")
 
@@ -180,3 +229,4 @@ func writeJSON(items []*Item, config *Config, fileName string) {
 	}
 	fmt.Println(counter, "work items written")
 }
+

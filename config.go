@@ -57,8 +57,15 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 	properties := make(map[string]string) // for all predefined keys (in Connection or Optional)
 	section := ""
 	for i, line := range lines {
+
+		// strip commented part of line
+		commentStart := strings.Index(line, "#")
+		if commentStart >= 0 {
+			line = strings.Split(line, "#")[0]
+			fmt.Println("Comment line changed to", line, "on line", i)
+		}
+
 		if strings.HasPrefix(line, "---") { // skip yaml indicator
-		} else if strings.HasPrefix(line, "#") { // skip comments
 		} else if len(strings.TrimSpace(line)) == 0 { // skip blank lines
 		} else {
 			parts := strings.SplitN(line, ":", 2)
@@ -89,16 +96,16 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 						stageIndex := len(config.StageNames)
 						config.StageNames = append(config.StageNames, key)
 						for _, value := range strings.Split(value, ",") {
-							value = strings.TrimSpace(value)
-							if strings.ToLower(value) == "(created)" {
+							ucValue := strings.ToUpper(strings.TrimSpace(value))
+							if ucValue == "(CREATED)" {
 								if stageIndex == 0 {
 									config.CreateInFirstStage = true
 								} else {
-									return nil, fmt.Errorf("(Created) cannot be used in non-first"+
+									return nil, fmt.Errorf(ucValue+" cannot be used in non-first"+
 										" stage %v at line %v", config.StageNames[stageIndex], i+1)
 								}
 							} else {
-								config.StageMap[value] = stageIndex
+								config.StageMap[ucValue] = stageIndex
 							}
 						}
 					case "Attributes":
