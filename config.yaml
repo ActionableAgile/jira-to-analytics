@@ -22,3 +22,5 @@ Attributes:
   Type: issuetype
   Level: priority
   Labels: labels
+  Versions: fixVersions
+  Components: components
