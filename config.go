@@ -14,6 +14,8 @@ var criteriaKeys = []string{"Types", "Projects", "Filters"}
 var attributeFields = []string{"status", "issuetype", "priority", "resolution", "project",
 	"labels", "fixVersions", "components"}
 
+const URL_SUFFIX = "/rest/api/latest"
+
 type ConfigAttr struct {
 	ColumnName  string // CSV column name
 	FieldName   string // Jira field from attributeFields above or a customfield_...
@@ -21,6 +23,7 @@ type ConfigAttr struct {
 }
 
 type Config struct {
+
 	// connection stuff
 	Domain   string
 	UrlRoot  string
@@ -48,6 +51,22 @@ func (c *Config) GetCredentials() (credentials string, err error) {
 		err = fmt.Errorf("Missing password")
 	}
 	return
+}
+
+func CreateConnectionConfig(domain, username, password string) *Config {
+	return &Config{
+		Domain:   domain,
+		UrlRoot:  domain + URL_SUFFIX,
+		Username: username,
+		Password: password,
+		StageMap: make(map[string]int),
+	}
+}
+
+func CreateProjectConfig(domain, username, password, project string) (config *Config) {
+	config = CreateConnectionConfig(domain, username, password)
+	config.ProjectNames = []string{project}
+	return config
 }
 
 func LoadConfigFromLines(lines []string) (*Config, error) {
@@ -138,7 +157,7 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 	if len(config.Domain) == 0 {
 		return nil, fmt.Errorf("Config file has no property \"Domain\"")
 	}
-	config.UrlRoot = config.Domain + "/rest/api/latest/search"
+	config.UrlRoot = config.Domain + URL_SUFFIX
 
 	// extract required username and optional password
 	config.Username = properties["Username"]

@@ -13,8 +13,9 @@ import (
 	"time"
 )
 
-const version = "1.0-beta.11"
-const batchSize = 20
+const version = "1.0-beta.12"
+
+const batchSize = 25
 const maxTries = 5
 const retryDelay = 5 // seconds per retry
 
@@ -53,18 +54,30 @@ func main() {
 		config.Password = getPassword()
 	}
 
-	// an example of how to get the stages
 	/*
-		query := getQuery(300, 200, config)
-		if *showQuery {
-			fmt.Println("\nQuery:", query)
-		}
-		if stageScores, err := getStages(query, config); err == nil {
-			fmt.Println("ok")
-			fmt.Printf("%v\n", stageScores)
-		} else {
-			fmt.Print("failed\nError: ", err, "\n")
+		// get projects
+		if projects, err := getProjects(config); err != nil {
+			fmt.Println("failed")
 			os.Exit(1)
+		} else {
+			fmt.Println(projects)
+			os.Exit(0)
+		}
+	*/
+
+	/*
+		// get workflows
+		if workflows, err := getWorkflows(config); err != nil {
+			fmt.Println("failed", err)
+			os.Exit(1)
+		} else {
+			for _, w := range workflows {
+				fmt.Println(w.Name)
+				for _, s := range w.Statuses {
+					fmt.Println("\t", s.Name)
+				}
+			}
+			os.Exit(0)
 		}
 	*/
 
@@ -103,7 +116,7 @@ func main() {
 					accumulatedUnusedStages[k] = accumulatedUnusedStages[k] + v
 				}
 
-				fmt.Print("ok (", len(itemBatch), " issues)\n")
+				fmt.Print("ok (", len(itemBatch), " received)\n")
 				if len(itemBatch) == batchSize {
 					batchOk = true
 				} else {
@@ -115,6 +128,7 @@ func main() {
 				time.Sleep(time.Duration(tries*(retryDelay+1)) * time.Second) // delay increases
 			}
 		}
+
 		if done {
 			break
 		} else if batchOk {
@@ -229,4 +243,3 @@ func writeJSON(items []*Item, config *Config, fileName string) {
 	}
 	fmt.Println(counter, "work items written")
 }
-

@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const PRINT_JSON = false
@@ -40,6 +40,26 @@ type JiraHistory struct {
 type JiraItem struct {
 	Field    string
 	ToString string
+}
+
+// for extracting project names
+type JiraProjectList []JiraProject
+
+type JiraProject struct {
+	Key  string
+	Name string
+}
+
+// for extracting workflows
+type JiraWorkflowList []JiraWorkflow
+
+type JiraWorkflow struct {
+	Name     string
+	Statuses []JiraStatus
+}
+
+type JiraStatus struct {
+	Name string
 }
 
 // collect work items for writing to file
@@ -134,7 +154,6 @@ func getStages(query string, config *Config) (scores Scores, e error) {
 
 // returns items resulting from supplied query. Use getQuery() to get the query
 func getItems(query string, config *Config) (items []*Item, unusedStages map[string]int, e error) {
-
 	// fetch the issues
 	issues, err := getIssues(query, config)
 	if err != nil {
@@ -157,7 +176,7 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 		// accumulate out-of-order events so we can handle backward flow
 		events := make([][]string, len(config.StageNames))
 		if config.CreateInFirstStage {
-			creationDate := strings.SplitN(fields["created"].(string), "T", 2)[0]
+			creationDate := fields["created"].(string)
 			events[0] = append(events[0], creationDate)
 		}
 		for _, history := range issue.Changelog.Histories {
@@ -165,7 +184,7 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 				if jItem.Field == "status" {
 					stageName := jItem.ToString
 					if stageIndex, found := config.StageMap[strings.ToUpper(stageName)]; found {
-						date := strings.SplitN(history.Created, "T", 2)[0]
+						date := history.Created
 						events[stageIndex] = append(events[stageIndex], date)
 					} else {
 						count := unusedStages[jItem.ToString]
@@ -175,24 +194,31 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 			}
 		}
 
-		// for each stage use min date that is >= max date from previous stages
-		previousMaxDate := ""
-		for stageIndex := range config.StageNames {
-			stageBestDate := ""
-			stageMaxDate := ""
-			for _, date := range events[stageIndex] {
-				if date >= previousMaxDate && (stageBestDate == "" || date < stageBestDate) {
-					stageBestDate = date
-				}
-				if date > stageMaxDate {
-					stageMaxDate = date
+		// backflow occurs when a stage has multiple dates. Note the latest date in the stage,
+		// but keep only the earliest date. Then traverse subsequent stages deleting all dates
+		// that are on or before that noted latest date.
+		latestValidDate := ""
+		for stageIndex, stageDates := range events {
+
+			// first filter out dates in this stage that are before latestValidDate
+			stageDates = removeDatesBefore(stageDates, latestValidDate)
+
+			// now handle backflow
+			if len(stageDates) > 1 {
+				sort.Strings(stageDates)                       // from earliest to latest
+				latestInStage := stageDates[len(stageDates)-1] // note the latest
+				stageDates = stageDates[:1]                    // keep only the earliest
+
+				// traverse subsequent stages, removing dates before latest
+				for j := stageIndex + 1; j < len(events); j++ {
+					events[j] = removeDatesBefore(events[j], latestInStage)
 				}
 			}
-			if stageBestDate != "" {
-				item.StageDates[stageIndex] = stageBestDate
-			}
-			if stageMaxDate != "" && stageMaxDate > previousMaxDate {
-				previousMaxDate = stageMaxDate
+
+			// at this point 0 or 1 date remains
+			if len(stageDates) > 0 {
+				latestValidDate = stageDates[0]
+				item.StageDates[stageIndex] = strings.SplitN(latestValidDate, "T", 2)[0]
 			}
 		}
 
@@ -225,10 +251,10 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 					item.Attributes[i] = getValue(fields, "project", "name")
 				case "labels":
 					item.Attributes[i] = getValue(fields, "labels", "")
-				case "fixVersion":
-					item.Attributes[i] = getValue(fields, "fixVersion", "")
+				case "fixVersions":
+					item.Attributes[i] = getValue(fields, "fixVersions", "name")
 				case "components":
-					item.Attributes[i] = getValue(fields, "components", "")
+					item.Attributes[i] = getValue(fields, "components", "name")
 				}
 			}
 		}
@@ -237,6 +263,18 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 	}
 
 	return items, unusedStages, nil
+}
+
+// performed in place
+func removeDatesBefore(dates []string, date string) []string {
+	keepIndex := 0
+	for _, d := range dates {
+		if d >= date {
+			dates[keepIndex] = d
+			keepIndex++
+		}
+	}
+	return dates[:keepIndex]
 }
 
 func getQuery(startIndex int, batchSize int, config *Config) string {
@@ -255,10 +293,97 @@ func getQuery(startIndex int, batchSize int, config *Config) string {
 	jql := strings.Join(clauses, " AND ") + " order by key"
 
 	return config.UrlRoot +
-		"?jql=" + url.QueryEscape(jql) +
+		"/search?jql=" + url.QueryEscape(jql) +
 		"&startAt=" + strconv.Itoa(startIndex) +
 		"&maxResults=" + strconv.Itoa(batchSize) +
 		"&expand=changelog"
+}
+
+func getProjects(config *Config) (result JiraProjectList, e error) {
+
+	// get credentials
+	credentials, err := config.GetCredentials()
+	if err != nil {
+		return result, err
+	}
+
+	// send the request
+	client := http.Client{}
+	url := config.UrlRoot + "/project"
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Basic "+credentials)
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// process the response
+	if resp.StatusCode == 200 { // OK
+
+		if PRINT_JSON {
+			var indented bytes.Buffer
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			json.Indent(&indented, bodyBytes, "", "\t")
+			indented.WriteTo(os.Stdout)
+		}
+
+		// decode json
+		var list JiraProjectList
+		json.NewDecoder(resp.Body).Decode(&list)
+		result = list
+
+	} else {
+		e = fmt.Errorf("Error: %v failed", url)
+	}
+
+	return result, e
+}
+
+func getWorkflows(config *Config) (result JiraWorkflowList, e error) {
+
+	// get credentials
+	credentials, err := config.GetCredentials()
+	if err != nil {
+		return result, err
+	}
+
+	// extract the project
+	project := strings.Trim(config.ProjectNames[0], "\"")
+
+	// send the request
+	client := http.Client{}
+	url := config.UrlRoot + "/project/" + project + "/statuses"
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Authorization", "Basic "+credentials)
+	var resp *http.Response
+	if resp, err = client.Do(req); err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// process the response
+	if resp.StatusCode == 200 { // OK
+
+		if PRINT_JSON {
+			var indented bytes.Buffer
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			json.Indent(&indented, bodyBytes, "", "\t")
+			indented.WriteTo(os.Stdout)
+		}
+
+		// decode json
+		var list JiraWorkflowList
+		json.NewDecoder(resp.Body).Decode(&list)
+		result = list
+
+	} else {
+		e = fmt.Errorf("Error: %v failed", url)
+	}
+
+	return result, e
 }
 
 // returns items resulting from supplied query. Use getQuery() to get the query
@@ -271,17 +396,14 @@ func getIssues(query string, config *Config) (result []JiraIssue, e error) {
 	}
 
 	// send the request
-	client := http.Client{Timeout: time.Duration(60 * time.Second)}
+	//client := http.Client{Timeout: time.Duration(10*time.Millisecond)}
+	client := http.Client{}
 	req, _ := http.NewRequest("GET", query, nil)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Basic "+credentials)
 	var resp *http.Response
 	if resp, err = client.Do(req); err != nil {
-		return nil, fmt.Errorf("Couldn't connect to %s\n"+
-			"Possible causes:\n"+
-			" - Misspelled domain\n"+
-			" - No network connection\n",
-			config.Domain)
+		return nil, fmt.Errorf("No such host: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -289,10 +411,10 @@ func getIssues(query string, config *Config) (result []JiraIssue, e error) {
 	if resp.StatusCode == 200 { // OK
 
 		if PRINT_JSON {
+			var indented bytes.Buffer
 			bodyBytes, _ := ioutil.ReadAll(resp.Body)
-			bodyString := string(bodyBytes)
-			fmt.Println(bodyString)
-			return result, e
+			json.Indent(&indented, bodyBytes, "", "\t")
+			indented.WriteTo(os.Stdout)
 		}
 
 		// decode json
@@ -406,6 +528,9 @@ func (item *Item) toCSV(config *Config, writeLink bool) string {
 	buffer.WriteString("," + cleanString(item.Name))
 	for _, stageDate := range item.StageDates {
 		buffer.WriteString("," + stageDate)
+	}
+	if len(config.Types) > 1 {
+		buffer.WriteString("," + item.Type)
 	}
 	for _, value := range item.Attributes {
 		buffer.WriteString("," + cleanString(value))
