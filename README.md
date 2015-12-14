@@ -92,7 +92,7 @@ Workflow:
 Sometimes Jira issues are created with a certain status, and there is no event that corresponds to a move into that status, so there is no date at which the work item entered the corresponding workflow stage. You can designate that an item be created in a certain workflow stage by adding (Created) to the list of Jira statuses. For example, in the previous example if you wanted to designate that items enter the ToDo workflow stage when they are created, you would change the workflow section of the config file as follows:
 
 Workflow:  
-&nbsp;&nbsp;&nbsp;&nbsp;ToDo: ToDo, (Created)
+&nbsp;&nbsp;&nbsp;&nbsp;ToDo: ToDo, (Created)  
 &nbsp;&nbsp;&nbsp;&nbsp;Doing: Doing  
 &nbsp;&nbsp;&nbsp;&nbsp;Done: Done
 
