@@ -550,6 +550,9 @@ func (item *Item) toJSON(config *Config, writeLink bool) string {
 	for _, stageDate := range item.StageDates {
 		data = append(data, stageDate)
 	}
+	if len(config.Types) > 1 {
+		data = append(data, strings.TrimSpace(item.Type))
+	}
 	for _, value := range item.Attributes {
 		data = append(data, strings.TrimSpace(value))
 	}

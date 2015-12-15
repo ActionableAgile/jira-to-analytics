@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const version = "1.0-beta.12"
+const version = "1.0-beta.13"
 
 const batchSize = 25
 const maxTries = 5
@@ -179,6 +179,9 @@ func writeCSV(items []*Item, config *Config, fileName string) {
 	for _, stage := range config.StageNames {
 		file.WriteString("," + stage)
 	}
+	if len(config.Types) > 1 {
+		file.WriteString(",Type")
+	}
 	for _, attr := range config.Attributes {
 		file.WriteString("," + attr.ColumnName)
 	}
@@ -217,6 +220,9 @@ func writeJSON(items []*Item, config *Config, fileName string) {
 	file.WriteString("[[\"ID\",\"Link\",\"Name\"")
 	for _, stage := range config.StageNames {
 		file.WriteString(",\"" + stage + "\"")
+	}
+	if len(config.Types) > 1 {
+		file.WriteString(",\"Type\"")
 	}
 	for _, attr := range config.Attributes {
 		file.WriteString(",\"" + attr.ColumnName + "\"")
