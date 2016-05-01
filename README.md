@@ -46,9 +46,10 @@ The Connection Section of the config file is simply named "Connection" (without 
 - 	Domain: the url to the domain where your Jira instance is hosted
 - 	Username: the username you use to login to Jira
 
-And one optional fields:
+And two optional fields:
 
 - 	Password: the password you use to login to Jira
+-	BatchSize: amount of Jira issues to fetch in one batch, defaults to 25
 
 If you do not supply a password in the config file, you will be prompted for a password at runtime.
 
@@ -58,6 +59,7 @@ Connection:
 &nbsp;&nbsp;&nbsp;&nbsp;Domain: https://www.myjiradomain.com  
 &nbsp;&nbsp;&nbsp;&nbsp;Username: MyUsername  
 &nbsp;&nbsp;&nbsp;&nbsp;Password: MyPassword  
+&nbsp;&nbsp;&nbsp;&nbsp;BatchSize: 50
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 

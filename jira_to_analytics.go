@@ -96,10 +96,10 @@ func main() {
 	accumulatedUnusedStages := make(map[string]int)
 	var items []*Item
 	for {
-		end := batchStart + batchSize
+		end := batchStart + config.BatchSize
 		fmt.Print("\tLoading Issues ", batchStart+1, "-", end, ": ")
 
-		query := getQuery(batchStart, batchSize, config)
+		query := getQuery(batchStart, config.BatchSize, config)
 		if *showQuery {
 			fmt.Println("\nQuery:", query)
 		}
@@ -117,7 +117,7 @@ func main() {
 				}
 
 				fmt.Print("ok (", len(itemBatch), " received)\n")
-				if len(itemBatch) == batchSize {
+				if len(itemBatch) == config.BatchSize {
 					batchOk = true
 				} else {
 					done = true
