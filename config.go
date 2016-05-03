@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"strconv"  	
+	"strconv"
 )
 
 var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
@@ -30,7 +30,7 @@ type Config struct {
 	UrlRoot  string
 	Username string
 	Password string
-	BatchSize int 
+	BatchSize int
 
 	// criteria stuff
 	ProjectNames []string
