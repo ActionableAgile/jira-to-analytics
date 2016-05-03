@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"strconv"
 )
 
 var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
-var connectionKeys = []string{"Domain", "Username", "Password", "BatchSize"}
+var connectionKeys = []string{"Domain", "Username", "Password"}
 var criteriaKeys = []string{"Types", "Projects", "Filters"}
 var attributeFields = []string{"status", "issuetype", "priority", "resolution", "project",
 	"labels", "fixVersions", "components"}
@@ -30,7 +29,6 @@ type Config struct {
 	UrlRoot  string
 	Username string
 	Password string
-	BatchSize int
 
 	// criteria stuff
 	ProjectNames []string
@@ -41,6 +39,7 @@ type Config struct {
 	StageNames         []string
 	StageMap           map[string]int
 	CreateInFirstStage bool
+	ResolvedInLastStage bool
 
 	// attributes stuff
 	Attributes []ConfigAttr
@@ -72,7 +71,7 @@ func CreateProjectConfig(domain, username, password, project string) (config *Co
 }
 
 func LoadConfigFromLines(lines []string) (*Config, error) {
-	config := Config{StageMap: make(map[string]int), CreateInFirstStage: false}
+	config := Config{StageMap: make(map[string]int), CreateInFirstStage: false, ResolvedInLastStage: false}
 
 	// parse the contents
 	properties := make(map[string]string) // for all predefined keys (in Connection or Optional)
@@ -126,7 +125,16 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 										" stage %v at line %v", config.StageNames[stageIndex], i+1)
 								}
 							} else {
-								config.StageMap[ucValue] = stageIndex
+								if ucValue == "(RESOLVED)" {
+									if stageIndex == len(key)+1{
+										config.ResolvedInLastStage = true
+									} else {
+										return nil, fmt.Errorf(ucValue+" cannot be used in non-last"+
+											" stage %v at line %v", config.StageNames[stageIndex], i+1)									
+									}
+								} else {
+									config.StageMap[ucValue] = stageIndex
+								}
 							}
 						}
 					case "Attributes":
@@ -167,13 +175,6 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 		return nil, fmt.Errorf("Config file has no property \"Username\"")
 	}
 	config.Password = properties["Password"]
-
-    batchSizeFromConfig, err := strconv.Atoi(properties["BatchSize"])
-    if err != nil {
-		config.BatchSize = batchSize
-	} else {
-		config.BatchSize = batchSizeFromConfig
-	}
 
 	// collect project names
 	if s, ok := properties["Projects"]; ok {
