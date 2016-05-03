@@ -178,13 +178,13 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 	}
 	config.Password = properties["Password"]
 
-	batchSizeFromConfig, err := strconv.Atoi(properties["BatchSize"])    
-	if err != nil {    
-		config.BatchSize = batchSize    
-	} else {    
-		config.BatchSize = batchSizeFromConfig    
-	}  
-	
+    batchSizeFromConfig, err := strconv.Atoi(properties["BatchSize"])
+    if err != nil {
+		config.BatchSize = batchSize
+	} else {
+		config.BatchSize = batchSizeFromConfig
+	}
+
 	// collect project names
 	if s, ok := properties["Projects"]; ok {
 		config.ProjectNames = parseList(s)
