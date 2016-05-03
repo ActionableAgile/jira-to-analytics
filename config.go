@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"strconv"  	
 )
 
 var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
-var connectionKeys = []string{"Domain", "Username", "Password"}
+var connectionKeys = []string{"Domain", "Username", "Password", "BatchSize"}
 var criteriaKeys = []string{"Types", "Projects", "Filters"}
 var attributeFields = []string{"status", "issuetype", "priority", "resolution", "project",
 	"labels", "fixVersions", "components"}
@@ -29,6 +30,7 @@ type Config struct {
 	UrlRoot  string
 	Username string
 	Password string
+	BatchSize int 
 
 	// criteria stuff
 	ProjectNames []string
@@ -176,6 +178,13 @@ func LoadConfigFromLines(lines []string) (*Config, error) {
 	}
 	config.Password = properties["Password"]
 
+	batchSizeFromConfig, err := strconv.Atoi(properties["BatchSize"])    
+	if err != nil {    
+		config.BatchSize = batchSize    
+	} else {    
+		config.BatchSize = batchSizeFromConfig    
+	}  
+	
 	// collect project names
 	if s, ok := properties["Projects"]; ok {
 		config.ProjectNames = parseList(s)
