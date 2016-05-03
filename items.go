@@ -253,6 +253,7 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 					itemValue = getValue(fields, a.FieldName, "name")
 				}
 				item.Attributes[i] = itemValue
+
 				// handle predefined fields (can be struct, array of strings, array of structs)
 			} else {
 				switch a.FieldName {
