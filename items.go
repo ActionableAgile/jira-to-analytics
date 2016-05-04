@@ -179,6 +179,20 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 			creationDate := fields["created"].(string)
 			events[0] = append(events[0], creationDate)
 		}
+		if config.ResolvedInLastStage {
+			if (fields["status"] != nil) {
+				statusStruct := fields["status"]
+				statusName := statusStruct.(map[string]interface{})
+				issueStatus := statusName["name"].(string)
+				if (issueStatus == "Closed"){
+					if (fields["resolutiondate"] != nil) {
+						resolutionDate := fields["resolutiondate"].(string)
+						doneStageIndex := config.StageMap[strings.ToUpper("CLOSED")]
+						events[doneStageIndex] = append(events[doneStageIndex], resolutionDate)
+					}
+				}
+			}
+		}
 		for _, history := range issue.Changelog.Histories {
 			for _, jItem := range history.Items {
 				if jItem.Field == "status" {
@@ -234,7 +248,11 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 
 			// handle customfield
 			if strings.HasPrefix(a.FieldName, "customfield_") {
-				item.Attributes[i] = getValue(fields, a.FieldName, a.ContentName)
+				itemValue := getValue(fields, a.FieldName, a.ContentName)
+				if (itemValue == ""){
+					itemValue = getValue(fields, a.FieldName, "name")
+				}
+				item.Attributes[i] = itemValue
 
 				// handle predefined fields (can be struct, array of strings, array of structs)
 			} else {
