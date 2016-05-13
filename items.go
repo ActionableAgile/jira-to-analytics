@@ -273,6 +273,8 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 					item.Attributes[i] = getValue(fields, "fixVersions", "name")
 				case "components":
 					item.Attributes[i] = getValue(fields, "components", "name")
+				case "assignee":
+					item.Attributes[i] = getValue(fields, "assignee", "name")	
 				}
 			}
 		}
@@ -504,7 +506,9 @@ func getValue(parent map[string]interface{}, child, contentName string) (result 
 			}
 		case string:
 			result = genericChild.(string)
-		}
+		case float64: 
+			result = strconv.FormatFloat(genericChild.(float64), 'f', -1, 64)
+		}	
 	}
 	return
 }
