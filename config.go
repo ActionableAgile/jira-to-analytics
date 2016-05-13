@@ -13,7 +13,7 @@ var sections = []string{"Connection", "Criteria", "Workflow", "Attributes"}
 var connectionKeys = []string{"Domain", "Username", "Password", "BatchSize"}
 var criteriaKeys = []string{"Types", "Projects", "Filters"}
 var attributeFields = []string{"status", "issuetype", "priority", "resolution", "project",
-	"labels", "fixVersions", "components"}
+	"labels", "fixVersions", "components", "assignee"}
 
 const URL_SUFFIX = "/rest/api/latest"
 
