@@ -1,0 +1,28 @@
+{
+  "name": "aa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tsc": "tsc",
+    "tsc:w": "tsc -w --outDir build",
+    "typings-install": "typings install",
+    "postinstall": "npm run typings-install",
+    "start": "npm run tsc:w",
+    "test": "mocha --recursive --compilers ts:ts-node/register"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
+    "ts-node": "^0.7.3",
+    "typescript": "^1.8.10",
+    "typings": "^1.0.4"
+  },
+  "dependencies": {
+    "es6-promise": "^3.2.1",
+    "isomorphic-fetch": "^2.2.1"
+  }
+}

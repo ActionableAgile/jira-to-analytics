@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "rootDir": ".",
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false
+  },
+  "exclude": [
+    "typings/main.d.ts",
+    "typings/main",
+    "node_modules",
+    "*.spec.ts"
+  ],
+  "compileOnSave": false,
+  "buildOnSave": false,
+  "atom": { "rewriteTsconfig": false }
+}
