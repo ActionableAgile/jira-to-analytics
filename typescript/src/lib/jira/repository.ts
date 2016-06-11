@@ -33,7 +33,6 @@ const getIssues = async function(query: string, username: string, password: stri
 };
 
 const getHeaders = (username: string, password: string): Headers => {
-  console.log(username, password);
   const headers = new Headers();
   headers.append('Accept', 'application/json');
   if (username && password) {
@@ -44,26 +43,22 @@ const getHeaders = (username: string, password: string): Headers => {
 
 function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, projects: Array<string>, issueTypes: Array<string>, filters: Array<string>): string {
   let clauses: string[] = [];
-  console.log('terst');
+
   const projectClause = (projects.length > 1)
     ? `project in (${ projects.join(',') })`
     : `project=${ projects[0] }`;
   clauses.push(projectClause);
 
-  console.log('hi2');
   if (issueTypes.length > 0) {
     const typeClause = `issuetype in (${issueTypes.join(',')})`;
     clauses.push(typeClause);
   }
-
-  console.log('hi');
 
   const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
   const query = `${url}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
-  // console.log(query);
   return query;
 };
 

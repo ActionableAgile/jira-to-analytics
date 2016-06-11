@@ -77,7 +77,6 @@ class JiraSettings implements IJiraSettings {
                     });
                     this.Workflow = workflow;
                 } else {
-                    console.log('not legacy');
                     Object.keys(settings.Workflow).forEach(key => {
                         workflow[key] = convertToArray(settings.Workflow[key]);
                     });
