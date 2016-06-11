@@ -1,5 +1,7 @@
 import 'isomorphic-fetch';
+// import { Promise, Map } from 'core-js' //es6 ponyfills -- typings install --save --global dt~core-js
 import { IIssueList, IIssue, IWorkItem, WorkItem } from './models';
+
 
 function status(response: IResponse): Promise<any> {
   if (response.status >= 200 && response.status < 300) {
@@ -62,7 +64,7 @@ function getJiraQueryUrl(startIndex: number, batchSize: number, settings: any): 
 const parseAttributeArray = (attributeArray: any[]): string => {
   let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => {
     return parseAttribute(attributeArrayElement);
-  });//.filter(v => v !== ''); // get rid of '' might not be necessary anymore
+  });
 
   if (parsedAttributes.length === 0) {
     return '';
@@ -94,9 +96,8 @@ const getAttributes = (fields = {}, attributesRequested: {}) => {
       ? parseAttributeArray(attributeData)
       : parseAttribute(attributeData);
 
-    const attribute = {};
-    attribute[attributeSystemName] = parsed;
-    return Object.assign(attributesMap, attribute);
+    attributesMap[attributeSystemName] = parsed;
+    return attributesMap;
   }, {});
 };
 

@@ -1,30 +1,30 @@
-interface IIssue {
-  key: string;
-  fields: any;
-  changelog: IChangeLog;
-};
-
-interface IIssueList {
-  issues: Array<IIssue>;
-};
-
-interface IChangeLog {
+export interface IChangeLog {
   total: number;
   histories: Array<IHistory>;
 };
 
-interface IHistory {
+export interface IHistory {
   id: string;
   items: Array<IItem>;
   created: string;
 };
 
-interface IItem {
+export interface IIssue {
+  key: string;
+  fields: any;
+  changelog: IChangeLog;
+};
+
+export interface IIssueList {
+  issues: Array<IIssue>;
+};
+
+export interface IItem {
   field: string;
   toString: string;
 };
 
-interface IWorkItem {
+export interface IWorkItem {
   Id: string;
   StageDates: string[];
   Name: string;
@@ -32,7 +32,7 @@ interface IWorkItem {
   Attributes: {};
 };
 
-class WorkItem implements IWorkItem {
+export class WorkItem implements IWorkItem {
   Id: string;
   StageDates: string[];
   Name: string;
@@ -68,11 +68,4 @@ class WorkItem implements IWorkItem {
     .replace(/\\/g, '')
     .trim();
   }
-};
-
-export {
-  IIssueList,
-  IIssue,
-  IWorkItem,
-  WorkItem,
 };

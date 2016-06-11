@@ -1,15 +1,17 @@
 {
-  "name": "aa",
-  "version": "1.0.0",
+  "name": "actionableagileimporttool",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/main.ts",
+  "typings": "dist/index",
   "scripts": {
     "tsc": "tsc",
-    "tsc:w": "tsc -w --outDir build",
+    "tsc:w": "tsc -w",
     "typings-install": "typings install",
     "postinstall": "npm run typings-install",
     "start": "npm run tsc:w",
-    "test": "mocha --recursive --compilers ts:ts-node/register"
+    "test": "mocha --recursive --compilers ts:ts-node/register",
+    "outDir": "dist/"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +24,7 @@
     "typings": "^1.0.4"
   },
   "dependencies": {
-    "es6-promise": "^3.2.1",
+    "core-js": "^2.4.0",
     "isomorphic-fetch": "^2.2.1"
   }
 }

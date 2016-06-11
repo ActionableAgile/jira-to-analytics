@@ -1,8 +1,11 @@
 {
+  "version": "0.0.1",
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "rootDir": ".",
+    "outDir": "dist/",
+    "rootDir": "src",
+    "declaration": true,
     "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -13,6 +16,7 @@
     "typings/main.d.ts",
     "typings/main",
     "node_modules",
+    "dist",
     "*.spec.ts"
   ],
   "compileOnSave": false,
