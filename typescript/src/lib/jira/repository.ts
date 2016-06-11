@@ -1,6 +1,7 @@
 import 'isomorphic-fetch';
 // import { Promise, Map } from 'core-js' //es6 ponyfills -- typings install --save --global dt~core-js
 import { IIssueList, IIssue, IWorkItem, WorkItem } from './models';
+import { IJiraSettings } from '../jira/settings';
 
 
 function status(response: IResponse): Promise<any> {
@@ -24,14 +25,15 @@ function request(url: string, headers: Headers): Promise<any> {
     .catch(error => Promise.reject(error));
 };
 
-const getIssues = async function(query: string, settings: any): Promise<IIssue[]> {
-  const headers = getHeaders(settings.username, settings.password);
+const getIssues = async function(query: string, username: string, password: string): Promise<IIssue[]> {
+  const headers = getHeaders(username, password);
   const result: IIssueList = await request(query, headers);
   const issues = <IIssue[]>result.issues;
   return issues;
 };
 
 const getHeaders = (username: string, password: string): Headers => {
+  console.log(username, password);
   const headers = new Headers();
   headers.append('Accept', 'application/json');
   if (username && password) {
@@ -40,24 +42,28 @@ const getHeaders = (username: string, password: string): Headers => {
   return headers;
 };
 
-function getJiraQueryUrl(startIndex: number, batchSize: number, settings: any): string {
+function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, projects: Array<string>, issueTypes: Array<string>, filters: Array<string>): string {
   let clauses: string[] = [];
-  const projectClause = (settings.projectNames.length > 1)
-    ? `project in (${ settings.projectNames.join(',') })`
-    : `project=${ settings.projectNames[0] }`;
+  console.log('terst');
+  const projectClause = (projects.length > 1)
+    ? `project in (${ projects.join(',') })`
+    : `project=${ projects[0] }`;
   clauses.push(projectClause);
 
-  if (settings.types.length > 0) {
-    const typeClause = `issuetype in (${settings.types.join(',')})`;
+  console.log('hi2');
+  if (issueTypes.length > 0) {
+    const typeClause = `issuetype in (${issueTypes.join(',')})`;
     clauses.push(typeClause);
   }
 
-  const filterClauses: string[] = settings.filters.map((filter: string) => `filter="${filter}"`);
+  console.log('hi');
+
+  const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
-  const query = `${settings.urlRoot}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
-
+  const query = `${url}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
+  // console.log(query);
   return query;
 };
 
@@ -171,16 +177,16 @@ const getStagingDates = (issue: IIssue,
     return stagingDates;
 };
 
-const getWorkItemsBatch = async function(start: number, batchSize: number, settings: any) : Promise<WorkItem[]> {
-  const url = getJiraQueryUrl(start, batchSize, settings);
-  const issues = await getIssues(url, settings);
+const getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings) : Promise<WorkItem[]> {
+  const url = getJiraQueryUrl(settings.ApiUrl, start, batchSize, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters);
+  const issues = await getIssues(url, settings.Connection.Username, settings.Connection.Password);
 
   const items = issues.map(issue => {
     const key: string = issue.key;
     const name: string = issue.fields['summary'];
-    const stagingDates = getStagingDates(issue, settings.stages, settings.stageMap, settings.createInFirstStage, settings.resolvedInLastStage);
-    const type = settings.types.length ? issue.fields.issuetype.name : '';
-    const attributes = getAttributes(issue.fields, settings.attributes);
+    const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
+    const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+    const attributes = getAttributes(issue.fields, settings.Attributes);
 
     const item = new WorkItem(key, stagingDates, name, type, attributes);
     return item;
@@ -188,16 +194,17 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
   return items;
 };
 
-const getAllWorkItems = async function(settings: any): Promise<WorkItem[]> {
+// move maxresult out
+const getAllWorkItems = async function(settings: IJiraSettings, maxResult = 25): Promise<WorkItem[]> {
   // pre query
-  const metadata = await request(getJiraQueryUrl(0, 1, settings), getHeaders(null, null));
-
-  const total: number = metadata.total;  //e.g. 98
-  const batchSize: number = settings.batchSize; //e.g. 25
-  const chunks = Math.ceil(total / batchSize); //e.g. 4
+  const metadata = await request(getJiraQueryUrl(settings.ApiUrl, 0, 1, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), getHeaders(null, null));
+  // console.log(metadata);
+  const totalJiras: number = metadata.total;  //e.g. 98
+  const batchSize = maxResult;
+  const totalBatches = Math.ceil(totalJiras / batchSize); //e.g. 4
 
   let allWorkItems: WorkItem[] = [];
-  for (let i = 0; i < chunks; i++) {
+  for (let i = 0; i < totalBatches; i++) {
     const workItemsBatch = await getWorkItemsBatch(i * batchSize, batchSize, settings);
     allWorkItems.push(...workItemsBatch);
   }
