@@ -80,67 +80,67 @@ const getStagingDates = (issue: IIssue,
   resolvedInLastStage: boolean = false): string[] => {
 
   const unusedStages = new Map<string, number>();
-    const stageBins: string[][] = stages.map(() => []);
+  const stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
 
-    if (createInFirstStage) {
-      const creationDate: string = issue.fields.created;
-      stageBins[0].push(creationDate);
-    }
+  if (createInFirstStage) {
+    const creationDate: string = issue.fields.created;
+    stageBins[0].push(creationDate);
+  }
 
-    if (resolvedInLastStage) {
-      if (issue.fields.status !== undefined || issue.fields.status != null ) {
-        if (issue.fields['status'].name === 'Closed') {
-          if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
-            const resolutionDate: string = issue.fields['resolutiondate'];
-            const doneStageIndex: number = stageMap.get('Closed');
-            stageBins[doneStageIndex].push(resolutionDate);
-          }
+  if (resolvedInLastStage) {
+    if (issue.fields.status !== undefined || issue.fields.status != null ) {
+      if (issue.fields['status'].name === 'Closed') {
+        if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
+          const resolutionDate: string = issue.fields['resolutiondate'];
+          const doneStageIndex: number = stageMap.get('Closed');
+          stageBins[doneStageIndex].push(resolutionDate);
         }
       }
     }
+  }
 
-    // sort status changes into stage bins
-    issue.changelog.histories.forEach(history => {
-      history.items.forEach(historyItem => {
-        if (historyItem.field === 'status') {
-          const stageName: string = historyItem.toString;
+  // sort status changes into stage bins
+  issue.changelog.histories.forEach(history => {
+    history.items.forEach(historyItem => {
+      if (historyItem.field === 'status') {
+        const stageName: string = historyItem.toString;
 
-          if (stageMap.has(stageName)) {
-            const stageIndex: number = stageMap.get(stageName);
-            const stageDate: string = history.created;
-            stageBins[stageIndex].push(stageDate);
-          } else {
-            const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
-            unusedStages.set(stageName, count + 1);
-          }
-        }
-      });
-    });
-
-    // go through each stage and get best date
-    let latestValidDate: string = '';
-    const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
-      let validStageDates = stageBin.filter(date => {
-        return date >= latestValidDate ? true : false;
-      });
-      if (validStageDates.length > 1) {
-        validStageDates = validStageDates.sort().slice(0, 1); // keep only the earliest...
-        // go forward in time and filter??
-        for (let j = idx + 1; j < stageBins.length; j++) {
-          stageBins[j] = stageBins[j].filter(date => {
-            return date >= latestValidDate ? true : false;
-          });
+        if (stageMap.has(stageName)) {
+          const stageIndex: number = stageMap.get(stageName);
+          const stageDate: string = history.created;
+          stageBins[stageIndex].push(stageDate);
+        } else {
+          const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
+          unusedStages.set(stageName, count + 1);
         }
       }
-
-      if (validStageDates.length > 0) {
-        latestValidDate = validStageDates[0].split('T')[0];
-        return latestValidDate;
-      }
-      return '';
     });
-    // return { stagingDates, unusedStages };
-    return stagingDates;
+  });
+
+  // go through each stage and get best date
+  let latestValidDate: string = '';
+  const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
+    let validStageDates = stageBin.filter(date => {
+      return date >= latestValidDate ? true : false;
+    });
+    if (validStageDates.length > 1) {
+      validStageDates = validStageDates.sort().slice(0, 1); // keep only the earliest...
+      // go forward in time and filter??
+      for (let j = idx + 1; j < stageBins.length; j++) {
+        stageBins[j] = stageBins[j].filter(date => {
+          return date >= latestValidDate ? true : false;
+        });
+      }
+    }
+
+    if (validStageDates.length > 0) {
+      latestValidDate = validStageDates[0].split('T')[0];
+      return latestValidDate;
+    }
+    return '';
+  });
+  // return { stagingDates, unusedStages };
+  return stagingDates;
 };
 
 const getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings): Promise<IWorkItem[]> {
@@ -175,4 +175,10 @@ const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsP
   return allWorkItems;
 };
 
-export { getAllWorkItemsFromJira };
+export { 
+  getAllWorkItemsFromJira,
+  getWorkItemsBatch,
+  getJiraQueryUrl,
+  getStagingDates,
+  getAttributes,
+};

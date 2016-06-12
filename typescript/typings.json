@@ -5,5 +5,8 @@
     "js-yaml": "registry:dt/js-yaml#3.5.2+20160316171810",
     "mocha": "registry:dt/mocha#2.2.5+20160317120654",
     "node": "registry:dt/node#4.0.0+20160509154515"
+  },
+  "dependencies": {
+    "yargs": "registry:npm/yargs#3.31.0+20160316010718"
   }
 }
