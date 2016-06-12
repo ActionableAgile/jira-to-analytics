@@ -1,44 +1,15 @@
 import 'isomorphic-fetch';
 // import { Promise, Map } from 'core-js' //es6 ponyfills -- typings install --save --global dt~core-js
-import { IIssueList, IIssue, IWorkItem, WorkItem } from './models';
+import { IIssueList, IIssue } from './models';
+import {  IWorkItem, WorkItem } from '../core/models';
 import { IJiraSettings } from '../jira/settings';
-
-
-function status(response: IResponse): Promise<any> {
-  if (response.status >= 200 && response.status < 300) {
-    return Promise.resolve(response);
-  } else {
-    return Promise.reject(new Error(response.statusText));
-  }
-};
-
-function json(response: IResponse): Promise<IResponse> {
-  return response.json();
-};
-
-function request(url: string, headers: Headers): Promise<any> {
-  console.log(url);
-  return fetch(url, { headers })
-    .then(status)
-    .then(json)
-    .then(json => Promise.resolve(json))
-    .catch(error => Promise.reject(error));
-};
+import { request, getHeaders } from '../core/http';
 
 const getIssues = async function(query: string, username: string, password: string): Promise<IIssue[]> {
   const headers = getHeaders(username, password);
   const result: IIssueList = await request(query, headers);
   const issues = <IIssue[]>result.issues;
   return issues;
-};
-
-const getHeaders = (username: string, password: string): Headers => {
-  const headers = new Headers();
-  headers.append('Accept', 'application/json');
-  if (username && password) {
-    headers.append('Authorization', `Basic ${btoa(username + ':' + password)}`);
-  }
-  return headers;
 };
 
 function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, projects: Array<string>, issueTypes: Array<string>, filters: Array<string>): string {
@@ -190,12 +161,12 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
 };
 
 // move maxresult out
-const getAllWorkItems = async function(settings: IJiraSettings, maxResult = 25): Promise<WorkItem[]> {
+const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<WorkItem[]> {
   // pre query
   const metadata = await request(getJiraQueryUrl(settings.ApiUrl, 0, 1, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), getHeaders(null, null));
   // console.log(metadata);
   const totalJiras: number = metadata.total;  //e.g. 98
-  const batchSize = maxResult;
+  const batchSize = resultsPerBatch;
   const totalBatches = Math.ceil(totalJiras / batchSize); //e.g. 4
 
   let allWorkItems: WorkItem[] = [];
@@ -206,4 +177,4 @@ const getAllWorkItems = async function(settings: IJiraSettings, maxResult = 25):
   return allWorkItems;
 };
 
-export { getAllWorkItems };
+export { getAllWorkItemsFromJira };

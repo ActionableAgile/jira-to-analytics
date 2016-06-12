@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import Extractor from './extractor';
+import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 
 const legacySampleYamlPath = './src/config/oldconfig.yaml';
@@ -8,20 +8,17 @@ const sampleYamlPath ='./src/config/config.yaml'
 const run = async function(legacy: boolean = false) {
   const start = new Date().getTime();
 
-  const settings = {};
+  let settings = {};
   try {
     let jiraConfigPath = legacy ? legacySampleYamlPath : sampleYamlPath;
-    let jiraConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
-    
-    settings['jira'] = jiraConfig;
-    settings['jira']['source'] = 'yaml';
-    settings['jira']['legacy'] = legacy;
+    let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
+    settings = yamlConfig;
   } catch (error) {
     console.log(error);
   }
-
-  const jiraExtractor = new Extractor(settings);
-  await jiraExtractor.extractWorkItems();
+  const jiraSettings = new JiraSettings(settings, 'yaml');
+  const jiraExtractor = new JiraExtractor(jiraSettings);
+  await jiraExtractor.getWorkItems();
   const csv = jiraExtractor.toCSV();
 
   try {
