@@ -6,9 +6,9 @@ import { IJiraSettings } from '../jira/settings';
 import { request, getHeaders } from '../core/http';
 
 const getIssues = async function(query: string, username: string, password: string): Promise<IIssue[]> {
-  const headers = getHeaders(username, password);
+  const headers: Headers = getHeaders(username, password);
   const result: IIssueList = await request(query, headers);
-  const issues = <IIssue[]>result.issues;
+  const issues: IIssue[] = result.issues;
   return issues;
 };
 
@@ -143,7 +143,7 @@ const getStagingDates = (issue: IIssue,
     return stagingDates;
 };
 
-const getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings) : Promise<WorkItem[]> {
+const getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings): Promise<IWorkItem[]> {
   const url = getJiraQueryUrl(settings.ApiUrl, start, batchSize, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters);
   const issues = await getIssues(url, settings.Connection.Username, settings.Connection.Password);
 
@@ -160,14 +160,12 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
   return items;
 };
 
-// move maxresult out
-const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<WorkItem[]> {
-  // pre query
+const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<IWorkItem[]> {
   const metadata = await request(getJiraQueryUrl(settings.ApiUrl, 0, 1, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), getHeaders(null, null));
-  // console.log(metadata);
-  const totalJiras: number = metadata.total;  //e.g. 98
-  const batchSize = resultsPerBatch;
-  const totalBatches = Math.ceil(totalJiras / batchSize); //e.g. 4
+
+  const totalJiras: number = metadata.total;  // e.g. 98
+  const batchSize: number = resultsPerBatch;
+  const totalBatches: number = Math.ceil(totalJiras / batchSize); // e.g. 4
 
   let allWorkItems: WorkItem[] = [];
   for (let i = 0; i < totalBatches; i++) {

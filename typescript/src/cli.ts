@@ -3,7 +3,7 @@ import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 
 const legacySampleYamlPath = './src/config/oldconfig.yaml';
-const sampleYamlPath ='./src/config/config.yaml'
+const sampleYamlPath = './src/config/config.yaml';
 
 const run = async function(legacy: boolean = false) {
   const start = new Date().getTime();

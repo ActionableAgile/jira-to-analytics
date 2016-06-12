@@ -32,6 +32,6 @@ function request(url: string, headers: Headers): Promise<any> {
 export {
     status,
     json,
-    request, 
+    request,
     getHeaders,
-}
+};

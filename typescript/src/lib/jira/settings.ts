@@ -3,16 +3,16 @@ interface IJiraSettings {
         Domain: string,
         Username: string,
         Password: string,
-    },
+    };
     Criteria: {
         Projects: Array<string>,
         IssueTypes: Array<string>,
         ValidResolutions: Array<string>,
         Filters: Array<string>,
-        JQL: Array<string>,
-    },
-    Workflow: {},
-    Attributes: {},
+        JQL: string,
+    };
+    Workflow: {};
+    Attributes: {};
     Stages;
     StageMap;
     ApiUrl;
@@ -20,7 +20,7 @@ interface IJiraSettings {
     ResolvedInLastStage;
 };
 
-const convertToArray = (obj: string[]): string[] => {
+const convertToArray = (obj: string[] | string): string[] => {
     if (obj === undefined || obj == null) return [];
     return obj instanceof Array ? obj : [obj];
 };
@@ -28,7 +28,7 @@ const convertToArray = (obj: string[]): string[] => {
 const convertStringToArray = (s: string): string[] => {
     if (s === undefined || s == null) return [];
     return s.split(',').map(x => x.trim());
-}
+};
 
 class JiraSettings implements IJiraSettings {
     Connection: {
@@ -41,7 +41,7 @@ class JiraSettings implements IJiraSettings {
         IssueTypes: Array<string>,
         ValidResolutions: Array<string>,
         Filters: Array<string>,
-        JQL: Array<string>,
+        JQL: string,
     };
     Workflow: {};
     Attributes: {};
@@ -50,25 +50,25 @@ class JiraSettings implements IJiraSettings {
     ApiUrl;
     CreateInFirstStage;
     ResolvedInLastStage;
-    
+
     constructor(settings: any, source: string) {
         switch (source.toUpperCase()) {
             case 'YAML':
                 this.Connection = settings.Connection;
                 if (settings.legacy) {
-                    const Projects = convertStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
-                    const IssueTypes = convertStringToArray(settings.Criteria.Types); // legacy yaml is Types
-                    const ValidResolutions = convertStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
-                    const Filters = convertStringToArray(settings.Criteria.Filters);
-                    const JQL = settings.Criteria.JQL;
-                    this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL }
+                    const Projects: string[] = convertStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
+                    const IssueTypes: string[] = convertStringToArray(settings.Criteria.Types); // legacy yaml is Types
+                    const ValidResolutions: string[] = convertStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
+                    const Filters: string[] = convertStringToArray(settings.Criteria.Filters);
+                    const JQL: string = settings.Criteria.JQL; // fix this, need to put this in an array
+                    this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
                 } else {
-                    const Projects = convertToArray(settings.Criteria.Project); // cur yaml is Project
-                    const IssueTypes = convertToArray(settings.Criteria['Issue types']); // cur yaml is Issue types
-                    const ValidResolutions = convertToArray(settings.Criteria['Valid resolutions']);
-                    const Filters = convertToArray(settings.Criteria.Filters);
-                    const JQL = settings.Criteria.JQL;
-                    this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL }
+                    const Projects: string[] = convertToArray(settings.Criteria.Project); // cur yaml is Project
+                    const IssueTypes: string[] = convertToArray(settings.Criteria['Issue types']); // cur yaml is Issue types
+                    const ValidResolutions: string[] = convertToArray(settings.Criteria['Valid resolutions']);
+                    const Filters: string[] = convertToArray(settings.Criteria.Filters);
+                    const JQL: string = settings.Criteria.JQL;
+                    this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
                 }
 
                 if (this.Criteria.JQL) {
@@ -84,13 +84,12 @@ class JiraSettings implements IJiraSettings {
                     Object.keys(settings.Workflow).forEach(key => {
                         workflow[key] = convertStringToArray(settings.Workflow[key]);
                     });
-                    this.Workflow = workflow;
                 } else {
                     Object.keys(settings.Workflow).forEach(key => {
                         workflow[key] = convertToArray(settings.Workflow[key]);
                     });
-                    this.Workflow = workflow;
                 }
+                this.Workflow = workflow;
 
                 this.Attributes = settings.Attributes;
 
@@ -104,9 +103,9 @@ class JiraSettings implements IJiraSettings {
 
                 const createInFirstStage = stageMap.get('(Created)') === 0 ? true : false;
                 const resolvedInLastStage = stageMap.get('(Resolved)') === stages.length - 1 ? true : false;
-                if (stageMap.get('(Resolved)') && stageMap.get('(Resolved)') != stages.length - 1) {
+                if (stageMap.get('(Resolved)') && stageMap.get('(Resolved)') !== stages.length - 1) {
                     throw new Error('(Resolved) can only by used in last stage');
-                }        
+                }
                 this.CreateInFirstStage = createInFirstStage;
                 this.ResolvedInLastStage = resolvedInLastStage;
                 this.Stages = stages;

@@ -1,17 +1,18 @@
 export interface IExportable {
-    toCSV(): string,
+    toCSV(): string;
 }
 
 export interface IExtractor extends IExportable {
     getWorkItems(): Promise<void>;
 }
 
-export interface IWorkItem {
+export interface IWorkItem extends IExportable {
   Id: string;
   StageDates: string[];
   Name: string;
   Type: string;
   Attributes: {};
+  toCSV(): string;
 };
 
 export class WorkItem implements IWorkItem, IExportable {
