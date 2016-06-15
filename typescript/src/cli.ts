@@ -3,29 +3,32 @@ import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 
-
-// this should work
-const legacy: boolean = argv['legacy'];
-
 const legacySampleYamlPath = './src/config/oldconfig.yaml';
 const sampleYamlPath = './src/config/config.yaml';
 
-const run = async function(legacy: boolean = false) {
-  console.log(legacy);
+const getArgs = () => {
+  const runtimeSettings: any = {};
+  if (argv['legacy']) {
+    runtimeSettings.legacy = argv['legacy'];
+  }
+  return runtimeSettings;
+};
+
+
+const run = async function(cliSettings: any) {
   const start = new Date().getTime();
 
-  let settings = {};
-
+  let settings: any  = {};
   try {
-    let jiraConfigPath = legacy ? legacySampleYamlPath : sampleYamlPath;
+    let jiraConfigPath = cliSettings.legacy  ? legacySampleYamlPath : sampleYamlPath;
     let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
     settings = yamlConfig;
+    settings.legacy = cliSettings.legacy ? true : false;
   } catch (error) {
     console.log('Error parsing config');
     throw error;
   }
 
-  settings['legacy'] = legacy;
   const jiraSettings = new JiraSettings(settings, 'yaml');
   const jiraExtractor = new JiraExtractor(jiraSettings);
   await jiraExtractor.getWorkItems();
@@ -54,10 +57,10 @@ const writeOutData = (filePath, data) =>
     }));
   });
 
-(async function(legacy) {
+(async function(cliArgs) {
   try {
-    await run(legacy);
+    await run(cliArgs);
   } catch (error) {
     console.log(error);
   }
-}(legacy));
+}(getArgs()));

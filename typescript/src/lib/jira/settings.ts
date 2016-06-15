@@ -59,6 +59,8 @@ class JiraSettings implements IJiraSettings {
 
         if (settings.legacy) {
           const Projects: string[] = convertStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
+          console.log('hi');
+          console.log(Projects);
           const IssueTypes: string[] = convertStringToArray(settings.Criteria.Types); // legacy yaml is Types
           const ValidResolutions: string[] = convertStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
           const Filters: string[] = convertStringToArray(settings.Criteria.Filters);

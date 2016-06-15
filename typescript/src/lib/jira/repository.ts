@@ -161,7 +161,19 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
 };
 
 const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<IWorkItem[]> {
-  const metadata = await request(getJiraQueryUrl(settings.ApiUrl, 0, 1, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), getHeaders(null, null));
+  const metadata = await request(
+    getJiraQueryUrl(
+      settings.ApiUrl, 
+      0, 
+      1, 
+      settings.Criteria.Projects, 
+      settings.Criteria.IssueTypes, 
+      settings.Criteria.Filters), 
+      getHeaders(
+        settings.Connection.Username, 
+        settings.Connection.Password
+      )
+    );
 
   const totalJiras: number = metadata.total;  // e.g. 98
   const batchSize: number = resultsPerBatch;
