@@ -1,0 +1,24 @@
+Connection:
+    Domain: https://actionableagile.atlassian.net
+    Username:
+    Password:
+
+Criteria:
+    Projects: UT
+    Types: Story, Bug
+
+Workflow:
+    Backlog: Backlog, (Created)
+    Analysis Active: Analysis Active
+    Analysis Done: Analysis Done
+    Dev Active: Dev Active
+    Dev Done: Dev Done
+    Test: Test
+    Done: Done
+
+Attributes:
+    components: components
+    fixVersions: fixVersions
+    labels: labels
+    priority: priority
+    resolution: resolution

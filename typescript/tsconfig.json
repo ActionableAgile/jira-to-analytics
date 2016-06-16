@@ -20,9 +20,7 @@
     "typings/main.d.ts",
     "typings/main",
     "node_modules",
-    "dist",
-    "src/test",
-    "*.spec.ts"
+    "dist"
   ],
   "compileOnSave": false,
   "buildOnSave": false,

@@ -13,28 +13,32 @@ function status(response: IResponse): Promise<any> {
   if (response.status >= 200 && response.status < 300) {
     return Promise.resolve(response);
   } else {
-    console.log(response.status);
-    return Promise.reject(new Error(response.statusText));
+    return Promise.reject(new Error(response.status + ':' + response.statusText));
   }
 };
 
-function json(response: IResponse): Promise<IResponse> {
+function convertToJson(response: IResponse): Promise<IResponse> {
   return response.json();
 };
 
-function request(url: string, headers: Headers): Promise<any> {
-  console.log(url);
-  console.log(headers);
+function getJsonFromUrl(url: string, headers: Headers): Promise<any> {
   return fetch(url, { headers })
     .then(status)
-    .then(json)
-    .then(json => Promise.resolve(json))
-    .catch(error => Promise.reject(error));
+    .then(convertToJson)
+    // .then(json => {
+    //   console.log('hello');
+    //   console.log(json)
+    //   Promise.resolve(json);
+    // })
+    .catch(error => {
+      console.log(`Error getting JSON for ${url}`);
+      throw error;
+  });
 };
 
 export {
     status,
-    json,
-    request,
+    convertToJson,
     getHeaders,
+    getJsonFromUrl,
 };

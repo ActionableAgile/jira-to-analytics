@@ -3,8 +3,8 @@ import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 
-const legacySampleYamlPath = './src/config/oldconfig.yaml';
-const sampleYamlPath = './src/config/config.yaml';
+const legacySampleYamlPath = './src/config/config-v1.yaml';
+const sampleYamlPath = './src/config/config-v2.yaml';
 
 const getArgs = () => {
   const runtimeSettings: any = {};

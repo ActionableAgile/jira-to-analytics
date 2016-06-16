@@ -1,24 +1,4 @@
-interface IJiraSettings {
-  Connection: {
-    Domain: string,
-    Username: string,
-    Password: string,
-  };
-  Criteria: {
-    Projects: Array<string>,
-    IssueTypes: Array<string>,
-    ValidResolutions: Array<string>,
-    Filters: Array<string>,
-    JQL: string,
-  };
-  Workflow: {};
-  Attributes: {};
-  Stages;
-  StageMap;
-  ApiUrl;
-  CreateInFirstStage;
-  ResolvedInLastStage;
-};
+import { IJiraSettings } from './models';
 
 const convertToArray = (obj: string[] | string): string[] => {
   if (obj === undefined || obj == null) return [];
@@ -27,9 +7,12 @@ const convertToArray = (obj: string[] | string): string[] => {
 
 const convertStringToArray = (s: string): string[] => {
   if (s === undefined || s == null) return [];
-  console.log(s);
   return s.split(',').map(x => x.trim());
 };
+
+const configureYaml = () => {
+  
+}
 
 class JiraSettings implements IJiraSettings {
   Connection: {
@@ -56,11 +39,10 @@ class JiraSettings implements IJiraSettings {
     switch (source.toUpperCase()) {
       case 'YAML':
         this.Connection = settings.Connection;
+        console.log(this);
 
         if (settings.legacy) {
           const Projects: string[] = convertStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
-          console.log('hi');
-          console.log(Projects);
           const IssueTypes: string[] = convertStringToArray(settings.Criteria.Types); // legacy yaml is Types
           const ValidResolutions: string[] = convertStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
           const Filters: string[] = convertStringToArray(settings.Criteria.Filters);
@@ -117,7 +99,6 @@ class JiraSettings implements IJiraSettings {
         this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
 
         return;
-
       default:
         throw new Error(`${source} source not found`);
     }

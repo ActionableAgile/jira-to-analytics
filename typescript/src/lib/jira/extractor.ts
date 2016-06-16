@@ -1,14 +1,14 @@
 import { getAllWorkItemsFromJira } from './repository';
-import { JiraSettings } from './settings';
-import { WorkItem, IExportable, IExtractor } from '../core/models';
+import { IJiraSettings } from './settings';
+import { IWorkItem, IExtractor } from '../core/models';
 
 class JiraExtractor implements IExtractor {
-  private settings: JiraSettings;
-  private workItems: WorkItem[];
+  private settings: IJiraSettings;
+  private workItems: IWorkItem[];
 
-  constructor(settings: JiraSettings) {
+  constructor(settings: IJiraSettings) {
     if (!settings) {
-      throw new Error('Must provide settings');
+      throw new Error('No JIRA Settings found. Must provide settings');
     }
     this.settings = settings;
   }
@@ -17,10 +17,8 @@ class JiraExtractor implements IExtractor {
     try {
       const items = await getAllWorkItemsFromJira(settings);
       this.workItems = items;
-      return;
-    } catch (error) {
-      console.warn('Error in JiraExtractor getting work items');
-      throw error;
+    } catch (e) {
+      throw e;
     }
   }
 

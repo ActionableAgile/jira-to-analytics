@@ -1,0 +1,46 @@
+# How to connect to JIRA?
+Connection:
+    Domain: https://jira.atlassian.com/
+    Username:
+    Password:
+
+# What to search for?
+Criteria:
+    Project: HCPUB # JIRA project key to search
+    Issue types: # Which issue types to include
+        - Sub-task
+        - Story
+        - Bug
+    Valid resolutions: # Which resolution statuses to include (unresolved is always included)
+        - Done
+        - Closed
+    JQL: labels != "Spike" # Additional filter as raw JQL, optional
+    Filters: 
+        - HCPUB Desktop - Closed Major+ Bugs
+
+# Describe the workflow. Each step can be mapped to either a single JIRA
+# status, or a list of statuses that will be treated as equivalent
+Workflow:
+    Ready: 
+        - Ready Queue
+        - Queue
+        - Open
+        - (Created)
+    Dev: 
+        - Development
+    Dev Done: Dev Done
+    Test: Test
+    Done: 
+        - Closed
+        - Cancelled
+
+# Map field names to additional attributes to extract
+Attributes:
+      Team: customfield_10001
+      Release: customfield_10002.name
+      Stage: status
+      Type: issuetype
+      Level: priority
+      Labels: labels
+      Versions: fixVersions
+      Components: components

@@ -3,11 +3,11 @@ import 'isomorphic-fetch';
 import { IIssueList, IIssue } from './models';
 import {  IWorkItem, WorkItem } from '../core/models';
 import { IJiraSettings } from '../jira/settings';
-import { request, getHeaders } from '../core/http';
+import { getJsonFromUrl, getHeaders } from '../core/http';
 
 const getIssues = async function(query: string, username: string, password: string): Promise<IIssue[]> {
   const headers: Headers = getHeaders(username, password);
-  const result: IIssueList = await request(query, headers);
+  const result: IIssueList = await getJsonFromUrl(query, headers);
   const issues: IIssue[] = result.issues;
   return issues;
 };
@@ -16,8 +16,8 @@ function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, pro
   let clauses: string[] = [];
 
   const projectClause = (projects.length > 1)
-    ? `project in (${ projects.join(',') })`
-    : `project=${ projects[0] }`;
+    ? `project in (${projects.join(',')})`
+    : `project=${projects[0]}`;
   clauses.push(projectClause);
 
   if (issueTypes.length > 0) {
@@ -33,6 +33,18 @@ function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, pro
   return query;
 };
 
+const parseAttribute = (attribute: any): string => {
+  if (attribute === undefined || attribute == null) {
+    return '';
+  } else if (typeof attribute === 'string') {
+    return attribute;
+  } else if (typeof attribute === 'number') {
+    return attribute.toString();
+  } else {
+    return attribute.name;
+  }
+};
+
 const parseAttributeArray = (attributeArray: any[]): string => {
   let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => {
     return parseAttribute(attributeArrayElement);
@@ -45,17 +57,6 @@ const parseAttributeArray = (attributeArray: any[]): string => {
   return result;
 };
 
-const parseAttribute = (attributeData: any): string => {
-  if (attributeData === undefined || attributeData == null) return '';
-
-  if (typeof attributeData === 'string') {
-    return attributeData;
-  } else if (typeof attributeData === 'number') {
-    return attributeData.toString();
-  } else {
-    return attributeData.name;
-  }
-};
 
 const getAttributes = (fields = {}, attributesRequested: {}) => {
   const attributeAliases = Object.keys(attributesRequested); // human name alias
@@ -132,14 +133,12 @@ const getStagingDates = (issue: IIssue,
         });
       }
     }
-
     if (validStageDates.length > 0) {
       latestValidDate = validStageDates[0].split('T')[0];
       return latestValidDate;
     }
     return '';
   });
-  // return { stagingDates, unusedStages };
   return stagingDates;
 };
 
@@ -147,21 +146,21 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
   const url = getJiraQueryUrl(settings.ApiUrl, start, batchSize, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters);
   const issues = await getIssues(url, settings.Connection.Username, settings.Connection.Password);
 
-  const items = issues.map(issue => {
+  const workItems = issues.map(issue => {
     const key: string = issue.key;
     const name: string = issue.fields['summary'];
     const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
     const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
     const attributes = getAttributes(issue.fields, settings.Attributes);
 
-    const item = new WorkItem(key, stagingDates, name, type, attributes);
-    return item;
+    const workItem = new WorkItem(key, stagingDates, name, type, attributes);
+    return workItem;
   });
-  return items;
+  return workItems;
 };
 
 const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<IWorkItem[]> {
-  const metadata = await request(
+  const metadata = await getJsonFromUrl(
     getJiraQueryUrl(
       settings.ApiUrl, 
       0, 
@@ -175,12 +174,14 @@ const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsP
       )
     );
 
-  const totalJiras: number = metadata.total;  // e.g. 98
+  console.log('this should');
+
+  const totalJiras: number = metadata.total; 
   const batchSize: number = resultsPerBatch;
-  const totalBatches: number = Math.ceil(totalJiras / batchSize); // e.g. 4
+  const totalBatches: number = Math.ceil(totalJiras / batchSize); 
 
   let allWorkItems: WorkItem[] = [];
-  for (let i = 0; i < totalBatches; i++) {
+  for  (let i = 0; i < totalBatches; i++) {
     const workItemsBatch = await getWorkItemsBatch(i * batchSize, batchSize, settings);
     allWorkItems.push(...workItemsBatch);
   }
