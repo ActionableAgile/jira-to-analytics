@@ -53,4 +53,4 @@ export {
   IIssue,
   IIssueList,
   IJiraSettings,
-}
+};

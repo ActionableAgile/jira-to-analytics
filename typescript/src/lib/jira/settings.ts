@@ -1,19 +1,5 @@
 import { IJiraSettings } from './models';
 
-const convertToArray = (obj: string[] | string): string[] => {
-  if (obj === undefined || obj == null) return [];
-  return obj instanceof Array ? obj : [obj];
-};
-
-const convertStringToArray = (s: string): string[] => {
-  if (s === undefined || s == null) return [];
-  return s.split(',').map(x => x.trim());
-};
-
-const configureYaml = () => {
-  
-}
-
 class JiraSettings implements IJiraSettings {
   Connection: {
     Domain: string,
@@ -39,13 +25,12 @@ class JiraSettings implements IJiraSettings {
     switch (source.toUpperCase()) {
       case 'YAML':
         this.Connection = settings.Connection;
-        console.log(this);
 
         if (settings.legacy) {
-          const Projects: string[] = convertStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
-          const IssueTypes: string[] = convertStringToArray(settings.Criteria.Types); // legacy yaml is Types
-          const ValidResolutions: string[] = convertStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
-          const Filters: string[] = convertStringToArray(settings.Criteria.Filters);
+          const Projects: string[] = convertCsvStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
+          const IssueTypes: string[] = convertCsvStringToArray(settings.Criteria.Types); // legacy yaml is Types
+          const ValidResolutions: string[] = convertCsvStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
+          const Filters: string[] = convertCsvStringToArray(settings.Criteria.Filters);
           const JQL: string = settings.Criteria.JQL; // fix this, need to put this in an array
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         } else {
@@ -65,16 +50,9 @@ class JiraSettings implements IJiraSettings {
           console.warn('Valid Resolutions not currently supported');
         }
 
-        const workflow = {};
-        if (settings.legacy) {
-          Object.keys(settings.Workflow).forEach(key => {
-            workflow[key] = convertStringToArray(settings.Workflow[key]);
-          });
-        } else {
-          Object.keys(settings.Workflow).forEach(key => {
-            workflow[key] = convertToArray(settings.Workflow[key]);
-          });
-        }
+        const workflow = settings.legacy 
+          ? getWorkflowArray(settings.Workflow, convertCsvStringToArray) 
+          : getWorkflowArray(settings.Workflow, convertToArray);
         this.Workflow = workflow;
 
         this.Attributes = settings.Attributes;
@@ -97,15 +75,32 @@ class JiraSettings implements IJiraSettings {
         this.Stages = stages;
         this.StageMap = stageMap;
         this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
-
         return;
+        
       default:
         throw new Error(`${source} source not found`);
     }
   }
 }
 
+const getWorkflowArray = (workflowObject: any, extractFunction) => {
+  const res = {};
+  Object.keys(workflowObject).forEach(key => {
+    res[key] = extractFunction(workflowObject[key]);
+  });
+  return res;
+};
+
+const convertToArray = (obj: string[] | string): string[] => {
+  if (obj === undefined || obj == null) return [];
+  return obj instanceof Array ? obj : [obj];
+};
+
+const convertCsvStringToArray = (s: string): string[] => {
+  if (s === undefined || s == null) return [];
+  return s.split(',').map(x => x.trim());
+};
+
 export {
-IJiraSettings,
-JiraSettings,
-}
+  JiraSettings
+};

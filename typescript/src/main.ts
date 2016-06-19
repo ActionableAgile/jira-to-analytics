@@ -1,7 +1,2 @@
-import JiraExtractor from './lib/jira/extractor';
-import { JiraSettings } from './lib/jira/settings';
-
-export {
-  JiraExtractor,
-  JiraSettings,
-};
+export { JiraExtractor } from './lib/jira/extractor';
+export { JiraSettings } from './lib/jira/settings';

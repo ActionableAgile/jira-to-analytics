@@ -2,6 +2,20 @@ import { expect } from 'chai';
 import { getHeaders, status } from '../../../lib/core/http';
 
 describe('http core', () => {
+  describe('headers', () => {
+    it('should be added correctly with no basic auth', () => {
+      const headers = getHeaders();
+      expect(headers.get('accept')).to.equal('application/json');
+      expect(headers.get('authorization')).to.not.exist;
+    });
+
+    it('should be added correctly with basic auth', () => {
+      const headers = getHeaders('test_username', 'test_password');
+      expect(headers.get('accept')).to.equal('application/json');
+      expect(headers.get('authorization')).to.equal('Basic dGVzdF91c2VybmFtZTp0ZXN0X3Bhc3N3b3Jk');
+    });
+  });
+
   describe('status code', () => {
     it('should accept a 200', () => {
       const testResponse = createFakeResponse(200, 'LGTM')
@@ -11,6 +25,7 @@ describe('http core', () => {
           expect(response.status).to.equal(200);
         });
     });
+
     it('should reject a 400', () => {
       const testResponse = createFakeResponse(400, 'Got a 400')
       return status(testResponse)

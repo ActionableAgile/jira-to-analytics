@@ -1,10 +1,10 @@
 import { getAllWorkItemsFromJira } from './repository';
-import { IJiraSettings } from './settings';
-import { IWorkItem, IExtractor } from '../core/models';
+import { IJiraSettings } from './models'
+import { IWorkItem } from '../core/work-item';
 
-class JiraExtractor implements IExtractor {
+class JiraExtractor {
   private settings: IJiraSettings;
-  private workItems: IWorkItem[];
+  private workItems: Array<IWorkItem>;
 
   constructor(settings: IJiraSettings) {
     if (!settings) {
@@ -28,6 +28,8 @@ class JiraExtractor implements IExtractor {
     const csv = `${header}\n${body}`;
     return csv;
   }
-}
+};
 
-export default JiraExtractor;
+export {
+  JiraExtractor
+};

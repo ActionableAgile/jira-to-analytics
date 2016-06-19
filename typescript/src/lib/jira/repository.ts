@@ -1,15 +1,18 @@
 import 'isomorphic-fetch';
 // import { Promise, Map } from 'core-js' //es6 ponyfills -- typings install --save --global dt~core-js
-import { IIssueList, IIssue } from './models';
-import {  IWorkItem, WorkItem } from '../core/models';
-import { IJiraSettings } from '../jira/settings';
+import { IIssueList, IIssue, IJiraSettings } from './models';
+import { IWorkItem, WorkItem } from '../core/work-item';
 import { getJsonFromUrl, getHeaders } from '../core/http';
 
 const getIssues = async function(query: string, username: string, password: string): Promise<IIssue[]> {
   const headers: Headers = getHeaders(username, password);
   const result: IIssueList = await getJsonFromUrl(query, headers);
-  const issues: IIssue[] = result.issues;
-  return issues;
+  if (result.issues) {
+    const issues: IIssue[] = result.issues;
+    return issues;
+  } else {
+    throw new Error('Could not retrieve issues from object');
+  }
 };
 
 function getJiraQueryUrl(url: string, startIndex: number, batchSize: number, projects: Array<string>, issueTypes: Array<string>, filters: Array<string>): string {
@@ -49,7 +52,6 @@ const parseAttributeArray = (attributeArray: any[]): string => {
   let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => {
     return parseAttribute(attributeArrayElement);
   });
-
   if (parsedAttributes.length === 0) {
     return '';
   }
@@ -57,8 +59,7 @@ const parseAttributeArray = (attributeArray: any[]): string => {
   return result;
 };
 
-
-const getAttributes = (fields = {}, attributesRequested: {}) => {
+const getAttributes = (fields, attributesRequested) => {
   const attributeAliases = Object.keys(attributesRequested); // human name alias
   return attributeAliases.reduce((attributesMap, attributeAlias) => {
     // needs to add the customfield_ stuff...
@@ -118,44 +119,40 @@ const getStagingDates = (issue: IIssue,
     });
   });
 
-  // go through each stage and get best date
-  let latestValidDate: string = '';
+  // get earliest date per stage and handle backflow
+  let latestValidIssueDateSoFar: string = '';
   const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
-    let validStageDates = stageBin.filter(date => {
-      return date >= latestValidDate ? true : false;
+    let validStageDates: string[] = stageBin.filter(date => {
+      return date >= latestValidIssueDateSoFar ? true : false;
     });
-    if (validStageDates.length > 1) {
-      validStageDates = validStageDates.sort().slice(0, 1); // keep only the earliest...
-      // go forward in time and filter??
-      for (let j = idx + 1; j < stageBins.length; j++) {
-        stageBins[j] = stageBins[j].filter(date => {
-          return date >= latestValidDate ? true : false;
-        });
-      }
+
+    if (validStageDates.length) {
+      validStageDates.sort();
+      latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
+      const earliestStageDate = validStageDates[0]; 
+      return earliestStageDate.split('T')[0];
+    } else {
+      return '';
     }
-    if (validStageDates.length > 0) {
-      latestValidDate = validStageDates[0].split('T')[0];
-      return latestValidDate;
-    }
-    return '';
   });
   return stagingDates;
+};
+
+const createWorkItem = (issue: IIssue, settings: IJiraSettings): IWorkItem => {
+  const key: string = issue.key;
+  const name: string = issue.fields['summary'];
+  const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
+  const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+  const attributes = getAttributes(issue.fields, settings.Attributes);
+
+  const workItem = new WorkItem(key, stagingDates, name, type, attributes);
+  return workItem;
 };
 
 const getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings): Promise<IWorkItem[]> {
   const url = getJiraQueryUrl(settings.ApiUrl, start, batchSize, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters);
   const issues = await getIssues(url, settings.Connection.Username, settings.Connection.Password);
-
-  const workItems = issues.map(issue => {
-    const key: string = issue.key;
-    const name: string = issue.fields['summary'];
-    const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
-    const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
-    const attributes = getAttributes(issue.fields, settings.Attributes);
-
-    const workItem = new WorkItem(key, stagingDates, name, type, attributes);
-    return workItem;
-  });
+  const workItems = issues.map(issue => createWorkItem(issue, settings));
   return workItems;
 };
 
@@ -174,14 +171,17 @@ const getAllWorkItemsFromJira = async function(settings: IJiraSettings, resultsP
       )
     );
 
-  console.log('this should');
-
   const totalJiras: number = metadata.total; 
   const batchSize: number = resultsPerBatch;
   const totalBatches: number = Math.ceil(totalJiras / batchSize); 
 
+  console.log(`Connection successful. ${totalJiras} issues detected.`);
+
   let allWorkItems: WorkItem[] = [];
   for  (let i = 0; i < totalBatches; i++) {
+    const rangeLower: number = i * batchSize;
+    const rangeUpper: number = Math.min((i * batchSize) + batchSize - 1, totalJiras);
+    console.log(`Extracting batch ${i + 1}/${totalBatches} -- Isssue(s) ${rangeLower}-${rangeUpper} out of ${totalJiras}`);
     const workItemsBatch = await getWorkItemsBatch(i * batchSize, batchSize, settings);
     allWorkItems.push(...workItemsBatch);
   }

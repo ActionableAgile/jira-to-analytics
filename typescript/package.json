@@ -11,6 +11,7 @@
     "postinstall": "npm run typings-install",
     "start": "npm run tsc:w",
     "test": "mocha src/test --recursive --compilers ts:ts-node/register",
+    "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/"
   },
   "keywords": [],

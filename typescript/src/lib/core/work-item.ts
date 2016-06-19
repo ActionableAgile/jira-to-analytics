@@ -1,23 +1,18 @@
 interface IExportable {
     toCSV(): string;
-}
-
-interface IExtractor extends IExportable {
-    getWorkItems(): Promise<void>;
-}
+};
 
 interface IWorkItem extends IExportable {
   Id: string;
-  StageDates: string[];
+  StageDates: Array<string>;
   Name: string;
   Type: string;
   Attributes: {};
-  toCSV(): string;
 };
 
 class WorkItem implements IWorkItem, IExportable {
   Id: string;
-  StageDates: string[];
+  StageDates: Array<string>;
   Name: string;
   Type: string;
   Attributes: {};
@@ -55,9 +50,6 @@ class WorkItem implements IWorkItem, IExportable {
 
 export {
   IExportable,
-  IExtractor,
   IWorkItem,
   WorkItem,
 };
-
-//todo -- pull workitem out from the interfaces file

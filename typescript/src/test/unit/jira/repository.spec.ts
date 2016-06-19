@@ -23,25 +23,26 @@ describe('jira repository', () => {
   });
 
   describe('attribute parser', () => {
-    it('should get basic attributes correctly', () => {
+    it('should get basic attributes and attribute arrays correctly', () => {
       const fields = {
         a: 'a',
         b: 1,
         c: ['c', 2],
-      }
+      };
 
       const requestedAttributes = {
         'A Letter': 'a',
         'A Number': 'b',
         'An Array': 'c',
-      }
+      };
 
       const actual = getAttributes(fields, requestedAttributes);
       const expected = {
         a: 'a',
         b: '1',
         c: '[c;2]',
-      }
+      };
+      
       expect(expected).to.deep.equal(actual);
     });
   });
@@ -174,7 +175,7 @@ describe('jira repository', () => {
       };
 
       const actual = getStagingDates(testIssue, stages, stageMap, false, false);
-      const expected = ['2016-01-01', '2016-01-02', '2016-01-03', '2016-01-04']; // is this correct?
+      const expected = ['2016-01-01', '2016-01-02', '2016-01-03', '2016-01-06']; // is this correct?
 
       expect(expected).to.deep.equal(actual);
     });

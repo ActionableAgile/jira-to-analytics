@@ -1,6 +1,6 @@
 import 'isomorphic-fetch';
 
-function getHeaders(username: string, password: string): Headers {
+function getHeaders(username?: string, password?: string): Headers {
   const headers = new Headers();
   headers.append('Accept', 'application/json');
   if (username && password) {
@@ -24,16 +24,7 @@ function convertToJson(response: IResponse): Promise<IResponse> {
 function getJsonFromUrl(url: string, headers: Headers): Promise<any> {
   return fetch(url, { headers })
     .then(status)
-    .then(convertToJson)
-    // .then(json => {
-    //   console.log('hello');
-    //   console.log(json)
-    //   Promise.resolve(json);
-    // })
-    .catch(error => {
-      console.log(`Error getting JSON for ${url}`);
-      throw error;
-  });
+    .then(convertToJson);
 };
 
 export {
@@ -42,3 +33,5 @@ export {
     getHeaders,
     getJsonFromUrl,
 };
+
+// todo work on error handling

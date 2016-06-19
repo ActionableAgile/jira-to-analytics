@@ -14,13 +14,18 @@ const getArgs = () => {
   return runtimeSettings;
 };
 
+const log = (l: any) => {
+  console.log(l);
+};
 
-const run = async function(cliSettings: any) {
+const run = async function(cliSettings: any): Promise<void> {
+  log('Extractor starting up...');
   const start = new Date().getTime();
 
+  log('Parsing settings');
   let settings: any  = {};
   try {
-    let jiraConfigPath = cliSettings.legacy  ? legacySampleYamlPath : sampleYamlPath;
+    let jiraConfigPath = cliSettings.legacy ? legacySampleYamlPath : sampleYamlPath;
     let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
     settings = yamlConfig;
     settings.legacy = cliSettings.legacy ? true : false;
@@ -28,25 +33,28 @@ const run = async function(cliSettings: any) {
     console.log('Error parsing config');
     throw error;
   }
-
+  
   const jiraSettings = new JiraSettings(settings, 'yaml');
+  log('Settings parsed successfully');
+
+  log('Beginning extraction process');
   const jiraExtractor = new JiraExtractor(jiraSettings);
   await jiraExtractor.getWorkItems();
   const csv = jiraExtractor.toCSV();
 
   try {
-    await writeOutData('output.csv', csv);
+    await writeFile('output.csv', csv);
   } catch (error) {
     console.log('Error writing out CSV.');
     throw error;
   }
 
   const end = new Date().getTime();
-  console.log(`${(end - start) / 1000} seconds`);
+  log(`Completed extraction in ${(end - start) / 1000} seconds`);
   return;
 };
 
-const writeOutData = (filePath, data) =>
+const writeFile = (filePath, data) =>
   new Promise((accept, reject) => {
     fs.writeFile(filePath, data, (err => {
       if (err) {
@@ -57,7 +65,7 @@ const writeOutData = (filePath, data) =>
     }));
   });
 
-(async function(cliArgs) {
+(async function(cliArgs): Promise<void> {
   try {
     await run(cliArgs);
   } catch (error) {
