@@ -1,0 +1,34 @@
+{
+  "name": "actionableagileimporttool",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/main.ts",
+  "typings": "dist/index",
+  "scripts": {
+    "tsc": "tsc",
+    "tsc:w": "tsc -w",
+    "typings-install": "typings install",
+    "postinstall": "npm run typings-install",
+    "start": "npm run tsc:w",
+    "test": "mocha src/test --recursive --compilers ts:ts-node/register",
+    "lint": "tslint ./src/**/*.ts",
+    "outDir": "dist/"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
+    "nock": "^8.0.0",
+    "ts-node": "^0.7.3",
+    "typescript": "^1.8.10",
+    "typings": "^1.0.4"
+  },
+  "dependencies": {
+    "core-js": "^2.4.0",
+    "isomorphic-fetch": "^2.2.1",
+    "js-yaml": "^3.6.1",
+    "yargs": "^4.7.1"
+  }
+}

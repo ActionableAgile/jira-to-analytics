@@ -1,0 +1,30 @@
+{
+  "version": "0.0.1",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "noImplicitReturns": true,
+    "suppressImplicitAnyIndexErrors": true
+  },
+  "exclude": [
+    "typings/main.d.ts",
+    "typings/main",
+    "node_modules",
+    "dist"
+  ],
+  "compileOnSave": false,
+  "buildOnSave": false,
+  "atom": { "rewriteTsconfig": false }
+}
+
+//     "outFile": "dist/bundle.js",
