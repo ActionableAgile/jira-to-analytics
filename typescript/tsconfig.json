@@ -3,7 +3,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "es6",
-    "outDir": "dist",
+    "outDir": "dist/build",
     "rootDir": "src",
     "declaration": true,
     "sourceMap": true,
@@ -20,7 +20,8 @@
     "typings/main.d.ts",
     "typings/main",
     "node_modules",
-    "dist"
+    "dist",
+    "src/test"
   ],
   "compileOnSave": false,
   "buildOnSave": false,

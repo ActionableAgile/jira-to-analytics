@@ -1,17 +1,22 @@
 var webpack = require('webpack');
 
 module.exports = {
-  entry: './src/main.ts',
+  entry: ['babel-polyfill', './src/main.ts'],
   output: {
-    filename: 'dist/bundle.js'
+    filename: 'dist/bundle/bundle.js'
   },
+  devtool: 'source-map',
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx', '']
   },
   plugins: [
       new webpack.ProvidePlugin({
         'fetch': 'imports?this=>global!exports?global.fetch!isomorphic-fetch'
-      })
+      }),
+      new webpack.optimize.UglifyJsPlugin({
+        sourceMap: true,
+        mangle: false
+      }),
   ],
   module: {
     loaders: [
