@@ -3,55 +3,17 @@ import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 
-const legacySampleYamlPath = './src/config/config-v1.yaml';
-const sampleYamlPath = './src/config/config-v2.yaml';
+const defaultYamlPath = 'config.yaml';
+const defaultOutputPath = 'output.csv';
 
 const getArgs = () => {
-  const runtimeSettings: any = {};
-  if (argv['legacy']) {
-    runtimeSettings.legacy = argv['legacy'];
-  }
-  return runtimeSettings;
+  return argv;
 };
 
-const log = (l: any) => {
-  console.log(l);
-};
-
-const run = async function(cliSettings: any): Promise<void> {
-  log('Extractor starting up...');
-  const start = new Date().getTime();
-
-  log('Parsing settings');
-  let settings: any  = {};
-  try {
-    let jiraConfigPath = cliSettings.legacy ? legacySampleYamlPath : sampleYamlPath;
-    let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
-    settings = yamlConfig;
-    settings.legacy = cliSettings.legacy ? true : false;
-  } catch (error) {
-    console.log('Error parsing config');
-    throw error;
+const log = (data: any, logLevel: string = 'v') => {
+  if (logLevel === 'v') {
+    console.log(data)
   }
-  
-  const jiraSettings = new JiraSettings(settings, 'yaml');
-  log('Settings parsed successfully');
-
-  log('Beginning extraction process');
-  const jiraExtractor = new JiraExtractor(jiraSettings);
-  await jiraExtractor.getWorkItems();
-  const csv = jiraExtractor.toCSV();
-
-  try {
-    await writeFile('output.csv', csv);
-  } catch (error) {
-    console.log('Error writing out CSV.');
-    throw error;
-  }
-
-  const end = new Date().getTime();
-  log(`Completed extraction in ${(end - start) / 1000} seconds`);
-  return;
 };
 
 const writeFile = (filePath, data) =>
@@ -65,10 +27,62 @@ const writeFile = (filePath, data) =>
     }));
   });
 
-(async function(cliArgs): Promise<void> {
+const run = async function(cliArgs: any): Promise<void> {
+  const start = new Date().getTime();
+
+  log('Parsing settings');
+  // CLI settings
+  let jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
+  let isLegacyYaml: boolean = cliArgs.l ? true : false;
+  let outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
+  let outputType: string = outputPath.split('.')[1].toUpperCase();
+  if (outputType !== 'CSV') {
+    throw new Error('Only CSV is currently supported. JSON support coming soon');
+  }
+  // YAML settings
+  let settings: any  = {};
   try {
-    await run(cliArgs);
-  } catch (error) {
-    console.log(error);
+    let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
+    settings = yamlConfig;
+    settings.legacy = isLegacyYaml;
+  } catch (e) {
+    console.log(`Error parsing settings ${e}`);
+    throw e;
+  }
+  const jiraSettings = new JiraSettings(settings, 'yaml');
+  console.log('Successfully parsed settings');
+  
+  // import data
+  log('Beginning extraction process');
+  const jiraExtractor = new JiraExtractor(jiraSettings);
+  try {
+    await jiraExtractor.getWorkItems();
+  } catch (e) {
+    console.log(`Error extracting JIRA Items ${e}`);
+    throw e;
+  }
+
+  //export data
+  let data: string;
+  if (outputType === 'CSV') {
+    data = jiraExtractor.toCSV();
+  }
+  try {
+    await writeFile(outputPath, data);
+  } catch (e) {
+    console.log(`Error writing jira data to ${outputPath}`);
+  }
+
+  const end = new Date().getTime();
+  log(`Completed extraction in ${(end - start) / 1000} seconds`);
+  return;
+};
+
+(async function(args): Promise<void> {
+  try {
+    await run(args);
+  } catch (e) {
+    console.log(`Error starting ActionableAgile Command Line Tool`)
+    console.log(e);
   }
 }(getArgs()));
