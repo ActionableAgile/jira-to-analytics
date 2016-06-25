@@ -24,33 +24,10 @@ interface IIssueList {
   issues: Array<IIssue>;
 };
 
-interface IJiraSettings {
-  Connection: {
-    Domain: string,
-    Username?: string,
-    Password?: string,
-  };
-  Criteria: {
-    Projects: Array<string>,
-    IssueTypes: Array<string>,
-    ValidResolutions: Array<string>,
-    Filters: Array<string>,
-    JQL: string,
-  };
-  Workflow: {};
-  Attributes: {};
-  Stages;
-  StageMap;
-  ApiUrl;
-  CreateInFirstStage;
-  ResolvedInLastStage;
-};
-
 export {
   IItem,
   IHistory,
   IChangeLog,
   IIssue,
   IIssueList,
-  IJiraSettings,
 };

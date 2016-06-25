@@ -1,23 +1,24 @@
 import { expect } from 'chai';
 import { IIssue } from '../../../lib/jira/models';
-import { getAllWorkItemsFromJira,
+import { getAllWorkItemsFromJiraApi,
   getWorkItemsBatch,
-  getJiraQueryUrl,
   getStagingDates,
-  getAttributes,
-} from '../../../lib/jira/repository';
+} from '../../../lib/jira/api-adapter/main';
+import { getAttributes } from '../../../lib/jira/api-adapter/components/attribute-parser'
+import { buildJiraQueryUrl } from '../../../lib/jira/api-adapter/components/query-builder';
+
 
 describe('jira repository', () => {
   describe('query builder', () => {
     it('should build complete jira query', () => {
-      const baseUrl = `http://google.com`;
+      const baseUrl = `http://baseurl.com`;
       const startIndex = 2;
       const batchSize = 25;
       const projects = ['Project1', 'Project2'];
       const issueTypes = ['Issue1', 'Issue2'];
       const filters = ['Filter1', 'Filter2'];
-      const actual = getJiraQueryUrl(baseUrl, startIndex, batchSize, projects, issueTypes, filters);
-      const expected = 'http://google.com/search?jql=project%20in%20(Project1%2CProject2)%20AND%20issuetype%20in%20(Issue1%2CIssue2)%20AND%20filter%3D%22Filter1%22%20AND%20filter%3D%22Filter2%22%20order%20by%20key&startAt=2&maxResults=25&expand=changelog';
+      const actual = buildJiraQueryUrl(baseUrl, projects, issueTypes, filters, startIndex, batchSize);
+      const expected = 'http://baseurl.com/search?jql=project%20in%20(Project1%2CProject2)%20AND%20issuetype%20in%20(Issue1%2CIssue2)%20AND%20filter%3D%22Filter1%22%20AND%20filter%3D%22Filter2%22%20order%20by%20key&startAt=2&maxResults=25&expand=changelog';
       expect(expected).to.equal(actual);
     });
   });

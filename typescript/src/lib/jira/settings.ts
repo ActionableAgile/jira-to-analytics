@@ -1,4 +1,24 @@
-import { IJiraSettings } from './models';
+interface IJiraSettings {
+  Connection: {
+    Domain: string,
+    Username?: string,
+    Password?: string,
+  };
+  Criteria: {
+    Projects: Array<string>,
+    IssueTypes: Array<string>,
+    ValidResolutions?: Array<string>,
+    Filters?: Array<string>,
+    JQL?: string,
+  };
+  Workflow: {};
+  Attributes: {};
+  Stages: Array<string>;
+  StageMap: Map<any, any>;
+  ApiUrl: string;
+  CreateInFirstStage: boolean;
+  ResolvedInLastStage: boolean;
+};
 
 class JiraSettings implements IJiraSettings {
   Connection: {
@@ -9,17 +29,17 @@ class JiraSettings implements IJiraSettings {
   Criteria: {
     Projects: Array<string>,
     IssueTypes: Array<string>,
-    ValidResolutions: Array<string>,
-    Filters: Array<string>,
-    JQL: string,
+    ValidResolutions?: Array<string>,
+    Filters?: Array<string>,
+    JQL?: string,
   };
   Workflow: {};
   Attributes: {};
-  Stages;
-  StageMap;
-  ApiUrl;
-  CreateInFirstStage;
-  ResolvedInLastStage;
+  Stages: Array<string>;
+  StageMap: Map<any, any>;
+  ApiUrl: string;
+  CreateInFirstStage: boolean;
+  ResolvedInLastStage: boolean;
 
   constructor(settings: any, source: string) {
     switch (source.toUpperCase()) {
@@ -102,5 +122,6 @@ const convertCsvStringToArray = (s: string): string[] => {
 };
 
 export {
-  JiraSettings
+  IJiraSettings,
+  JiraSettings,
 };
