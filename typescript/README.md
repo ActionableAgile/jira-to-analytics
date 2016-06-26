@@ -13,18 +13,23 @@ $ npm install
 ```
 
 ## Extracting
-To extract from JIRA, run ```npm start```
+To extract from JIRA, run ```node dist/cli.js```
 
-##### Configurable settings
+> NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
+##### Configurable settings/flags
 
 ```-i``` specifies input config file name (defaults to config.yaml)
 
 ```-o``` specifies output file name (must end with .csv or .json, defaults to data.csv)
 
+```--legacy``` will enable the old version of the YAML (from the GO version of the application). 
 
-For example, to run the tool with a config file named myconfig.yaml and exporting data to  mydata.csv:
 
-```npm start -i myconfig.yaml -o my.csv``` 
+
+
+For example, to run the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
+
+```node dist/cli.js -i myconfig.yaml --legacy -o my.csv``` 
 
 
 
@@ -55,6 +60,7 @@ MIT
 
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
+   [config-yaml]: <https://github.com/ActionableAgile/jira-to-analytics/blob/master/typescript/config.yaml>
    [mocha]: <https://mochajs.org/>
    [typescript]: <https://www.typescriptlang.org>
    [repo]: <https://github.com/ActionableAgile/jira-to-analytics/>
