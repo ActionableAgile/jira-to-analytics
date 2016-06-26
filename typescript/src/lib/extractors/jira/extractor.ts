@@ -1,6 +1,6 @@
-import { getAllWorkItemsFromJira } from './repository';
-import { IJiraSettings } from './models'
-import { IWorkItem } from '../core/work-item';
+import { getAllWorkItemsFromJiraApi } from './api-adapter/main';
+import { IJiraSettings, JiraSettings } from './settings'
+import { IWorkItem } from '../../core/work-item';
 
 class JiraExtractor {
   private settings: IJiraSettings;
@@ -13,14 +13,17 @@ class JiraExtractor {
     this.settings = settings;
   }
 
-  async getWorkItems(settings = this.settings): Promise<void> {
-    try {
-      const items = await getAllWorkItemsFromJira(settings);
-      this.workItems = items;
-    } catch (e) {
-      throw e;
-    }
-  }
+  getWorkItems(settings = this.settings): Promise<any> {
+    return new Promise((accept, reject) => {
+      getAllWorkItemsFromJiraApi(settings)
+      .then(items => {
+        this.workItems = items;
+        accept(items);
+      }).catch(err => {
+        reject(err);
+      });
+    });
+  };
 
   toCSV(workItems = this.workItems, stages = this.settings.Stages, attributes = this.settings.Attributes) {
     const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
@@ -31,5 +34,6 @@ class JiraExtractor {
 };
 
 export {
-  JiraExtractor
+  JiraExtractor,
+  JiraSettings,
 };

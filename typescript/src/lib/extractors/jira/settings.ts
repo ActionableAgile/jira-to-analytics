@@ -1,4 +1,24 @@
-import { IJiraSettings } from './models';
+interface IJiraSettings {
+  Connection: {
+    Domain: string,
+    Username?: string,
+    Password?: string,
+  };
+  Criteria: {
+    Projects: Array<string>,
+    IssueTypes: Array<string>,
+    ValidResolutions?: Array<string>,
+    Filters?: Array<string>,
+    JQL?: string,
+  };
+  Workflow: {};
+  Attributes: {};
+  Stages: Array<string>;
+  StageMap: Map<string, number>;
+  ApiUrl: string;
+  CreateInFirstStage: boolean;
+  ResolvedInLastStage: boolean;
+};
 
 class JiraSettings implements IJiraSettings {
   Connection: {
@@ -9,17 +29,17 @@ class JiraSettings implements IJiraSettings {
   Criteria: {
     Projects: Array<string>,
     IssueTypes: Array<string>,
-    ValidResolutions: Array<string>,
-    Filters: Array<string>,
-    JQL: string,
+    ValidResolutions?: Array<string>,
+    Filters?: Array<string>,
+    JQL?: string,
   };
   Workflow: {};
   Attributes: {};
-  Stages;
-  StageMap;
-  ApiUrl;
-  CreateInFirstStage;
-  ResolvedInLastStage;
+  Stages: Array<string>;
+  StageMap: Map<string, number>;
+  ApiUrl: string;
+  CreateInFirstStage: boolean;
+  ResolvedInLastStage: boolean;
 
   constructor(settings: any, source: string) {
     switch (source.toUpperCase()) {
@@ -75,6 +95,12 @@ class JiraSettings implements IJiraSettings {
         this.Stages = stages;
         this.StageMap = stageMap;
         this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
+
+        // console.log('before');
+        // console.log(settings);
+        // console.log('//////////////////////////////////////');
+        // console.log('after');
+        // console.log(this);
         return;
         
       default:
@@ -102,5 +128,6 @@ const convertCsvStringToArray = (s: string): string[] => {
 };
 
 export {
-  JiraSettings
+  IJiraSettings,
+  JiraSettings,
 };

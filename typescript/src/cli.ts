@@ -10,10 +10,8 @@ const getArgs = () => {
   return argv;
 };
 
-const log = (data: any, logLevel: string = 'v') => {
-  if (logLevel === 'v') {
-    console.log(data)
-  }
+const log = (data: any) => {
+  console.log(data)
 };
 
 const writeFile = (filePath, data) =>
@@ -31,7 +29,7 @@ const run = async function(cliArgs: any): Promise<void> {
   const start = new Date().getTime();
 
   log('Parsing settings');
-  // CLI settings
+  // Parse CLI settings
   let jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   let isLegacyYaml: boolean = cliArgs.l ? true : false;
   let outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
@@ -39,7 +37,8 @@ const run = async function(cliArgs: any): Promise<void> {
   if (outputType !== 'CSV') {
     throw new Error('Only CSV is currently supported. JSON support coming soon');
   }
-  // YAML settings
+
+  // Parse YAML settings
   let settings: any  = {};
   try {
     let yamlConfig = safeLoad(fs.readFileSync(jiraConfigPath, 'utf8'));
@@ -52,7 +51,7 @@ const run = async function(cliArgs: any): Promise<void> {
   const jiraSettings = new JiraSettings(settings, 'yaml');
   console.log('Successfully parsed settings');
   
-  // import data
+  // Import data
   log('Beginning extraction process');
   const jiraExtractor = new JiraExtractor(jiraSettings);
   try {
@@ -62,7 +61,7 @@ const run = async function(cliArgs: any): Promise<void> {
     throw e;
   }
 
-  //export data
+  // Export data
   let data: string;
   if (outputType === 'CSV') {
     data = jiraExtractor.toCSV();
@@ -82,7 +81,8 @@ const run = async function(cliArgs: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
-    console.log(`Error starting ActionableAgile Command Line Tool`)
+    console.log(`Error running ActionableAgile Command Line Tool`)
     console.log(e);
   }
 }(getArgs()));
+

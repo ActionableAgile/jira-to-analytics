@@ -27,10 +27,10 @@ describe('http core', () => {
     });
 
     it('should reject a 400', () => {
-      const testResponse = createFakeResponse(400, 'Got a 400')
+      const testResponse = createFakeResponse(400, 'Got a 400', 'http://testurl.com')
       return status(testResponse)
         .catch((errorResponse: Error) => {
-          expect(errorResponse.message).to.equal('400:Got a 400');
+          expect(errorResponse.message).to.equal('400 : Got a 400 at http://testurl.com');
         });
     });
   });

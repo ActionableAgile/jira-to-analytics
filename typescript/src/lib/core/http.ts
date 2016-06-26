@@ -13,7 +13,7 @@ function status(response: IResponse): Promise<any> {
   if (response.status >= 200 && response.status < 300) {
     return Promise.resolve(response);
   } else {
-    return Promise.reject(new Error(response.status + ':' + response.statusText));
+    return Promise.reject(new Error(`${response.status} : ${response.statusText} at ${response.url}`));
   }
 };
 
@@ -33,5 +33,3 @@ export {
     getHeaders,
     getJsonFromUrl,
 };
-
-// todo work on error handling

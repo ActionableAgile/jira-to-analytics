@@ -1,16 +1,13 @@
-interface IExportable {
-    toCSV(): string;
-};
-
-interface IWorkItem extends IExportable {
+interface IWorkItem {
   Id: string;
   StageDates: Array<string>;
   Name: string;
   Type: string;
   Attributes: {};
+  toCSV();
 };
 
-class WorkItem implements IWorkItem, IExportable {
+class WorkItem implements IWorkItem {
   Id: string;
   StageDates: Array<string>;
   Name: string;
@@ -49,7 +46,6 @@ class WorkItem implements IWorkItem, IExportable {
 };
 
 export {
-  IExportable,
   IWorkItem,
   WorkItem,
 };
