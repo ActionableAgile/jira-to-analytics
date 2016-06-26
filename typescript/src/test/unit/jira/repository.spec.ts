@@ -50,7 +50,7 @@ describe('jira repository', () => {
     it('should extract the correct dates when dates are in order', () => {
 
       const stages = ['First', 'Second', 'Third', 'Fourth'];
-      const stageMap: Map<string, number> = new Map();
+      const stageMap: Map<string, number> = new Map<string, number>();
       stageMap.set('first', 0);
       stageMap.set('second', 1);
       stageMap.set('third', 2);
@@ -107,7 +107,7 @@ describe('jira repository', () => {
     it('should extract the correct dates when dates have back flow', () => {
 
       const stages = ['First', 'Second', 'Third', 'Fourth'];
-      const stageMap: Map<string, number> = new Map();
+      const stageMap: Map<string, number> = new Map<string, number>();
       stageMap.set('first', 0);
       stageMap.set('second', 1);
       stageMap.set('third', 2);
