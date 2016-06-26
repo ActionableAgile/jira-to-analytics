@@ -14,7 +14,7 @@
     "test": "mocha src/test --recursive --compilers ts:ts-node/register",
     "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/",
-    "bundle-standalone": "tsc && browserify dist/cli.js --node --standalone rawjs > analytics.js",
+    "bundle-standalone": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
     "build-release": "npm run bundle-standalone"
   },
   "keywords": [],
