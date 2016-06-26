@@ -3,8 +3,8 @@ import * as nock from 'nock';
 import 'isomorphic-fetch';
 import * as fs from 'fs';
 import { safeLoad } from 'js-yaml';
-import { JiraExtractor } from '../../lib/jira/extractor';
-import { JiraSettings } from '../../lib/jira/settings';
+import { JiraExtractor } from '../../lib/extractors/jira/extractor';
+import { JiraSettings } from '../../lib/extractors/jira/settings';
 import json from '../data/json/jira-issues-request';
 
 const yamlPathVersion1 = './src/test/data/config/config-v1.yaml';

@@ -26,5 +26,3 @@
   "buildOnSave": false,
   "atom": { "rewriteTsconfig": false }
 }
-
-//     "outFile": "dist/bundle.js",

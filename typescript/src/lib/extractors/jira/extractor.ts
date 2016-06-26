@@ -1,6 +1,6 @@
 import { getAllWorkItemsFromJiraApi } from './api-adapter/main';
-import { IJiraSettings } from './settings'
-import { IWorkItem } from '../core/work-item';
+import { IJiraSettings, JiraSettings } from './settings'
+import { IWorkItem } from '../../core/work-item';
 
 class JiraExtractor {
   private settings: IJiraSettings;
@@ -35,4 +35,5 @@ class JiraExtractor {
 
 export {
   JiraExtractor,
+  JiraSettings,
 };

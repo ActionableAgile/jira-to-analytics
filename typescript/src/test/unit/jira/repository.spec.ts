@@ -1,11 +1,9 @@
 import { expect } from 'chai';
-import { IIssue } from '../../../lib/jira/models';
-import { getAllWorkItemsFromJiraApi,
-  getWorkItemsBatch,
-  getStagingDates,
-} from '../../../lib/jira/api-adapter/main';
-import { getAttributes } from '../../../lib/jira/api-adapter/components/attribute-parser'
-import { buildJiraQueryUrl } from '../../../lib/jira/api-adapter/components/query-builder';
+import { IIssue } from '../../../lib/extractors/jira/models';
+import { getAllWorkItemsFromJiraApi, getWorkItemsBatch } from '../../../lib/extractors/jira/api-adapter/main';
+import { getAttributes } from '../../../lib/extractors/jira/api-adapter/components/attribute-parser';
+import { buildJiraQueryUrl } from '../../../lib/extractors/jira/api-adapter/components/query-builder';
+import { getStagingDates } from '../../../lib/extractors/jira/api-adapter/components/staging-parser';
 
 
 describe('jira repository', () => {

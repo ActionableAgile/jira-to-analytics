@@ -2,8 +2,8 @@
   "globalDependencies": {
     "isomorphic-fetch": "registry:dt/isomorphic-fetch#0.0.0+20160524142046",
     "js-yaml": "registry:dt/js-yaml#3.5.2+20160316171810",
-    "mocha": "registry:dt/mocha#2.2.5+20160317120654",
-    "node": "registry:dt/node#4.0.0+20160509154515"
+    "mocha": "registry:dt/mocha#2.2.5+20160619032855",
+    "node": "registry:dt/node#6.0.0+20160621231320"
   },
   "dependencies": {
     "chai": "registry:npm/chai#3.5.0+20160415060238",

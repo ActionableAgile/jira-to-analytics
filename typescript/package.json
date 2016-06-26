@@ -8,7 +8,9 @@
     "tsc": "tsc",
     "tsc:w": "tsc -w",
     "typings-install": "typings install",
-    "postinstall": "npm run typings-install",
+    "build": "tsc",
+    "postinstall": "npm run typings-install && npm run build",
+    "jira-extract": "node dist/cli",
     "start": "npm run tsc:w",
     "test": "mocha src/test --recursive --compilers ts:ts-node/register",
     "lint": "tslint ./src/**/*.ts",
@@ -26,7 +28,6 @@
     "typings": "^1.0.4"
   },
   "dependencies": {
-    "core-js": "^2.4.0",
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
     "yargs": "^4.7.1"
