@@ -14,7 +14,7 @@ interface IJiraSettings {
   Workflow: {};
   Attributes: {};
   Stages: Array<string>;
-  StageMap: Map<any, any>;
+  StageMap: Map<string, number>;
   ApiUrl: string;
   CreateInFirstStage: boolean;
   ResolvedInLastStage: boolean;
@@ -36,7 +36,7 @@ class JiraSettings implements IJiraSettings {
   Workflow: {};
   Attributes: {};
   Stages: Array<string>;
-  StageMap: Map<any, any>;
+  StageMap: Map<string, number>;
   ApiUrl: string;
   CreateInFirstStage: boolean;
   ResolvedInLastStage: boolean;

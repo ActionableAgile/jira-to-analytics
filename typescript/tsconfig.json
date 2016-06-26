@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es6",
+    "target": "es5",
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,

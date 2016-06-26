@@ -28,6 +28,7 @@
     "typings": "^1.0.4"
   },
   "dependencies": {
+    "core-js": "^2.4.0",
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
     "yargs": "^4.7.1"
