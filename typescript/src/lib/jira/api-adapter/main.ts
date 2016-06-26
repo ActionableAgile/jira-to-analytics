@@ -36,12 +36,14 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
 };
 
 const getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<IWorkItem[]> {
-  const metadata = await getJsonFromUrl(
-    buildJiraQueryUrl(
-      settings.ApiUrl, 
-      settings.Criteria.Projects, 
-      settings.Criteria.IssueTypes, 
-      settings.Criteria.Filters), 
+  let metadata: any;
+  // try {
+    metadata = await getJsonFromUrl(
+      buildJiraQueryUrl(
+        settings.ApiUrl, 
+        settings.Criteria.Projects, 
+        settings.Criteria.IssueTypes, 
+        settings.Criteria.Filters), 
       getHeaders(settings.Connection.Username, settings.Connection.Password)
     );
 
@@ -51,7 +53,7 @@ const getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, resul
 
   console.log(`Connection successful. ${totalJiras} issues detected.`);
 
-  let allWorkItems: WorkItem[] = [];
+  let allWorkItems: IWorkItem[] = [];
   for  (let i = 0; i < totalBatches; i++) {
     const rangeLower: number = i * batchSize;
     const rangeUpper: number = Math.min((i * batchSize) + batchSize - 1, totalJiras);

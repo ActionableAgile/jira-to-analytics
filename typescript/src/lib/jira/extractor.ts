@@ -19,6 +19,8 @@ class JiraExtractor {
       .then(items => {
         this.workItems = items;
         accept(items);
+      }).catch(err => {
+        reject(err);
       });
     });
   };

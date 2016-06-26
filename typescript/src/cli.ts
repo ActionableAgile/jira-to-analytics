@@ -10,10 +10,8 @@ const getArgs = () => {
   return argv;
 };
 
-const log = (data: any, logLevel: string = 'v') => {
-  if (logLevel === 'v') {
-    console.log(data)
-  }
+const log = (data: any) => {
+  console.log(data)
 };
 
 const writeFile = (filePath, data) =>
@@ -82,7 +80,7 @@ const run = async function(cliArgs: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
-    console.log(`Error starting ActionableAgile Command Line Tool`)
+    console.log(`Error running ActionableAgile Command Line Tool`)
     console.log(e);
   }
 }(getArgs()));

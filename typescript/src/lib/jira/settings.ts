@@ -95,6 +95,12 @@ class JiraSettings implements IJiraSettings {
         this.Stages = stages;
         this.StageMap = stageMap;
         this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
+
+        // console.log('before');
+        // console.log(settings);
+        // console.log('//////////////////////////////////////');
+        // console.log('after');
+        // console.log(this);
         return;
         
       default:
