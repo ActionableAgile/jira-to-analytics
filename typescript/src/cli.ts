@@ -14,7 +14,7 @@ const log = (data: any) => {
   console.log(data)
 };
 
-const writeFile = (filePath, data) =>
+const writeFile = (filePath: string, data: any) =>
   new Promise((accept, reject) => {
     fs.writeFile(filePath, data, (err => {
       if (err) {
@@ -30,10 +30,10 @@ const run = async function(cliArgs: any): Promise<void> {
 
   log('Parsing settings');
   // Parse CLI settings
-  let jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
-  let isLegacyYaml: boolean = cliArgs.l ? true : false;
-  let outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
-  let outputType: string = outputPath.split('.')[1].toUpperCase();
+  const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
+  const isLegacyYaml: boolean = cliArgs.l ? true : false;
+  const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
+  const outputType: string = outputPath.split('.')[1].toUpperCase();
   if (outputType !== 'CSV') {
     throw new Error('Only CSV is currently supported. JSON support coming soon');
   }
@@ -77,7 +77,7 @@ const run = async function(cliArgs: any): Promise<void> {
   return;
 };
 
-(async function(args): Promise<void> {
+(async function(args: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {

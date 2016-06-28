@@ -1,19 +1,16 @@
 # ActionableAgile Analytics Tool
 
-The Analytics Tool is an isomorphic analytics extraction tool written in [Typescript].
 
 ## Installation
-Analytics tool requires [Node.js](https://nodejs.org/) v4+ to run.
+>NOTE: Analytics tool requires [Node.js](https://nodejs.org/) v4+ to run. 
+If you don't have Node installed, please install it before continuing. 
 
-Run the following commands to install the tool and the required dependencies:
-```sh
-$ git clone [git-repo-url] analytics-tool
-$ cd analytics-tool/typescript
-$ npm install
-```
+Download jira_to_analytics.js and config.yaml from the releases page on github (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in the previous README. Open a command prompt and run it by simply typing ```node jira-to-analytics``` (no additional command line parameters are needed). If the program succeeds, the output data file will be written in the same directory as the javascript file
+.
+## Using the Application
 
-## Extracting
-To extract from JIRA, run ```node dist/cli.js```
+To run the JIRA extraction process, run ```node jira-to-analytics```
+
 
 > NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
 ##### Configurable settings/flags
@@ -29,23 +26,13 @@ To extract from JIRA, run ```node dist/cli.js```
 
 For example, to run the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
 
-```node dist/cli.js -i myconfig.yaml --legacy -o my.csv``` 
+```node jira-to-analytics -i myconfig.yaml --legacy -o my.csv``` 
 
 
 
 ### Version 
-0.1.0
+0.1.0 
 
-### Tech
-
-The Agile tool uses a number of open source projects to work properly:
-* [node.js] - evented asynchronous I/O for the backend
-* [typescript] - typed superset of typescript
-* [Express] - fast node.js network app framework
-* [Mocha] - Flexible JavaScript testing framework
-
-And of course the Agile tool itself is open source with a [public repository][repo]
- on GitHub.
 
 
 ### Todos
