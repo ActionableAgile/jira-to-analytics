@@ -11,10 +11,6 @@ Criteria:
         - Sub-task
         - Story
         - Bug
-    Valid resolutions: # Which resolution statuses to include (unresolved is always included)
-        - Done
-        - Closed
-    JQL: labels != "Spike" # Additional filter as raw JQL, optional
     Filters: 
         - HCPUB Desktop - Closed Major+ Bugs
 
