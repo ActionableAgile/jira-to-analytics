@@ -24,6 +24,7 @@ Download jira_to_analytics.js and config.yaml from the releases page on github (
 To run the JIRA extraction process, run ```node jira-to-analytics```
 
 > NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
+
 ##### Configurable settings/flags
 
 ```-i``` specifies input config file name (defaults to config.yaml)
