@@ -1,4 +1,4 @@
-const getAttributes = (fields, attributesRequested) => {
+const getAttributes = (fields: any, attributesRequested: any) => {
   const attributeAliases = Object.keys(attributesRequested); // human name alias
   return attributeAliases.reduce((attributesMap, attributeAlias) => {
     // needs to add the customfield_ stuff...

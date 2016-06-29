@@ -79,8 +79,8 @@ class JiraSettings implements IJiraSettings {
 
         // setup others
         const stages = Object.keys(workflow);
-        const stageMap = stages.reduce((map, stage, i) => {
-          return workflow[stage].reduce((map, stageAlias) => {
+        const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
+          return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
             return map.set(stageAlias, i);
           }, map);
         }, new Map<string, number>());
@@ -109,7 +109,7 @@ class JiraSettings implements IJiraSettings {
   }
 }
 
-const getWorkflowArray = (workflowObject: any, extractFunction) => {
+const getWorkflowArray = (workflowObject: any, extractFunction: any) => {
   const res = {};
   Object.keys(workflowObject).forEach(key => {
     res[key] = extractFunction(workflowObject[key]);

@@ -6,15 +6,12 @@ Connection:
 
 # What to search for?
 Criteria:
-    Project: HCPUB # JIRA project key to search
+    Project: 
+        - HCPUB # JIRA project key to search
     Issue types: # Which issue types to include
         - Sub-task
         - Story
         - Bug
-    Valid resolutions: # Which resolution statuses to include (unresolved is always included)
-        - Done
-        - Closed
-    JQL: labels != "Spike" # Additional filter as raw JQL, optional
     Filters: 
         - HCPUB Desktop - Closed Major+ Bugs
 
@@ -49,9 +46,13 @@ Attributes:
 
 
 
-###########
-### V1 ####
-###########
+
+
+
+################################
+### V1 LEGACY VERSION BELOW ####
+###    RUN WITH --LEGACY    ####
+################################
 
 # Connection:
 #     Domain: https://actionableagile.atlassian.net
