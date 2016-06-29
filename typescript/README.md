@@ -83,6 +83,7 @@ An example of what this section might look like would be:
 
 Criteria:  
 &nbsp;&nbsp;&nbsp;&nbsp;Project: 
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- My Project1
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- My Project2  
 &nbsp;&nbsp;&nbsp;&nbsp;Filters: 
@@ -101,21 +102,25 @@ Dev: Development Active, Development Done, Staging
 
 will tell the software to look for the Jira statuses "Development Active", "Development Done", and "Staging" and map those statuses to a column in the output data file called "Dev".  The simplest form of this section is to have a one-to-one mapping of all Jira statuses to a corresponding column name in the data file.  For example, assume your Jira workflow is ToDo, Doing, Done.  Then a simple Workflow section of the config file that produces a data file that captures each of those statuses in a respectively named column would be:
 
+```
 Workflow:  
-&nbsp;&nbsp;&nbsp;&nbsp;ToDo: ToDo  
-&nbsp;&nbsp;&nbsp;&nbsp;Doing: Doing  
-&nbsp;&nbsp;&nbsp;&nbsp;Done: Done
+	ToDo: ToDo  
+	Doing: Doing  
+	Done: Done
+```
 
 Sometimes Jira issues are created with a certain status, and there is no event that corresponds to a move into that status, so there is no date at which the work item entered the corresponding workflow stage. You can designate that an item be created in a certain workflow stage by adding (Created) to the list of Jira statuses. For example, in the previous example if you wanted to designate that items enter the ToDo workflow stage when they are created, you would change the workflow section of the config file as follows:
 
+```
 Workflow:  
-&nbsp;&nbsp;&nbsp;&nbsp;ToDo:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- ToDo, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- (Created)  
-&nbsp;&nbsp;&nbsp;&nbsp;Doing: 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Doing  
-&nbsp;&nbsp;&nbsp;&nbsp;Done: 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Done
+	ToDo:
+		- ToDo 
+		- (Created)  
+	Doing: 
+		- Doing  
+	Done: 
+		- Done
+```
 
 Again, please refer to the sample config file for an example of what the workflow section looks like. 
 
@@ -144,12 +149,14 @@ Here are the standard Jira fields that you can use:
 
 An example of what this section might look like is:
 
+```
 Attributes:  
-&nbsp;&nbsp;&nbsp;&nbsp;Team: customfield_10000  
-&nbsp;&nbsp;&nbsp;&nbsp;Regulatory Requirement: customfield_10001  
-&nbsp;&nbsp;&nbsp;&nbsp;Status: status  
-&nbsp;&nbsp;&nbsp;&nbsp;Type: issuetype  
-&nbsp;&nbsp;&nbsp;&nbsp;Level: priority  
+	Team: customfield_10000  
+	Regulatory Requirement: customfield_10001  
+	Status: status  
+	Type: issuetype  
+	Level: priority  
+```
 
 These fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
 
