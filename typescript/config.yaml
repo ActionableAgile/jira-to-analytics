@@ -6,7 +6,8 @@ Connection:
 
 # What to search for?
 Criteria:
-    Project: HCPUB # JIRA project key to search
+    Project: 
+        - HCPUB # JIRA project key to search
     Issue types: # Which issue types to include
         - Sub-task
         - Story
@@ -45,9 +46,13 @@ Attributes:
 
 
 
-###########
-### V1 ####
-###########
+
+
+
+################################
+### V1 LEGACY VERSION BELOW ####
+###    RUN WITH --LEGACY    ####
+################################
 
 # Connection:
 #     Domain: https://actionableagile.atlassian.net
