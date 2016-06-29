@@ -24,7 +24,6 @@ Download jira_to_analytics.js and config.yaml from the releases page on github (
 To run the JIRA extraction process, run ```node jira-to-analytics```
 
 > NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
-
 ##### Configurable settings/flags
 
 ```-i``` specifies input config file name (defaults to config.yaml)
@@ -66,10 +65,12 @@ And one optional field:
 
 An example of what this section might look like is:
 
+```
 Connection:  
-&nbsp;&nbsp;&nbsp;&nbsp;Domain: https://www.myjiradomain.com  
-&nbsp;&nbsp;&nbsp;&nbsp;Username: MyUsername  
-&nbsp;&nbsp;&nbsp;&nbsp;Password: MyPassword  
+	Domain: https://www.myjiradomain.com  
+	Username: MyUsername  
+	Password: MyPassword  
+```
 
 **NOTE**:  We only support Basic Authentication with Jira at this time
 
@@ -82,17 +83,18 @@ The Criteria Section of the config file is simply named "Criteria" (without the 
 
 An example of what this section might look like would be:
 
+```
 Criteria:  
-&nbsp;&nbsp;&nbsp;&nbsp;Project: 
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- My Project1
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- My Project2  
-&nbsp;&nbsp;&nbsp;&nbsp;Filters: 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Filter1
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Filter2
-&nbsp;&nbsp;&nbsp;&nbsp;Issue types: 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Epic
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- User Story
+	Project: 
+		- My Project1
+		- My Project2  
+	Filters: 
+		- Filter1
+		- Filter2
+	Issue types: 
+		- Epic
+		- User Story
+```
 
 **NOTE**:  The fields in this section are optional
 
