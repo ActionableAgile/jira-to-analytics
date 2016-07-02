@@ -1,9 +1,9 @@
 {
   "name": "actionableagileimporttool",
-  "version": "0.0.4",
+  "version": "0.2.0",
   "description": "",
   "main": "dist/main.js",
-  "typings": "dist/index",
+  "typings": "dist/main",
   "scripts": {
     "tsc:w": "tsc -w",
     "typings-install": "typings install",

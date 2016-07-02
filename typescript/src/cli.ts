@@ -7,6 +7,7 @@ const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
 
 const getArgs = () => {
+  console.log(argv);
   return argv;
 };
 
@@ -31,11 +32,11 @@ const run = async function(cliArgs: any): Promise<void> {
   log('Parsing settings');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
-  const isLegacyYaml: boolean = cliArgs.l ? true : false;
+  const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
   const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
   const outputType: string = outputPath.split('.')[1].toUpperCase();
-  if (outputType !== 'CSV') {
-    throw new Error('Only CSV is currently supported. JSON support coming soon');
+  if (outputType !== 'CSV' && outputType !== 'JSON') {
+    throw new Error('Only CSV and JSON is currently supported for file output');
   }
 
   // Parse YAML settings
@@ -48,6 +49,8 @@ const run = async function(cliArgs: any): Promise<void> {
     console.log(`Error parsing settings ${e}`);
     throw e;
   }
+  console.log('hi');
+  console.log(settings);
   const jiraSettings = new JiraSettings(settings, 'yaml');
   console.log('Successfully parsed settings');
   
@@ -65,6 +68,8 @@ const run = async function(cliArgs: any): Promise<void> {
   let data: string;
   if (outputType === 'CSV') {
     data = jiraExtractor.toCSV();
+  } else if (outputType === 'JSON') {
+    data = jiraExtractor.toSerializedArray();
   }
   try {
     await writeFile(outputPath, data);

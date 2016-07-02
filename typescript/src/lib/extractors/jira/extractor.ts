@@ -25,11 +25,18 @@ class JiraExtractor {
     });
   };
 
-  toCSV(workItems = this.workItems, stages = this.settings.Stages, attributes = this.settings.Attributes) {
+  toCSV(workItems = this.workItems, stages = this.settings.Stages, attributes = this.settings.Attributes): string {
     const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
     const body = workItems.map(item => item.toCSV()).reduce((res, cur) => `${res + cur}\n`, '');
     const csv = `${header}\n${body}`;
     return csv;
+  }
+
+  toSerializedArray(workItems = this.workItems, stages = this.settings.Stages, attributes = this.settings.Attributes): string {
+    const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
+    const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
+    const serializedData: string = `[${header}${body}]`;
+    return serializedData;
   }
 };
 
