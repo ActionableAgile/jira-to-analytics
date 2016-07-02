@@ -1,3 +1,7 @@
 src
 typings
 jira-to-analytics.js
+typings.json
+tsconfig.json
+config.yaml
+tslint.json
