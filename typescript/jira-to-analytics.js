@@ -15,6 +15,7 @@ var yargs_1 = require('yargs');
 var defaultYamlPath = 'config.yaml';
 var defaultOutputPath = 'output.csv';
 var getArgs = function () {
+    console.log(yargs_1.argv);
     return yargs_1.argv;
 };
 var log = function (data) {
@@ -37,11 +38,11 @@ var run = function (cliArgs) {
         log('Parsing settings');
         // Parse CLI settings
         var jiraConfigPath = cliArgs.i ? cliArgs.i : defaultYamlPath;
-        var isLegacyYaml = cliArgs.l ? true : false;
+        var isLegacyYaml = (cliArgs.l || cliArgs.legacy) ? true : false;
         var outputPath = cliArgs.o ? cliArgs.o : defaultOutputPath;
         var outputType = outputPath.split('.')[1].toUpperCase();
-        if (outputType !== 'CSV') {
-            throw new Error('Only CSV is currently supported. JSON support coming soon');
+        if (outputType !== 'CSV' && outputType !== 'JSON') {
+            throw new Error('Only CSV and JSON is currently supported for file output');
         }
         // Parse YAML settings
         var settings = {};
@@ -54,6 +55,8 @@ var run = function (cliArgs) {
             console.log("Error parsing settings " + e);
             throw e;
         }
+        console.log('hi');
+        console.log(settings);
         var jiraSettings = new main_1.JiraSettings(settings, 'yaml');
         console.log('Successfully parsed settings');
         // Import data
@@ -70,6 +73,9 @@ var run = function (cliArgs) {
         var data;
         if (outputType === 'CSV') {
             data = jiraExtractor.toCSV();
+        }
+        else if (outputType === 'JSON') {
+            data = jiraExtractor.toSerializedArray();
         }
         try {
             yield writeFile(outputPath, data);
@@ -154,6 +160,23 @@ var WorkItem = (function () {
         });
         return s;
     };
+    WorkItem.prototype.toSerializedArray = function () {
+        var _this = this;
+        var s = '';
+        s += '[';
+        s += "\"" + this.Id + "\",";
+        s += "\"\",";
+        s += "\"" + (WorkItem.cleanString(this.Name)) + "\"";
+        this.StageDates.forEach(function (stageDate) { return s += ",\"" + stageDate + "\""; });
+        s += ",\"" + this.Type + "\"";
+        var attributeKeys = Object.keys(this.Attributes);
+        attributeKeys.forEach(function (attributeKey) {
+            s += ",\"" + WorkItem.cleanString(_this.Attributes[attributeKey]) + "\"";
+        });
+        s += ']';
+        return s;
+    };
+    ;
     WorkItem.cleanString = function (s) {
         return s.replace(/"/g, '')
             .replace(/'/g, '')
@@ -174,6 +197,15 @@ function __export(m) {
 __export(require('./jira/extractor'));
 
 },{"./jira/extractor":9}],5:[function(require,module,exports){
+// if strings.HasPrefix(value, "customfield_") {
+//   valueParts := strings.SplitN(value, ".", 2)
+//   fieldName := valueParts[0]
+//   contentName := "value"
+//   if len(valueParts) > 1 {
+//     contentName = valueParts[1]
+//   }
+//   attr := ConfigAttr{key, fieldName, contentName}
+//   config.Attributes = append(config.Attributes, attr)
 "use strict";
 var getAttributes = function (fields, attributesRequested) {
     var attributeAliases = Object.keys(attributesRequested); // human name alias
@@ -181,15 +213,20 @@ var getAttributes = function (fields, attributesRequested) {
         // needs to add the customfield_ stuff...
         var attributeSystemName = attributesRequested[attributeAlias];
         var attributeData = fields[attributeSystemName];
+        var subAttribute = null;
+        if (attributeSystemName.startsWith('customfield_') && attributeSystemName.split('.').length > 1) {
+            var multipartAttribute = attributeSystemName.split('.');
+            subAttribute = multipartAttribute[1];
+        }
         var parsed = Array.isArray(attributeData)
             ? parseAttributeArray(attributeData)
-            : parseAttribute(attributeData);
+            : parseAttribute(attributeData, subAttribute); // subattribute only supported for nonarrays currently
         attributesMap[attributeSystemName] = parsed;
         return attributesMap;
     }, {});
 };
 exports.getAttributes = getAttributes;
-var parseAttribute = function (attribute) {
+var parseAttribute = function (attribute, custom) {
     if (attribute === undefined || attribute == null) {
         return '';
     }
@@ -200,7 +237,7 @@ var parseAttribute = function (attribute) {
         return attribute.toString();
     }
     else {
-        return attribute.name;
+        return custom ? attribute[custom] : attribute['name'];
     }
 };
 exports.parseAttribute = parseAttribute;
@@ -248,28 +285,42 @@ var getStagingDates = function (issue, stages, stageMap, createInFirstStage, res
     var unusedStages = new Map();
     var stageBins = stages.map(function () { return []; }); // todo, we dont need stages variable....just create array;
     if (createInFirstStage) {
-        var creationDate = issue.fields.created;
-        stageBins[0].push(creationDate);
+        stageBins = addCreatedToFirstStage(issue, stageBins);
     }
     if (resolvedInLastStage) {
-        if (issue.fields.status !== undefined || issue.fields.status != null) {
-            if (issue.fields['status'].name === 'Closed') {
-                if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
-                    var resolutionDate = issue.fields['resolutiondate'];
-                    var doneStageIndex = stageMap.get('Closed');
-                    stageBins[doneStageIndex].push(resolutionDate);
-                }
+        stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
+    }
+    stageBins = populateStages(issue, stageMap, stageBins, unusedStages);
+    var stagingDates = filterAndFlattenStagingDates(stageBins);
+    return stagingDates;
+};
+exports.getStagingDates = getStagingDates;
+var addCreatedToFirstStage = function (issue, stageBins) {
+    var creationDate = issue.fields['created'];
+    stageBins[0].push(creationDate);
+    return stageBins;
+};
+var addResolutionDateToClosedStage = function (issue, stageMap, stageBins) {
+    if (issue.fields['status'] !== undefined || issue.fields['status'] != null) {
+        if (issue.fields['status'].name === 'Closed') {
+            if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
+                var resolutionDate = issue.fields['resolutiondate'];
+                var doneStageIndex = stageMap.get('Closed');
+                stageBins[doneStageIndex].push(resolutionDate);
             }
         }
     }
+    return stageBins;
+};
+var populateStages = function (issue, stageMap, stageBins, unusedStages) {
     // sort status changes into stage bins
     issue.changelog.histories.forEach(function (history) {
         history.items.forEach(function (historyItem) {
-            if (historyItem.field === 'status') {
+            if (historyItem['field'] === 'status') {
                 var stageName = historyItem.toString;
                 if (stageMap.has(stageName)) {
                     var stageIndex = stageMap.get(stageName);
-                    var stageDate = history.created;
+                    var stageDate = history['created'];
                     stageBins[stageIndex].push(stageDate);
                 }
                 else {
@@ -279,7 +330,9 @@ var getStagingDates = function (issue, stages, stageMap, createInFirstStage, res
             }
         });
     });
-    // get earliest date per stage and handle backflow
+    return stageBins;
+};
+var filterAndFlattenStagingDates = function (stageBins) {
     var latestValidIssueDateSoFar = '';
     var stagingDates = stageBins.map(function (stageBin, idx) {
         var validStageDates = stageBin.filter(function (date) {
@@ -297,7 +350,6 @@ var getStagingDates = function (issue, stages, stageMap, createInFirstStage, res
     });
     return stagingDates;
 };
-exports.getStagingDates = getStagingDates;
 
 },{}],8:[function(require,module,exports){
 "use strict";
@@ -402,6 +454,15 @@ var JiraExtractor = (function () {
         var body = workItems.map(function (item) { return item.toCSV(); }).reduce(function (res, cur) { return ((res + cur) + "\n"); }, '');
         var csv = header + "\n" + body;
         return csv;
+    };
+    JiraExtractor.prototype.toSerializedArray = function (workItems, stages, attributes) {
+        if (workItems === void 0) { workItems = this.workItems; }
+        if (stages === void 0) { stages = this.settings.Stages; }
+        if (attributes === void 0) { attributes = this.settings.Attributes; }
+        var header = "[\"ID\",\"Link\",\"Name\"," + stages.map(function (stage) { return ("\"" + stage + "\""); }).join(',') + ",\"Type\"," + Object.keys(attributes).map(function (attribute) { return ("\"" + attribute + "\""); }).join(',') + "]";
+        var body = workItems.map(function (item) { return item.toSerializedArray(); }).reduce(function (res, cur) { return (res + ",\n" + cur); }, '');
+        var serializedData = "[" + header + body + "]";
+        return serializedData;
     };
     return JiraExtractor;
 }());

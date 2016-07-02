@@ -7,35 +7,52 @@ const getStagingDates = (
     createInFirstStage: boolean = true,
     resolvedInLastStage: boolean = false): string[] => {
 
-  const unusedStages = new Map<string, number>();
-  const stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
+  let unusedStages = new Map<string, number>();
+  let stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
 
   if (createInFirstStage) {
-    const creationDate: string = issue.fields.created;
-    stageBins[0].push(creationDate);
+    stageBins = addCreatedToFirstStage(issue, stageBins);
   }
 
   if (resolvedInLastStage) {
-    if (issue.fields.status !== undefined || issue.fields.status != null ) {
-      if (issue.fields['status'].name === 'Closed') {
-        if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
-          const resolutionDate: string = issue.fields['resolutiondate'];
-          const doneStageIndex: number = stageMap.get('Closed');
-          stageBins[doneStageIndex].push(resolutionDate);
-        }
+    stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
+  }
+
+  stageBins = populateStages(issue, stageMap, stageBins, unusedStages);
+
+  const stagingDates = filterAndFlattenStagingDates(stageBins);
+  return stagingDates;
+};
+
+const addCreatedToFirstStage = (issue: IIssue, stageBins: string[][]) => {
+  const creationDate: string = issue.fields['created'];
+  stageBins[0].push(creationDate);
+  return stageBins;
+};
+
+const addResolutionDateToClosedStage = (issue: IIssue, stageMap, stageBins) => {
+  if (issue.fields['status'] !== undefined || issue.fields['status'] != null ) {
+    if (issue.fields['status'].name === 'Closed') {
+      if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
+        const resolutionDate: string = issue.fields['resolutiondate'];
+        const doneStageIndex: number = stageMap.get('Closed');
+        stageBins[doneStageIndex].push(resolutionDate);
       }
     }
   }
+  return stageBins;
+};
 
+const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages) => {
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
-      if (historyItem.field === 'status') {
+      if (historyItem['field'] === 'status') {
         const stageName: string = historyItem.toString;
 
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history.created;
+          const stageDate: string = history['created'];
           stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
@@ -45,13 +62,15 @@ const getStagingDates = (
     });
   });
 
-  // get earliest date per stage and handle backflow
+  return stageBins;
+};
+
+const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   let latestValidIssueDateSoFar: string = '';
   const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
     let validStageDates: string[] = stageBin.filter(date => {
       return date >= latestValidIssueDateSoFar ? true : false;
     });
-
     if (validStageDates.length) {
       validStageDates.sort();
       latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
@@ -61,7 +80,7 @@ const getStagingDates = (
       return '';
     }
   });
-  return stagingDates;
+return stagingDates;
 };
 
 export {

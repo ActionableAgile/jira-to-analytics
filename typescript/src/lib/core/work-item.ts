@@ -5,6 +5,7 @@ interface IWorkItem {
   Type: string;
   Attributes: {};
   toCSV();
+  toSerializedArray();
 };
 
 class WorkItem implements IWorkItem {
@@ -35,6 +36,25 @@ class WorkItem implements IWorkItem {
 
     return s;
   }
+
+  toSerializedArray(): string {
+    let s = '';
+    s += '['
+    s += `"${this.Id}",`;
+    s += `"",`
+    s += `"${(WorkItem.cleanString(this.Name))}"`;
+    this.StageDates.forEach(stageDate => s += `,"${stageDate}"`);
+    s += `,"${this.Type}"`;
+
+    const attributeKeys = Object.keys(this.Attributes);
+    attributeKeys.forEach(attributeKey => {
+      s += `,"${WorkItem.cleanString(this.Attributes[attributeKey])}"`;
+    });
+    s += ']';
+
+    return s;
+  };
+
 
   static cleanString(s: string): string {
     return s.replace(/"/g, '')
