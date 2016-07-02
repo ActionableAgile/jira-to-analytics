@@ -8,7 +8,7 @@
     "tsc:w": "tsc -w",
     "typings-install": "typings install",
     "build": "tsc",
-    "postinstall": "npm run typings-install && npm run build",
+    "install-typings": "npm run typings-install",
     "jira-extract": "node dist/cli",
     "start": "npm run tsc:w",
     "test": "mocha src/test --recursive --compilers ts:ts-node/register",
