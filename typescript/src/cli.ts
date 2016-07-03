@@ -2,12 +2,23 @@ import * as fs from 'fs';
 import { JiraExtractor, JiraSettings } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
+import * as ProgressBar from 'progress';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
 
+// const progressBarDone =  (bar: ProgressBar) => {
+//   bar.terminate();
+// };
+
+const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: 100,
+});
+
 const getArgs = () => {
-  console.log(argv);
   return argv;
 };
 
@@ -29,14 +40,14 @@ const writeFile = (filePath: string, data: any) =>
 const run = async function(cliArgs: any): Promise<void> {
   const start = new Date().getTime();
 
-  log('Parsing settings');
+  // log('Parsing settings');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
   const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
   const outputType: string = outputPath.split('.')[1].toUpperCase();
   if (outputType !== 'CSV' && outputType !== 'JSON') {
-    throw new Error('Only CSV and JSON is currently supported for file output');
+    throw new Error('Only CSV and JSON is currently supported for file output.');
   }
 
   // Parse YAML settings
@@ -49,14 +60,27 @@ const run = async function(cliArgs: any): Promise<void> {
     console.log(`Error parsing settings ${e}`);
     throw e;
   }
-  console.log('hi');
-  console.log(settings);
   const jiraSettings = new JiraSettings(settings, 'yaml');
-  console.log('Successfully parsed settings');
+  // console.log('Successfully parsed settings');
+  
+
+  log('Beginning extraction process');
+
+  const updateProgressHook = (bar => {
+    let count = 0;
+    return (updateAmount = null) => {
+      count += updateAmount;
+      if (count < 100) 
+        bar.tick(count);
+    } 
+  })(bar);
+
+  bar.tick();
+  // updateProgressHook();
   
   // Import data
-  log('Beginning extraction process');
-  const jiraExtractor = new JiraExtractor(jiraSettings);
+  const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
+
   try {
     await jiraExtractor.getWorkItems();
   } catch (e) {
@@ -76,9 +100,10 @@ const run = async function(cliArgs: any): Promise<void> {
   } catch (e) {
     console.log(`Error writing jira data to ${outputPath}`);
   }
-
   const end = new Date().getTime();
-  log(`Completed extraction in ${(end - start) / 1000} seconds`);
+  // log(`Completed extraction in ${(end - start) / 1000} seconds`);
+  log(`Done. Results written to ${outputPath}`);
+
   return;
 };
 

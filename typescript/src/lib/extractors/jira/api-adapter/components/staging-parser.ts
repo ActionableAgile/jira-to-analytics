@@ -6,20 +6,15 @@ const getStagingDates = (
     stageMap: Map<string, number>,
     createInFirstStage: boolean = true,
     resolvedInLastStage: boolean = false): string[] => {
-
-  let unusedStages = new Map<string, number>();
   let stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
 
   if (createInFirstStage) {
     stageBins = addCreatedToFirstStage(issue, stageBins);
   }
-
   if (resolvedInLastStage) {
     stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
   }
-
-  stageBins = populateStages(issue, stageMap, stageBins, unusedStages);
-
+  stageBins = populateStages(issue, stageMap, stageBins);
   const stagingDates = filterAndFlattenStagingDates(stageBins);
   return stagingDates;
 };
@@ -43,13 +38,26 @@ const addResolutionDateToClosedStage = (issue: IIssue, stageMap, stageBins) => {
   return stageBins;
 };
 
-const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages) => {
+const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
+
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
       if (historyItem['field'] === 'status') {
         const stageName: string = historyItem.toString;
-
+        if (stageMap.has(stageName)) {
+          const stageIndex: number = stageMap.get(stageName);
+          const stageDate: string = history['created'];
+          stageBins[stageIndex].push(stageDate);
+        } else {
+          const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
+          unusedStages.set(stageName, count + 1);
+        }
+      }
+      // naive solution, does not differentiate between epic status stage or status stage/
+      //  (lumpsthem together);
+      if (historyItem['field'] === 'Epic Status' && historyItem['fieldtype'] === 'custom') {
+        const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
           const stageDate: string = history['created'];
@@ -61,7 +69,6 @@ const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages) => {
       }
     });
   });
-
   return stageBins;
 };
 
