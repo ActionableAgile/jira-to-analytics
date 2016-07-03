@@ -30,7 +30,7 @@ To run the JIRA extraction process, run ```node jira-to-analytics```
 
 ```-o``` specifies output file name (must end with .csv or .json, defaults to data.csv)
 
-```-l``` or ```--leacy``` will enable the old version of the YAML (from the GO version of the application). 
+```-l``` or ```--legacy``` will enable the old version of the YAML (from the GO version of the application). 
 
 
 

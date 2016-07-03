@@ -29,11 +29,7 @@ describe('jira repository', () => {
         c: ['c', 2],
       };
 
-      const requestedAttributes = {
-        'A Letter': 'a',
-        'A Number': 'b',
-        'An Array': 'c',
-      };
+      const requestedAttributes = ['a', 'b', 'c'];
 
       const actual = getAttributes(fields, requestedAttributes);
       const expected = {

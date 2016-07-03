@@ -12,10 +12,19 @@ var fs = require('fs');
 var main_1 = require('./main');
 var js_yaml_1 = require('js-yaml');
 var yargs_1 = require('yargs');
+var ProgressBar = require('progress');
 var defaultYamlPath = 'config.yaml';
 var defaultOutputPath = 'output.csv';
+// const progressBarDone =  (bar: ProgressBar) => {
+//   bar.terminate();
+// };
+var bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
+    complete: '=',
+    incomplete: ' ',
+    width: 20,
+    total: 100,
+});
 var getArgs = function () {
-    console.log(yargs_1.argv);
     return yargs_1.argv;
 };
 var log = function (data) {
@@ -35,14 +44,14 @@ var writeFile = function (filePath, data) {
 var run = function (cliArgs) {
     return __awaiter(this, void 0, Promise, function* () {
         var start = new Date().getTime();
-        log('Parsing settings');
+        // log('Parsing settings');
         // Parse CLI settings
         var jiraConfigPath = cliArgs.i ? cliArgs.i : defaultYamlPath;
         var isLegacyYaml = (cliArgs.l || cliArgs.legacy) ? true : false;
         var outputPath = cliArgs.o ? cliArgs.o : defaultOutputPath;
         var outputType = outputPath.split('.')[1].toUpperCase();
         if (outputType !== 'CSV' && outputType !== 'JSON') {
-            throw new Error('Only CSV and JSON is currently supported for file output');
+            throw new Error('Only CSV and JSON is currently supported for file output.');
         }
         // Parse YAML settings
         var settings = {};
@@ -55,13 +64,22 @@ var run = function (cliArgs) {
             console.log("Error parsing settings " + e);
             throw e;
         }
-        console.log('hi');
-        console.log(settings);
         var jiraSettings = new main_1.JiraSettings(settings, 'yaml');
-        console.log('Successfully parsed settings');
-        // Import data
+        // console.log('Successfully parsed settings');
         log('Beginning extraction process');
-        var jiraExtractor = new main_1.JiraExtractor(jiraSettings);
+        var updateProgressHook = (function (bar) {
+            var count = 0;
+            return function (updateAmount) {
+                if (updateAmount === void 0) { updateAmount = null; }
+                count += updateAmount;
+                if (count < 100)
+                    bar.tick(count);
+            };
+        })(bar);
+        bar.tick();
+        // updateProgressHook();
+        // Import data
+        var jiraExtractor = new main_1.JiraExtractor(jiraSettings, updateProgressHook);
         try {
             yield jiraExtractor.getWorkItems();
         }
@@ -84,7 +102,8 @@ var run = function (cliArgs) {
             console.log("Error writing jira data to " + outputPath);
         }
         var end = new Date().getTime();
-        log("Completed extraction in " + (end - start) / 1000 + " seconds");
+        // log(`Completed extraction in ${(end - start) / 1000} seconds`);
+        log("Done. Results written to " + outputPath);
         return;
     });
 };
@@ -100,7 +119,7 @@ var run = function (cliArgs) {
     });
 }(getArgs()));
 
-},{"./main":11,"fs":undefined,"js-yaml":56,"yargs":136}],2:[function(require,module,exports){
+},{"./main":11,"fs":undefined,"js-yaml":56,"progress":116,"yargs":138}],2:[function(require,module,exports){
 "use strict";
 require('isomorphic-fetch');
 function getHeaders(username, password) {
@@ -197,21 +216,10 @@ function __export(m) {
 __export(require('./jira/extractor'));
 
 },{"./jira/extractor":9}],5:[function(require,module,exports){
-// if strings.HasPrefix(value, "customfield_") {
-//   valueParts := strings.SplitN(value, ".", 2)
-//   fieldName := valueParts[0]
-//   contentName := "value"
-//   if len(valueParts) > 1 {
-//     contentName = valueParts[1]
-//   }
-//   attr := ConfigAttr{key, fieldName, contentName}
-//   config.Attributes = append(config.Attributes, attr)
 "use strict";
 var getAttributes = function (fields, attributesRequested) {
-    var attributeAliases = Object.keys(attributesRequested); // human name alias
-    return attributeAliases.reduce(function (attributesMap, attributeAlias) {
-        // needs to add the customfield_ stuff...
-        var attributeSystemName = attributesRequested[attributeAlias];
+    // const attributesSystemNames = Object.keys(attributesRequested).map(key => attributesRequested[key]); // human name alias
+    return attributesRequested.reduce(function (attributesMap, attributeSystemName) {
         var attributeData = fields[attributeSystemName];
         var subAttribute = null;
         if (attributeSystemName.startsWith('customfield_') && attributeSystemName.split('.').length > 1) {
@@ -282,7 +290,6 @@ exports.buildJiraQueryUrl = buildJiraQueryUrl;
 var getStagingDates = function (issue, stages, stageMap, createInFirstStage, resolvedInLastStage) {
     if (createInFirstStage === void 0) { createInFirstStage = true; }
     if (resolvedInLastStage === void 0) { resolvedInLastStage = false; }
-    var unusedStages = new Map();
     var stageBins = stages.map(function () { return []; }); // todo, we dont need stages variable....just create array;
     if (createInFirstStage) {
         stageBins = addCreatedToFirstStage(issue, stageBins);
@@ -290,7 +297,7 @@ var getStagingDates = function (issue, stages, stageMap, createInFirstStage, res
     if (resolvedInLastStage) {
         stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
     }
-    stageBins = populateStages(issue, stageMap, stageBins, unusedStages);
+    stageBins = populateStages(issue, stageMap, stageBins);
     var stagingDates = filterAndFlattenStagingDates(stageBins);
     return stagingDates;
 };
@@ -313,10 +320,25 @@ var addResolutionDateToClosedStage = function (issue, stageMap, stageBins) {
     return stageBins;
 };
 var populateStages = function (issue, stageMap, stageBins, unusedStages) {
+    if (unusedStages === void 0) { unusedStages = new Map(); }
     // sort status changes into stage bins
     issue.changelog.histories.forEach(function (history) {
         history.items.forEach(function (historyItem) {
             if (historyItem['field'] === 'status') {
+                var stageName = historyItem.toString;
+                if (stageMap.has(stageName)) {
+                    var stageIndex = stageMap.get(stageName);
+                    var stageDate = history['created'];
+                    stageBins[stageIndex].push(stageDate);
+                }
+                else {
+                    var count = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
+                    unusedStages.set(stageName, count + 1);
+                }
+            }
+            // naive solution, does not differentiate between epic status stage or status stage/
+            //  (lumpsthem together);
+            if (historyItem['field'] === 'Epic Status' && historyItem['fieldtype'] === 'custom') {
                 var stageName = historyItem.toString;
                 if (stageMap.has(stageName)) {
                     var stageIndex = stageMap.get(stageName);
@@ -384,7 +406,8 @@ var createWorkItem = function (issue, settings) {
     var name = issue.fields['summary'];
     var stagingDates = staging_parser_1.getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
     var type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
-    var attributes = attribute_parser_1.getAttributes(issue.fields, settings.Attributes);
+    var requestedAttributeSystemNames = Object.keys(settings.Attributes).map(function (key) { return settings.Attributes[key]; });
+    var attributes = attribute_parser_1.getAttributes(issue.fields, requestedAttributeSystemNames);
     var workItem = new work_item_1.WorkItem(key, stagingDates, name, type, attributes);
     return workItem;
 };
@@ -397,24 +420,28 @@ var getWorkItemsBatch = function (start, batchSize, settings) {
     });
 };
 exports.getWorkItemsBatch = getWorkItemsBatch;
-var getAllWorkItemsFromJiraApi = function (settings, resultsPerBatch) {
+var getAllWorkItemsFromJiraApi = function (settings, hook, resultsPerBatch) {
     return __awaiter(this, void 0, Promise, function* () {
+        if (hook === void 0) { hook = function () { }; }
         if (resultsPerBatch === void 0) { resultsPerBatch = 25; }
         var metadata = yield http_1.getJsonFromUrl(query_builder_1.buildJiraQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), http_1.getHeaders(settings.Connection.Username, settings.Connection.Password));
         var totalJiras = metadata.total;
         var batchSize = resultsPerBatch;
         var totalBatches = Math.ceil(totalJiras / batchSize);
-        console.log("Connection successful. " + totalJiras + " issues detected.");
+        // console.log(`Connection successful. ${totalJiras} issues detected.`);
         var allWorkItems = [];
+        hook(0);
         for (var i = 0; i < totalBatches; i++) {
             //log
             var rangeLower = i * batchSize;
             var rangeUpper = Math.min((i * batchSize) + batchSize - 1, totalJiras);
-            console.log("Extracting batch " + (i + 1) + "/" + totalBatches + " -- Isssue(s) " + rangeLower + "-" + rangeUpper + " out of " + totalJiras);
+            // console.log(`Extracting batch ${i + 1}/${totalBatches} -- Isssue(s) ${rangeLower}-${rangeUpper} out of ${totalJiras}`);
             // extract
             var workItemBatch = yield getWorkItemsBatch(i * batchSize, batchSize, settings);
             allWorkItems.push.apply(allWorkItems, workItemBatch);
+            hook(Math.max(batchSize / totalJiras) * 100);
         }
+        hook(100);
         return allWorkItems;
     });
 };
@@ -426,17 +453,20 @@ var main_1 = require('./api-adapter/main');
 var settings_1 = require('./settings');
 exports.JiraSettings = settings_1.JiraSettings;
 var JiraExtractor = (function () {
-    function JiraExtractor(settings) {
+    function JiraExtractor(settings, statusHook) {
+        if (statusHook === void 0) { statusHook = function () { }; }
         if (!settings) {
             throw new Error('No JIRA Settings found. Must provide settings');
         }
         this.settings = settings;
+        this.statusHook = statusHook;
     }
-    JiraExtractor.prototype.getWorkItems = function (settings) {
+    JiraExtractor.prototype.getWorkItems = function (settings, hook) {
         var _this = this;
         if (settings === void 0) { settings = this.settings; }
+        if (hook === void 0) { hook = this.statusHook; }
         return new Promise(function (accept, reject) {
-            main_1.getAllWorkItemsFromJiraApi(settings)
+            main_1.getAllWorkItemsFromJiraApi(settings, hook)
                 .then(function (items) {
                 _this.workItems = items;
                 accept(items);
@@ -493,15 +523,15 @@ var JiraSettings = (function () {
                     var JQL = settings.Criteria.JQL;
                     this.Criteria = { Projects: Projects, IssueTypes: IssueTypes, ValidResolutions: ValidResolutions, Filters: Filters, JQL: JQL };
                 }
-                if (this.Criteria.JQL) {
-                    console.warn('Custom JQL not currently supported');
-                }
-                if (this.Criteria.ValidResolutions) {
-                    console.warn('Valid Resolutions not currently supported');
-                }
+                // if (this.Criteria.JQL) {
+                //   console.warn('Custom JQL not currently supported');
+                // }
+                // if (this.Criteria.ValidResolutions) {
+                //   console.warn('Valid Resolutions not currently supported');
+                // }
                 var workflow_1 = settings.legacy
-                    ? getWorkflowArray(settings.Workflow, convertCsvStringToArray)
-                    : getWorkflowArray(settings.Workflow, convertToArray);
+                    ? convertWorkflowToArray(settings.Workflow, convertCsvStringToArray)
+                    : convertWorkflowToArray(settings.Workflow, convertToArray);
                 this.Workflow = workflow_1;
                 this.Attributes = settings.Attributes;
                 // setup others
@@ -534,7 +564,7 @@ var JiraSettings = (function () {
     return JiraSettings;
 }());
 exports.JiraSettings = JiraSettings;
-var getWorkflowArray = function (workflowObject, extractFunction) {
+var convertWorkflowToArray = function (workflowObject, extractFunction) {
     var res = {};
     Object.keys(workflowObject).forEach(function (key) {
         res[key] = extractFunction(workflowObject[key]);
@@ -895,7 +925,7 @@ module.exports = function (opts) {
   })
 }
 
-},{"string-width":125,"strip-ansi":126,"wrap-ansi":131}],15:[function(require,module,exports){
+},{"string-width":127,"strip-ansi":128,"wrap-ansi":133}],15:[function(require,module,exports){
 'use strict';
 var numberIsNan = require('number-is-nan');
 
@@ -10332,7 +10362,7 @@ module.exports.sync = function (fp) {
 	return parse(fs.readFileSync(fp, 'utf8'), fp);
 };
 
-},{"graceful-fs":22,"parse-json":107,"path":undefined,"pify":112,"pinkie-promise":113,"strip-bom":127}],89:[function(require,module,exports){
+},{"graceful-fs":22,"parse-json":107,"path":undefined,"pify":112,"pinkie-promise":113,"strip-bom":129}],89:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -12755,7 +12785,7 @@ function bugsTypos(bugs, warn) {
   })
 }
 
-},{"./extract_description":98,"./typos":102,"hosted-git-info":27,"is-builtin-module":51,"semver":119,"url":undefined,"validate-npm-package-license":129}],100:[function(require,module,exports){
+},{"./extract_description":98,"./typos":102,"hosted-git-info":27,"is-builtin-module":51,"semver":121,"url":undefined,"validate-npm-package-license":131}],100:[function(require,module,exports){
 var util = require("util")
 var messages = require("./warning_messages.json")
 
@@ -14454,7 +14484,192 @@ module.exports.filepath = function (conf) {
 	return conf[fpSymbol];
 };
 
-},{"find-up":20,"load-json-file":88,"object-assign":105,"symbol":128}],116:[function(require,module,exports){
+},{"find-up":20,"load-json-file":88,"object-assign":105,"symbol":130}],116:[function(require,module,exports){
+module.exports = require('./lib/node-progress');
+
+},{"./lib/node-progress":117}],117:[function(require,module,exports){
+/*!
+ * node-progress
+ * Copyright(c) 2011 TJ Holowaychuk <tj@vision-media.ca>
+ * MIT Licensed
+ */
+
+/**
+ * Expose `ProgressBar`.
+ */
+
+exports = module.exports = ProgressBar;
+
+/**
+ * Initialize a `ProgressBar` with the given `fmt` string and `options` or
+ * `total`.
+ *
+ * Options:
+ *
+ *   - `total` total number of ticks to complete
+ *   - `width` the displayed width of the progress bar defaulting to total
+ *   - `stream` the output stream defaulting to stderr
+ *   - `complete` completion character defaulting to "="
+ *   - `incomplete` incomplete character defaulting to "-"
+ *   - `callback` optional function to call when the progress bar completes
+ *   - `clear` will clear the progress bar upon termination
+ *
+ * Tokens:
+ *
+ *   - `:bar` the progress bar itself
+ *   - `:current` current tick number
+ *   - `:total` total ticks
+ *   - `:elapsed` time elapsed in seconds
+ *   - `:percent` completion percentage
+ *   - `:eta` eta in seconds
+ *
+ * @param {string} fmt
+ * @param {object|number} options or total
+ * @api public
+ */
+
+function ProgressBar(fmt, options) {
+  this.stream = options.stream || process.stderr;
+
+  if (typeof(options) == 'number') {
+    var total = options;
+    options = {};
+    options.total = total;
+  } else {
+    options = options || {};
+    if ('string' != typeof fmt) throw new Error('format required');
+    if ('number' != typeof options.total) throw new Error('total required');
+  }
+
+  this.fmt = fmt;
+  this.curr = 0;
+  this.total = options.total;
+  this.width = options.width || this.total;
+  this.clear = options.clear
+  this.chars = {
+    complete   : options.complete || '=',
+    incomplete : options.incomplete || '-'
+  };
+  this.callback = options.callback || function () {};
+  this.lastDraw = '';
+}
+
+/**
+ * "tick" the progress bar with optional `len` and optional `tokens`.
+ *
+ * @param {number|object} len or tokens
+ * @param {object} tokens
+ * @api public
+ */
+
+ProgressBar.prototype.tick = function(len, tokens){
+  if (len !== 0)
+    len = len || 1;
+
+  // swap tokens
+  if ('object' == typeof len) tokens = len, len = 1;
+
+  // start time for eta
+  if (0 == this.curr) this.start = new Date;
+
+  this.curr += len
+  this.render(tokens);
+
+  // progress complete
+  if (this.curr >= this.total) {
+    this.complete = true;
+    this.terminate();
+    this.callback(this);
+    return;
+  }
+};
+
+/**
+ * Method to render the progress bar with optional `tokens` to place in the
+ * progress bar's `fmt` field.
+ *
+ * @param {object} tokens
+ * @api public
+ */
+
+ProgressBar.prototype.render = function (tokens) {
+  if (!this.stream.isTTY) return;
+
+  var ratio = this.curr / this.total;
+  ratio = Math.min(Math.max(ratio, 0), 1);
+
+  var percent = ratio * 100;
+  var incomplete, complete, completeLength;
+  var elapsed = new Date - this.start;
+  var eta = (percent == 100) ? 0 : elapsed * (this.total / this.curr - 1);
+
+  /* populate the bar template with percentages and timestamps */
+  var str = this.fmt
+    .replace(':current', this.curr)
+    .replace(':total', this.total)
+    .replace(':elapsed', isNaN(elapsed) ? '0.0' : (elapsed / 1000).toFixed(1))
+    .replace(':eta', (isNaN(eta) || !isFinite(eta)) ? '0.0' : (eta / 1000)
+      .toFixed(1))
+    .replace(':percent', percent.toFixed(0) + '%');
+
+  /* compute the available space (non-zero) for the bar */
+  var availableSpace = Math.max(0, this.stream.columns - str.replace(':bar', '').length);
+  var width = Math.min(this.width, availableSpace);
+
+  /* TODO: the following assumes the user has one ':bar' token */
+  completeLength = Math.round(width * ratio);
+  complete = Array(completeLength + 1).join(this.chars.complete);
+  incomplete = Array(width - completeLength + 1).join(this.chars.incomplete);
+
+  /* fill in the actual progress bar */
+  str = str.replace(':bar', complete + incomplete);
+
+  /* replace the extra tokens */
+  if (tokens) for (var key in tokens) str = str.replace(':' + key, tokens[key]);
+
+  if (this.lastDraw !== str) {
+    this.stream.clearLine();
+    this.stream.cursorTo(0);
+    this.stream.write(str);
+    this.lastDraw = str;
+  }
+};
+
+/**
+ * "update" the progress bar to represent an exact percentage.
+ * The ratio (between 0 and 1) specified will be multiplied by `total` and
+ * floored, representing the closest available "tick." For example, if a
+ * progress bar has a length of 3 and `update(0.5)` is called, the progress
+ * will be set to 1.
+ *
+ * A ratio of 0.5 will attempt to set the progress to halfway.
+ *
+ * @param {number} ratio The ratio (between 0 and 1 inclusive) to set the
+ *   overall completion to.
+ * @api public
+ */
+
+ProgressBar.prototype.update = function (ratio, tokens) {
+  var goal = Math.floor(ratio * this.total);
+  var delta = goal - this.curr;
+
+  this.tick(delta, tokens);
+};
+
+/**
+ * Terminates a progress bar.
+ *
+ * @api public
+ */
+
+ProgressBar.prototype.terminate = function () {
+  if (this.clear) {
+    this.stream.clearLine();
+    this.stream.cursorTo(0);
+  } else console.log();
+};
+
+},{}],118:[function(require,module,exports){
 'use strict';
 var findUp = require('find-up');
 var readPkg = require('read-pkg');
@@ -14487,7 +14702,7 @@ module.exports.sync = function (opts) {
 	};
 };
 
-},{"find-up":20,"read-pkg":117}],117:[function(require,module,exports){
+},{"find-up":20,"read-pkg":119}],119:[function(require,module,exports){
 'use strict';
 var path = require('path');
 var loadJsonFile = require('load-json-file');
@@ -14537,7 +14752,7 @@ module.exports.sync = function (fp, opts) {
 	return x;
 };
 
-},{"load-json-file":88,"normalize-package-data":101,"path":undefined,"path-type":111}],118:[function(require,module,exports){
+},{"load-json-file":88,"normalize-package-data":101,"path":undefined,"path-type":111}],120:[function(require,module,exports){
 module.exports = function (_require) {
   _require = _require || require
   var main = _require.main
@@ -14557,7 +14772,7 @@ function handleIISNode (main) {
   }
 }
 
-},{}],119:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 exports = module.exports = SemVer;
 
 // The debug function is excluded entirely from the minified version.
@@ -15747,7 +15962,7 @@ function outside(version, range, hilo, loose) {
   return true;
 }
 
-},{}],120:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 module.exports = function (blocking) {
   [process.stdout, process.stderr].forEach(function (stream) {
     if (stream._handle && typeof stream._handle.setBlocking === 'function') {
@@ -15756,7 +15971,7 @@ module.exports = function (blocking) {
   })
 }
 
-},{}],121:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 var licenseIDs = require('spdx-license-ids');
 
 function valid(string) {
@@ -15995,16 +16210,16 @@ module.exports = function(identifier) {
   return null;
 };
 
-},{"spdx-license-ids":124}],122:[function(require,module,exports){
+},{"spdx-license-ids":126}],124:[function(require,module,exports){
 var parser = require('./parser.generated.js').parser
 
 module.exports = function(argument) {
   return parser.parse(argument) }
 
-},{"./parser.generated.js":123}],123:[function(require,module,exports){
+},{"./parser.generated.js":125}],125:[function(require,module,exports){
 var spdxparse=function(){var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,5],$V1=[1,6],$V2=[1,7],$V3=[1,4],$V4=[1,9],$V5=[1,10],$V6=[5,14,15,17],$V7=[5,12,14,15,17];var parser={trace:function trace(){},yy:{},symbols_:{error:2,start:3,expression:4,EOS:5,simpleExpression:6,LICENSE:7,PLUS:8,LICENSEREF:9,DOCUMENTREF:10,COLON:11,WITH:12,EXCEPTION:13,AND:14,OR:15,OPEN:16,CLOSE:17,$accept:0,$end:1},terminals_:{2:"error",5:"EOS",7:"LICENSE",8:"PLUS",9:"LICENSEREF",10:"DOCUMENTREF",11:"COLON",12:"WITH",13:"EXCEPTION",14:"AND",15:"OR",16:"OPEN",17:"CLOSE"},productions_:[0,[3,2],[6,1],[6,2],[6,1],[6,3],[4,1],[4,3],[4,3],[4,3],[4,3]],performAction:function anonymous(yytext,yyleng,yylineno,yy,yystate,$$,_$){var $0=$$.length-1;switch(yystate){case 1:return this.$=$$[$0-1];break;case 2:case 4:case 5:this.$={license:yytext};break;case 3:this.$={license:$$[$0-1],plus:true};break;case 6:this.$=$$[$0];break;case 7:this.$={exception:$$[$0]};this.$.license=$$[$0-2].license;if($$[$0-2].hasOwnProperty("plus")){this.$.plus=$$[$0-2].plus}break;case 8:this.$={conjunction:"and",left:$$[$0-2],right:$$[$0]};break;case 9:this.$={conjunction:"or",left:$$[$0-2],right:$$[$0]};break;case 10:this.$=$$[$0-1];break}},table:[{3:1,4:2,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{1:[3]},{5:[1,8],14:$V4,15:$V5},o($V6,[2,6],{12:[1,11]}),{4:12,6:3,7:$V0,9:$V1,10:$V2,16:$V3},o($V7,[2,2],{8:[1,13]}),o($V7,[2,4]),{11:[1,14]},{1:[2,1]},{4:15,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{4:16,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{13:[1,17]},{14:$V4,15:$V5,17:[1,18]},o($V7,[2,3]),{9:[1,19]},o($V6,[2,8]),o([5,15,17],[2,9],{14:$V4}),o($V6,[2,7]),o($V6,[2,10]),o($V7,[2,5])],defaultActions:{8:[2,1]},parseError:function parseError(str,hash){if(hash.recoverable){this.trace(str)}else{throw new Error(str)}},parse:function parse(input){var self=this,stack=[0],tstack=[],vstack=[null],lstack=[],table=this.table,yytext="",yylineno=0,yyleng=0,recovering=0,TERROR=2,EOF=1;var args=lstack.slice.call(arguments,1);var lexer=Object.create(this.lexer);var sharedState={yy:{}};for(var k in this.yy){if(Object.prototype.hasOwnProperty.call(this.yy,k)){sharedState.yy[k]=this.yy[k]}}lexer.setInput(input,sharedState.yy);sharedState.yy.lexer=lexer;sharedState.yy.parser=this;if(typeof lexer.yylloc=="undefined"){lexer.yylloc={}}var yyloc=lexer.yylloc;lstack.push(yyloc);var ranges=lexer.options&&lexer.options.ranges;if(typeof sharedState.yy.parseError==="function"){this.parseError=sharedState.yy.parseError}else{this.parseError=Object.getPrototypeOf(this).parseError}function popStack(n){stack.length=stack.length-2*n;vstack.length=vstack.length-n;lstack.length=lstack.length-n}_token_stack:function lex(){var token;token=lexer.lex()||EOF;if(typeof token!=="number"){token=self.symbols_[token]||token}return token}var symbol,preErrorSymbol,state,action,a,r,yyval={},p,len,newState,expected;while(true){state=stack[stack.length-1];if(this.defaultActions[state]){action=this.defaultActions[state]}else{if(symbol===null||typeof symbol=="undefined"){symbol=lex()}action=table[state]&&table[state][symbol]}if(typeof action==="undefined"||!action.length||!action[0]){var errStr="";expected=[];for(p in table[state]){if(this.terminals_[p]&&p>TERROR){expected.push("'"+this.terminals_[p]+"'")}}if(lexer.showPosition){errStr="Parse error on line "+(yylineno+1)+":\n"+lexer.showPosition()+"\nExpecting "+expected.join(", ")+", got '"+(this.terminals_[symbol]||symbol)+"'"}else{errStr="Parse error on line "+(yylineno+1)+": Unexpected "+(symbol==EOF?"end of input":"'"+(this.terminals_[symbol]||symbol)+"'")}this.parseError(errStr,{text:lexer.match,token:this.terminals_[symbol]||symbol,line:lexer.yylineno,loc:yyloc,expected:expected})}if(action[0]instanceof Array&&action.length>1){throw new Error("Parse Error: multiple actions possible at state: "+state+", token: "+symbol)}switch(action[0]){case 1:stack.push(symbol);vstack.push(lexer.yytext);lstack.push(lexer.yylloc);stack.push(action[1]);symbol=null;if(!preErrorSymbol){yyleng=lexer.yyleng;yytext=lexer.yytext;yylineno=lexer.yylineno;yyloc=lexer.yylloc;if(recovering>0){recovering--}}else{symbol=preErrorSymbol;preErrorSymbol=null}break;case 2:len=this.productions_[action[1]][1];yyval.$=vstack[vstack.length-len];yyval._$={first_line:lstack[lstack.length-(len||1)].first_line,last_line:lstack[lstack.length-1].last_line,first_column:lstack[lstack.length-(len||1)].first_column,last_column:lstack[lstack.length-1].last_column};if(ranges){yyval._$.range=[lstack[lstack.length-(len||1)].range[0],lstack[lstack.length-1].range[1]]}r=this.performAction.apply(yyval,[yytext,yyleng,yylineno,sharedState.yy,action[1],vstack,lstack].concat(args));if(typeof r!=="undefined"){return r}if(len){stack=stack.slice(0,-1*len*2);vstack=vstack.slice(0,-1*len);lstack=lstack.slice(0,-1*len)}stack.push(this.productions_[action[1]][0]);vstack.push(yyval.$);lstack.push(yyval._$);newState=table[stack[stack.length-2]][stack[stack.length-1]];stack.push(newState);break;case 3:return true}}return true}};var lexer=function(){var lexer={EOF:1,parseError:function parseError(str,hash){if(this.yy.parser){this.yy.parser.parseError(str,hash)}else{throw new Error(str)}},setInput:function(input,yy){this.yy=yy||this.yy||{};this._input=input;this._more=this._backtrack=this.done=false;this.yylineno=this.yyleng=0;this.yytext=this.matched=this.match="";this.conditionStack=["INITIAL"];this.yylloc={first_line:1,first_column:0,last_line:1,last_column:0};if(this.options.ranges){this.yylloc.range=[0,0]}this.offset=0;return this},input:function(){var ch=this._input[0];this.yytext+=ch;this.yyleng++;this.offset++;this.match+=ch;this.matched+=ch;var lines=ch.match(/(?:\r\n?|\n).*/g);if(lines){this.yylineno++;this.yylloc.last_line++}else{this.yylloc.last_column++}if(this.options.ranges){this.yylloc.range[1]++}this._input=this._input.slice(1);return ch},unput:function(ch){var len=ch.length;var lines=ch.split(/(?:\r\n?|\n)/g);this._input=ch+this._input;this.yytext=this.yytext.substr(0,this.yytext.length-len);this.offset-=len;var oldLines=this.match.split(/(?:\r\n?|\n)/g);this.match=this.match.substr(0,this.match.length-1);this.matched=this.matched.substr(0,this.matched.length-1);if(lines.length-1){this.yylineno-=lines.length-1}var r=this.yylloc.range;this.yylloc={first_line:this.yylloc.first_line,last_line:this.yylineno+1,first_column:this.yylloc.first_column,last_column:lines?(lines.length===oldLines.length?this.yylloc.first_column:0)+oldLines[oldLines.length-lines.length].length-lines[0].length:this.yylloc.first_column-len};if(this.options.ranges){this.yylloc.range=[r[0],r[0]+this.yyleng-len]}this.yyleng=this.yytext.length;return this},more:function(){this._more=true;return this},reject:function(){if(this.options.backtrack_lexer){this._backtrack=true}else{return this.parseError("Lexical error on line "+(this.yylineno+1)+". You can only invoke reject() in the lexer when the lexer is of the backtracking persuasion (options.backtrack_lexer = true).\n"+this.showPosition(),{text:"",token:null,line:this.yylineno})}return this},less:function(n){this.unput(this.match.slice(n))},pastInput:function(){var past=this.matched.substr(0,this.matched.length-this.match.length);return(past.length>20?"...":"")+past.substr(-20).replace(/\n/g,"")},upcomingInput:function(){var next=this.match;if(next.length<20){next+=this._input.substr(0,20-next.length)}return(next.substr(0,20)+(next.length>20?"...":"")).replace(/\n/g,"")},showPosition:function(){var pre=this.pastInput();var c=new Array(pre.length+1).join("-");return pre+this.upcomingInput()+"\n"+c+"^"},test_match:function(match,indexed_rule){var token,lines,backup;if(this.options.backtrack_lexer){backup={yylineno:this.yylineno,yylloc:{first_line:this.yylloc.first_line,last_line:this.last_line,first_column:this.yylloc.first_column,last_column:this.yylloc.last_column},yytext:this.yytext,match:this.match,matches:this.matches,matched:this.matched,yyleng:this.yyleng,offset:this.offset,_more:this._more,_input:this._input,yy:this.yy,conditionStack:this.conditionStack.slice(0),done:this.done};if(this.options.ranges){backup.yylloc.range=this.yylloc.range.slice(0)}}lines=match[0].match(/(?:\r\n?|\n).*/g);if(lines){this.yylineno+=lines.length}this.yylloc={first_line:this.yylloc.last_line,last_line:this.yylineno+1,first_column:this.yylloc.last_column,last_column:lines?lines[lines.length-1].length-lines[lines.length-1].match(/\r?\n?/)[0].length:this.yylloc.last_column+match[0].length};this.yytext+=match[0];this.match+=match[0];this.matches=match;this.yyleng=this.yytext.length;if(this.options.ranges){this.yylloc.range=[this.offset,this.offset+=this.yyleng]}this._more=false;this._backtrack=false;this._input=this._input.slice(match[0].length);this.matched+=match[0];token=this.performAction.call(this,this.yy,this,indexed_rule,this.conditionStack[this.conditionStack.length-1]);if(this.done&&this._input){this.done=false}if(token){return token}else if(this._backtrack){for(var k in backup){this[k]=backup[k]}return false}return false},next:function(){if(this.done){return this.EOF}if(!this._input){this.done=true}var token,match,tempMatch,index;if(!this._more){this.yytext="";this.match=""}var rules=this._currentRules();for(var i=0;i<rules.length;i++){tempMatch=this._input.match(this.rules[rules[i]]);if(tempMatch&&(!match||tempMatch[0].length>match[0].length)){match=tempMatch;index=i;if(this.options.backtrack_lexer){token=this.test_match(tempMatch,rules[i]);if(token!==false){return token}else if(this._backtrack){match=false;continue}else{return false}}else if(!this.options.flex){break}}}if(match){token=this.test_match(match,rules[index]);if(token!==false){return token}return false}if(this._input===""){return this.EOF}else{return this.parseError("Lexical error on line "+(this.yylineno+1)+". Unrecognized text.\n"+this.showPosition(),{text:"",token:null,line:this.yylineno})}},lex:function lex(){var r=this.next();if(r){return r}else{return this.lex()}},begin:function begin(condition){this.conditionStack.push(condition)},popState:function popState(){var n=this.conditionStack.length-1;if(n>0){return this.conditionStack.pop()}else{return this.conditionStack[0]}},_currentRules:function _currentRules(){if(this.conditionStack.length&&this.conditionStack[this.conditionStack.length-1]){return this.conditions[this.conditionStack[this.conditionStack.length-1]].rules}else{return this.conditions["INITIAL"].rules}},topState:function topState(n){n=this.conditionStack.length-1-Math.abs(n||0);if(n>=0){return this.conditionStack[n]}else{return"INITIAL"}},pushState:function pushState(condition){this.begin(condition)},stateStackSize:function stateStackSize(){return this.conditionStack.length},options:{},performAction:function anonymous(yy,yy_,$avoiding_name_collisions,YY_START){var YYSTATE=YY_START;switch($avoiding_name_collisions){case 0:return 5;break;case 1:break;case 2:return 8;break;case 3:return 16;break;case 4:return 17;break;case 5:return 11;break;case 6:return 10;break;case 7:return 9;break;case 8:return 14;break;case 9:return 15;break;case 10:return 12;break;case 11:return 7;break;case 12:return 7;break;case 13:return 7;break;case 14:return 13;break;case 15:return 13;break;case 16:return 13;break;case 17:return 13;break;case 18:return 13;break;case 19:return 13;break;case 20:return 13;break;case 21:return 13;break;case 22:return 7;break;case 23:return 7;break;case 24:return 13;break;case 25:return 13;break;case 26:return 13;break;case 27:return 7;break;case 28:return 13;break;case 29:return 13;break;case 30:return 13;break;case 31:return 7;break;case 32:return 7;break;case 33:return 13;break;case 34:return 13;break;case 35:return 13;break;case 36:return 7;break;case 37:return 13;break;case 38:return 7;break;case 39:return 7;break;case 40:return 7;break;case 41:return 7;break;case 42:return 7;break;case 43:return 7;break;case 44:return 7;break;case 45:return 7;break;case 46:return 7;break;case 47:return 7;break;case 48:return 7;break;case 49:return 7;break;case 50:return 7;break;case 51:return 13;break;case 52:return 7;break;case 53:return 7;break;case 54:return 7;break;case 55:return 13;break;case 56:return 7;break;case 57:return 7;break;case 58:return 7;break;case 59:return 13;break;case 60:return 7;break;case 61:return 13;break;case 62:return 7;break;case 63:return 7;break;case 64:return 7;break;case 65:return 7;break;case 66:return 7;break;case 67:return 7;break;case 68:return 7;break;case 69:return 7;break;case 70:return 7;break;case 71:return 7;break;case 72:return 7;break;case 73:return 7;break;case 74:return 7;break;case 75:return 7;break;case 76:return 7;break;case 77:return 7;break;case 78:return 7;break;case 79:return 7;break;case 80:return 7;break;case 81:return 7;break;case 82:return 7;break;case 83:return 7;break;case 84:return 7;break;case 85:return 7;break;case 86:return 7;break;case 87:return 7;break;case 88:return 7;break;case 89:return 7;break;case 90:return 7;break;case 91:return 7;break;case 92:return 7;break;case 93:return 7;break;case 94:return 7;break;case 95:return 7;break;case 96:return 7;break;case 97:return 7;break;case 98:return 7;break;case 99:return 7;break;case 100:return 7;break;case 101:return 7;break;case 102:return 7;break;case 103:return 7;break;case 104:return 7;break;case 105:return 7;break;case 106:return 7;break;case 107:return 7;break;case 108:return 7;break;case 109:return 7;break;case 110:return 7;break;case 111:return 7;break;case 112:return 7;break;case 113:return 7;break;case 114:return 7;break;case 115:return 7;break;case 116:return 7;break;case 117:return 7;break;case 118:return 7;break;case 119:return 7;break;case 120:return 7;break;case 121:return 7;break;case 122:return 7;break;case 123:return 7;break;case 124:return 7;break;case 125:return 7;break;case 126:return 7;break;case 127:return 7;break;case 128:return 7;break;case 129:return 7;break;case 130:return 7;break;case 131:return 7;break;case 132:return 7;break;case 133:return 7;break;case 134:return 7;break;case 135:return 7;break;case 136:return 7;break;case 137:return 7;break;case 138:return 7;break;case 139:return 7;break;case 140:return 7;break;case 141:return 7;break;case 142:return 7;break;case 143:return 7;break;case 144:return 7;break;case 145:return 7;break;case 146:return 7;break;case 147:return 7;break;case 148:return 7;break;case 149:return 7;break;case 150:return 7;break;case 151:return 7;break;case 152:return 7;break;case 153:return 7;break;case 154:return 7;break;case 155:return 7;break;case 156:return 7;break;case 157:return 7;break;case 158:return 7;break;case 159:return 7;break;case 160:return 7;break;case 161:return 7;break;case 162:return 7;break;case 163:return 7;break;case 164:return 7;break;case 165:return 7;break;case 166:return 7;break;case 167:return 7;break;case 168:return 7;break;case 169:return 7;break;case 170:return 7;break;case 171:return 7;break;case 172:return 7;break;case 173:return 7;break;case 174:return 7;break;case 175:return 7;break;case 176:return 7;break;case 177:return 7;break;case 178:return 7;break;case 179:return 7;break;case 180:return 7;break;case 181:return 7;break;case 182:return 7;break;case 183:return 7;break;case 184:return 7;break;case 185:return 7;break;case 186:return 7;break;case 187:return 7;break;case 188:return 7;break;case 189:return 7;break;case 190:return 7;break;case 191:return 7;break;case 192:return 7;break;case 193:return 7;break;case 194:return 7;break;case 195:return 7;break;case 196:return 7;break;case 197:return 7;break;case 198:return 7;break;case 199:return 7;break;case 200:return 7;break;case 201:return 7;break;case 202:return 7;break;case 203:return 7;break;case 204:return 7;break;case 205:return 7;break;case 206:return 7;break;case 207:return 7;break;case 208:return 7;break;case 209:return 7;break;case 210:return 7;break;case 211:return 7;break;case 212:return 7;break;case 213:return 7;break;case 214:return 7;break;case 215:return 7;break;case 216:return 7;break;case 217:return 7;break;case 218:return 7;break;case 219:return 7;break;case 220:return 7;break;case 221:return 7;break;case 222:return 7;break;case 223:return 7;break;case 224:return 7;break;case 225:return 7;break;case 226:return 7;break;case 227:return 7;break;case 228:return 7;break;case 229:return 7;break;case 230:return 7;break;case 231:return 7;break;case 232:return 7;break;case 233:return 7;break;case 234:return 7;break;case 235:return 7;break;case 236:return 7;break;case 237:return 7;break;case 238:return 7;break;case 239:return 7;break;case 240:return 7;break;case 241:return 7;break;case 242:return 7;break;case 243:return 7;break;case 244:return 7;break;case 245:return 7;break;case 246:return 7;break;case 247:return 7;break;case 248:return 7;break;case 249:return 7;break;case 250:return 7;break;case 251:return 7;break;case 252:return 7;break;case 253:return 7;break;case 254:return 7;break;case 255:return 7;break;case 256:return 7;break;case 257:return 7;break;case 258:return 7;break;case 259:return 7;break;case 260:return 7;break;case 261:return 7;break;case 262:return 7;break;case 263:return 7;break;case 264:return 7;break;case 265:return 7;break;case 266:return 7;break;case 267:return 7;break;case 268:return 7;break;case 269:return 7;break;case 270:return 7;break;case 271:return 7;break;case 272:return 7;break;case 273:return 7;break;case 274:return 7;break;case 275:return 7;break;case 276:return 7;break;case 277:return 7;break;case 278:return 7;break;case 279:return 7;break;case 280:return 7;break;case 281:return 7;break;case 282:return 7;break;case 283:return 7;break;case 284:return 7;break;case 285:return 7;break;case 286:return 7;break;case 287:return 7;break;case 288:return 7;break;case 289:return 7;break;case 290:return 7;break;case 291:return 7;break;case 292:return 7;break;case 293:return 7;break;case 294:return 7;break;case 295:return 7;break;case 296:return 7;break;case 297:return 7;break;case 298:return 7;break;case 299:return 7;break;case 300:return 7;break;case 301:return 7;break;case 302:return 7;break;case 303:return 7;break;case 304:return 7;break;case 305:return 7;break;case 306:return 7;break;case 307:return 7;break;case 308:return 7;break;case 309:return 7;break;case 310:return 7;break;case 311:return 7;break;case 312:return 7;break;case 313:return 7;break;case 314:return 7;break;case 315:return 7;break;case 316:return 7;break;case 317:return 7;break;case 318:return 7;break;case 319:return 7;break;case 320:return 7;break;case 321:return 7;break;case 322:return 7;break;case 323:return 7;break;case 324:return 7;break;case 325:return 7;break;case 326:return 7;break;case 327:return 7;break;case 328:return 7;break;case 329:return 7;break;case 330:return 7;break;case 331:return 7;break;case 332:return 7;break;case 333:return 7;break;case 334:return 7;break;case 335:return 7;break;case 336:return 7;break;case 337:return 7;break;case 338:return 7;break}},rules:[/^(?:$)/,/^(?:\s+)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?::)/,/^(?:DocumentRef-([0-9A-Za-z-+.]+))/,/^(?:LicenseRef-([0-9A-Za-z-+.]+))/,/^(?:AND)/,/^(?:OR)/,/^(?:WITH)/,/^(?:MPL-2\.0-no-copyleft-exception)/,/^(?:CNRI-Python-GPL-Compatible)/,/^(?:BSD-3-Clause-Attribution)/,/^(?:WxWindows-exception-3\.1)/,/^(?:Classpath-exception-2\.0)/,/^(?:gnu-javamail-exception)/,/^(?:freertos-exception-2\.0)/,/^(?:i2p-gpl-java-exception)/,/^(?:Autoconf-exception-2\.0)/,/^(?:Nokia-Qt-exception-1\.1)/,/^(?:Autoconf-exception-3\.0)/,/^(?:zlib-acknowledgement)/,/^(?:BSD-2-Clause-FreeBSD)/,/^(?:u-boot-exception-2\.0)/,/^(?:Bison-exception-2\.2)/,/^(?:CLISP-exception-2\.0)/,/^(?:BSD-2-Clause-NetBSD)/,/^(?:FLTK-exception-2\.0)/,/^(?:eCos-exception-2\.0)/,/^(?:Font-exception-2\.0)/,/^(?:BSD-3-Clause-Clear)/,/^(?:BSD-3-Clause-LBNL)/,/^(?:GCC-exception-3\.1)/,/^(?:Qwt-exception-1\.0)/,/^(?:GCC-exception-2\.0)/,/^(?:Artistic-1\.0-Perl)/,/^(?:Libtool-exception)/,/^(?:Artistic-1\.0-cl8)/,/^(?:CC-BY-NC-SA-4\.0)/,/^(?:CC-BY-NC-SA-1\.0)/,/^(?:CC-BY-NC-ND-4\.0)/,/^(?:CC-BY-NC-SA-3\.0)/,/^(?:CC-BY-NC-ND-3\.0)/,/^(?:CC-BY-NC-SA-2\.5)/,/^(?:CC-BY-NC-ND-2\.0)/,/^(?:CC-BY-NC-ND-1\.0)/,/^(?:CC-BY-NC-SA-2\.0)/,/^(?:MIT-advertising)/,/^(?:BSD-4-Clause-UC)/,/^(?:CC-BY-NC-ND-2\.5)/,/^(?:FLTK-exception)/,/^(?:SugarCRM-1\.1\.3)/,/^(?:CrystalStacker)/,/^(?:BSD-Protection)/,/^(?:LZMA-exception)/,/^(?:BitTorrent-1\.1)/,/^(?:BitTorrent-1\.0)/,/^(?:Frameworx-1\.0)/,/^(?:mif-exception)/,/^(?:Interbase-1\.0)/,/^(?:389-exception)/,/^(?:HaskellReport)/,/^(?:CC-BY-NC-3\.0)/,/^(?:CC-BY-ND-4\.0)/,/^(?:CC-BY-NC-1\.0)/,/^(?:CC-BY-NC-2\.0)/,/^(?:CC-BY-NC-2\.5)/,/^(?:CC-BY-SA-4\.0)/,/^(?:CC-BY-NC-4\.0)/,/^(?:W3C-19980720)/,/^(?:BSD-4-Clause)/,/^(?:Artistic-1\.0)/,/^(?:BSD-3-Clause)/,/^(?:CC-BY-ND-1\.0)/,/^(?:BSD-2-Clause)/,/^(?:CC-BY-ND-2\.0)/,/^(?:CC-BY-ND-2\.5)/,/^(?:CC-BY-ND-3\.0)/,/^(?:Artistic-2\.0)/,/^(?:CC-BY-SA-1\.0)/,/^(?:CC-BY-SA-2\.0)/,/^(?:CC-BY-SA-2\.5)/,/^(?:CC-BY-SA-3\.0)/,/^(?:XFree86-1\.1)/,/^(?:OLDAP-2\.0\.1)/,/^(?:bzip2-1\.0\.6)/,/^(?:OLDAP-2\.2\.1)/,/^(?:ImageMagick)/,/^(?:Unicode-TOU)/,/^(?:Adobe-Glyph)/,/^(?:CUA-OPL-1\.0)/,/^(?:CNRI-Jython)/,/^(?:CNRI-Python)/,/^(?:bzip2-1\.0\.5)/,/^(?:OLDAP-2\.2\.2)/,/^(?:PostgreSQL)/,/^(?:Apache-1\.1)/,/^(?:CECILL-1\.0)/,/^(?:Apache-2\.0)/,/^(?:Zimbra-1\.4)/,/^(?:CECILL-1\.1)/,/^(?:Zimbra-1\.3)/,/^(?:Adobe-2006)/,/^(?:JasPer-2\.0)/,/^(?:CECILL-2\.0)/,/^(?:TORQUE-1\.1)/,/^(?:CECILL-2\.1)/,/^(?:Watcom-1\.0)/,/^(?:Intel-ACPI)/,/^(?:ClArtistic)/,/^(?:Spencer-99)/,/^(?:Condor-1\.1)/,/^(?:Spencer-94)/,/^(?:gSOAP-1\.3b)/,/^(?:EUDatagrid)/,/^(?:Spencer-86)/,/^(?:Python-2\.0)/,/^(?:RHeCos-1\.1)/,/^(?:CATOSL-1\.1)/,/^(?:Apache-1\.0)/,/^(?:FreeImage)/,/^(?:SGI-B-1\.1)/,/^(?:SGI-B-1\.0)/,/^(?:SimPL-2\.0)/,/^(?:Sleepycat)/,/^(?:Crossword)/,/^(?:ErlPL-1\.1)/,/^(?:CPOL-1\.02)/,/^(?:OLDAP-2\.8)/,/^(?:OLDAP-2\.7)/,/^(?:OLDAP-2\.6)/,/^(?:CC-BY-1\.0)/,/^(?:OLDAP-2\.5)/,/^(?:OLDAP-2\.4)/,/^(?:OLDAP-2\.3)/,/^(?:SISSL-1\.2)/,/^(?:Unlicense)/,/^(?:SGI-B-2\.0)/,/^(?:OLDAP-2\.2)/,/^(?:OLDAP-2\.1)/,/^(?:CC-BY-2\.5)/,/^(?:D-FSL-1\.0)/,/^(?:LPPL-1\.3a)/,/^(?:LPPL-1\.3c)/,/^(?:OLDAP-2\.0)/,/^(?:CC-BY-3\.0)/,/^(?:Leptonica)/,/^(?:OLDAP-1\.4)/,/^(?:OLDAP-1\.3)/,/^(?:OLDAP-1\.2)/,/^(?:OLDAP-1\.1)/,/^(?:MakeIndex)/,/^(?:CC-BY-4\.0)/,/^(?:NPOSL-3\.0)/,/^(?:CC-BY-2\.0)/,/^(?:PHP-3\.01)/,/^(?:ANTLR-PD)/,/^(?:APSL-1\.0)/,/^(?:MIT-enna)/,/^(?:IBM-pibs)/,/^(?:APSL-1\.1)/,/^(?:APSL-1\.2)/,/^(?:Beerware)/,/^(?:EUPL-1\.0)/,/^(?:EUPL-1\.1)/,/^(?:diffmark)/,/^(?:CDDL-1\.0)/,/^(?:Zend-2\.0)/,/^(?:CDDL-1\.1)/,/^(?:CPAL-1\.0)/,/^(?:APSL-2\.0)/,/^(?:LPPL-1\.0)/,/^(?:AGPL-1\.0)/,/^(?:Giftware)/,/^(?:Abstyles)/,/^(?:LPPL-1\.1)/,/^(?:LPPL-1\.2)/,/^(?:Sendmail)/,/^(?:CECILL-B)/,/^(?:AGPL-3\.0)/,/^(?:GFDL-1\.1)/,/^(?:GFDL-1\.2)/,/^(?:GFDL-1\.3)/,/^(?:RPSL-1\.0)/,/^(?:LPL-1\.02)/,/^(?:CECILL-C)/,/^(?:Afmparse)/,/^(?:LGPL-2\.1)/,/^(?:PDDL-1\.0)/,/^(?:ODbL-1\.0)/,/^(?:OCLC-2\.0)/,/^(?:LGPL-3\.0)/,/^(?:Newsletr)/,/^(?:Motosoto)/,/^(?:NBPL-1\.0)/,/^(?:NASA-1\.3)/,/^(?:LGPL-2\.0)/,/^(?:FSFULLR)/,/^(?:MPL-2\.0)/,/^(?:Multics)/,/^(?:AFL-1\.1)/,/^(?:MPL-1\.1)/,/^(?:AFL-1\.2)/,/^(?:MPL-1\.0)/,/^(?:AFL-2\.0)/,/^(?:AFL-2\.1)/,/^(?:AFL-3\.0)/,/^(?:NPL-1\.0)/,/^(?:NPL-1\.1)/,/^(?:APL-1\.0)/,/^(?:Aladdin)/,/^(?:AMDPLPA)/,/^(?:BSL-1\.0)/,/^(?:Borceux)/,/^(?:Caldera)/,/^(?:MIT-CMU)/,/^(?:CPL-1\.0)/,/^(?:ZPL-2\.1)/,/^(?:ZPL-2\.0)/,/^(?:ZPL-1\.1)/,/^(?:CC0-1\.0)/,/^(?:YPL-1\.1)/,/^(?:LPL-1\.0)/,/^(?:libtiff)/,/^(?:YPL-1\.0)/,/^(?:Dotseqn)/,/^(?:Latex2e)/,/^(?:VSL-1\.0)/,/^(?:VOSTROM)/,/^(?:UPL-1\.0)/,/^(?:dvipdfm)/,/^(?:EPL-1\.0)/,/^(?:ECL-1\.0)/,/^(?:ECL-2\.0)/,/^(?:SPL-1\.0)/,/^(?:IPL-1\.0)/,/^(?:EFL-1\.0)/,/^(?:EFL-2\.0)/,/^(?:OPL-1\.0)/,/^(?:OSL-1\.0)/,/^(?:OSL-1\.1)/,/^(?:OSL-2\.0)/,/^(?:OSL-2\.1)/,/^(?:OSL-3\.0)/,/^(?:OpenSSL)/,/^(?:PHP-3\.0)/,/^(?:gnuplot)/,/^(?:Entessa)/,/^(?:GPL-3\.0)/,/^(?:Eurosym)/,/^(?:psutils)/,/^(?:GPL-2\.0)/,/^(?:QPL-1\.0)/,/^(?:MIT-feh)/,/^(?:OFL-1\.1)/,/^(?:GPL-1\.0)/,/^(?:RPL-1\.1)/,/^(?:RPL-1\.5)/,/^(?:OFL-1\.0)/,/^(?:Saxpath)/,/^(?:Bahyph)/,/^(?:RSA-MD)/,/^(?:Naumen)/,/^(?:NetCDF)/,/^(?:mpich2)/,/^(?:Glulxe)/,/^(?:APAFML)/,/^(?:psfrag)/,/^(?:Plexus)/,/^(?:SAX-PD)/,/^(?:MITNFA)/,/^(?:eGenix)/,/^(?:iMatix)/,/^(?:Imlib2)/,/^(?:Libpng)/,/^(?:xinetd)/,/^(?:LGPLLR)/,/^(?:Wsuipa)/,/^(?:SMLNJ)/,/^(?:RSCPL)/,/^(?:SISSL)/,/^(?:Rdisc)/,/^(?:Noweb)/,/^(?:Qhull)/,/^(?:Nunit)/,/^(?:GL2PS)/,/^(?:TMate)/,/^(?:MirOS)/,/^(?:MS-RL)/,/^(?:Intel)/,/^(?:MS-PL)/,/^(?:OGTSL)/,/^(?:WTFPL)/,/^(?:Nokia)/,/^(?:XSkat)/,/^(?:Glide)/,/^(?:FSFUL)/,/^(?:AMPAS)/,/^(?:Xerox)/,/^(?:0BSD)/,/^(?:Ruby)/,/^(?:JSON)/,/^(?:MTLL)/,/^(?:Cube)/,/^(?:Zlib)/,/^(?:NCSA)/,/^(?:TOSL)/,/^(?:Xnet)/,/^(?:DSDP)/,/^(?:HPND)/,/^(?:Barr)/,/^(?:SNIA)/,/^(?:ADSL)/,/^(?:NLPL)/,/^(?:Fair)/,/^(?:NOSL)/,/^(?:NGPL)/,/^(?:SCEA)/,/^(?:Zed)/,/^(?:DOC)/,/^(?:ICU)/,/^(?:Vim)/,/^(?:xpp)/,/^(?:OML)/,/^(?:AAL)/,/^(?:AML)/,/^(?:W3C)/,/^(?:ISC)/,/^(?:IPA)/,/^(?:X11)/,/^(?:MIT)/,/^(?:FTL)/,/^(?:IJG)/,/^(?:TCL)/,/^(?:SWL)/,/^(?:NTP)/,/^(?:Mup)/,/^(?:NRL)/],conditions:{INITIAL:{rules:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338],inclusive:true}}};return lexer}();parser.lexer=lexer;function Parser(){this.yy={}}Parser.prototype=parser;parser.Parser=Parser;return new Parser}();if(typeof require!=="undefined"&&typeof exports!=="undefined"){exports.parser=spdxparse;exports.Parser=spdxparse.Parser;exports.parse=function(){return spdxparse.parse.apply(spdxparse,arguments)};exports.main=function commonjsMain(args){if(!args[1]){console.log("Usage: "+args[0]+" FILE");process.exit(1)}var source=require("fs").readFileSync(require("path").normalize(args[1]),"utf8");return exports.parser.parse(source)};if(typeof module!=="undefined"&&require.main===module){exports.main(process.argv.slice(1))}}
 
-},{"fs":undefined,"path":undefined}],124:[function(require,module,exports){
+},{"fs":undefined,"path":undefined}],126:[function(require,module,exports){
 module.exports=[
   "Glide",
   "Abstyles",
@@ -16336,7 +16551,7 @@ module.exports=[
   "WXwindows"
 ]
 
-},{}],125:[function(require,module,exports){
+},{}],127:[function(require,module,exports){
 'use strict';
 var stripAnsi = require('strip-ansi');
 var codePointAt = require('code-point-at');
@@ -16370,7 +16585,7 @@ module.exports = function (str) {
 	return width;
 };
 
-},{"code-point-at":15,"is-fullwidth-code-point":52,"strip-ansi":126}],126:[function(require,module,exports){
+},{"code-point-at":15,"is-fullwidth-code-point":52,"strip-ansi":128}],128:[function(require,module,exports){
 'use strict';
 var ansiRegex = require('ansi-regex')();
 
@@ -16378,7 +16593,7 @@ module.exports = function (str) {
 	return typeof str === 'string' ? str.replace(ansiRegex, '') : str;
 };
 
-},{"ansi-regex":12}],127:[function(require,module,exports){
+},{"ansi-regex":12}],129:[function(require,module,exports){
 'use strict';
 var isUtf8 = require('is-utf8');
 
@@ -16397,7 +16612,7 @@ module.exports = function (x) {
 	return x;
 };
 
-},{"is-utf8":54}],128:[function(require,module,exports){
+},{"is-utf8":54}],130:[function(require,module,exports){
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16454,7 +16669,7 @@ Symbol.keyFor = function keyFor(sym) {
 
 module.exports = this.Symbol || Symbol;
 
-},{}],129:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 var parse = require('spdx-expression-parse');
 var correct = require('spdx-correct');
 
@@ -16540,7 +16755,7 @@ module.exports = function(argument) {
   }
 };
 
-},{"spdx-correct":121,"spdx-expression-parse":122}],130:[function(require,module,exports){
+},{"spdx-correct":123,"spdx-expression-parse":124}],132:[function(require,module,exports){
 'use strict';
 
 /*!
@@ -16574,7 +16789,7 @@ module.exports = (function () {
   return {height: height, width: width};
 })();
 
-},{"tty":undefined}],131:[function(require,module,exports){
+},{"tty":undefined}],133:[function(require,module,exports){
 'use strict';
 var stringWidth = require('string-width');
 
@@ -16738,7 +16953,7 @@ module.exports = function (str, cols, opts) {
 	}).join('\n');
 };
 
-},{"string-width":125}],132:[function(require,module,exports){
+},{"string-width":127}],134:[function(require,module,exports){
 var fs = require('fs')
 var path = require('path')
 var util = require('util')
@@ -16912,7 +17127,7 @@ module.exports = function (opts) {
   return y18n
 }
 
-},{"fs":undefined,"path":undefined,"util":undefined}],133:[function(require,module,exports){
+},{"fs":undefined,"path":undefined,"util":undefined}],135:[function(require,module,exports){
 var assign = require('lodash.assign')
 var camelCase = require('camelcase')
 var path = require('path')
@@ -17598,7 +17813,7 @@ Parser.detailed = function (args, opts) {
 
 module.exports = Parser
 
-},{"./lib/tokenize-arg-string":134,"camelcase":135,"lodash.assign":89,"path":undefined,"util":undefined}],134:[function(require,module,exports){
+},{"./lib/tokenize-arg-string":136,"camelcase":137,"lodash.assign":89,"path":undefined,"util":undefined}],136:[function(require,module,exports){
 // take an un-split argv string and tokenize it.
 module.exports = function (argString) {
   if (Array.isArray(argString)) return argString
@@ -17634,7 +17849,7 @@ module.exports = function (argString) {
   return args
 }
 
-},{}],135:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 'use strict';
 
 function preserveCamelCase(str) {
@@ -17692,7 +17907,7 @@ module.exports = function () {
 	});
 };
 
-},{}],136:[function(require,module,exports){
+},{}],138:[function(require,module,exports){
 // classic singleton yargs API, to use yargs
 // without running as a singleton do:
 // require('yargs/yargs')(process.argv.slice(2))
@@ -17725,7 +17940,7 @@ function singletonify (inst) {
   })
 }
 
-},{"./yargs":142}],137:[function(require,module,exports){
+},{"./yargs":144}],139:[function(require,module,exports){
 // handles parsing positional arguments,
 // and populating argv with said positional
 // arguments.
@@ -17878,7 +18093,7 @@ module.exports = function (yargs, usage, validation) {
   return self
 }
 
-},{}],138:[function(require,module,exports){
+},{}],140:[function(require,module,exports){
 (function (__dirname){
 const fs = require('fs')
 const path = require('path')
@@ -17981,7 +18196,7 @@ module.exports = function (yargs, usage, command) {
 }
 
 }).call(this,"/Users/johnjoh/Desktop/actionableagile/jira-to-analytics/typescript/node_modules/yargs/lib")
-},{"fs":undefined,"path":undefined}],139:[function(require,module,exports){
+},{"fs":undefined,"path":undefined}],141:[function(require,module,exports){
 module.exports = function (original, filter) {
   const obj = {}
   filter = filter || function (k, v) { return true }
@@ -17993,7 +18208,7 @@ module.exports = function (original, filter) {
   return obj
 }
 
-},{}],140:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 // this file handles outputting usage instructions,
 // failures, etc. keeps logging in one place.
 const cliui = require('cliui')
@@ -18403,7 +18618,7 @@ module.exports = function (yargs, y18n) {
   return self
 }
 
-},{"./obj-filter":139,"cliui":14,"decamelize":16,"set-blocking":120,"string-width":125,"window-size":130}],141:[function(require,module,exports){
+},{"./obj-filter":141,"cliui":14,"decamelize":16,"set-blocking":122,"string-width":127,"window-size":132}],143:[function(require,module,exports){
 const objFilter = require('./obj-filter')
 
 // validation-type-stuff, missing params,
@@ -18684,7 +18899,7 @@ module.exports = function (yargs, usage, y18n) {
   return self
 }
 
-},{"./obj-filter":139}],142:[function(require,module,exports){
+},{"./obj-filter":141}],144:[function(require,module,exports){
 (function (__dirname){
 const assert = require('assert')
 const assign = require('lodash.assign')
@@ -19450,5 +19665,5 @@ function rebase (base, dir) {
 }
 
 }).call(this,"/Users/johnjoh/Desktop/actionableagile/jira-to-analytics/typescript/node_modules/yargs")
-},{"./lib/command":137,"./lib/completion":138,"./lib/obj-filter":139,"./lib/usage":140,"./lib/validation":141,"assert":undefined,"lodash.assign":89,"os-locale":106,"path":undefined,"pkg-conf":115,"read-pkg-up":116,"require-main-filename":118,"set-blocking":120,"window-size":130,"y18n":132,"yargs-parser":133}]},{},[1])(1)
+},{"./lib/command":139,"./lib/completion":140,"./lib/obj-filter":141,"./lib/usage":142,"./lib/validation":143,"assert":undefined,"lodash.assign":89,"os-locale":106,"path":undefined,"pkg-conf":115,"read-pkg-up":118,"require-main-filename":120,"set-blocking":122,"window-size":132,"y18n":134,"yargs-parser":135}]},{},[1])(1)
 });

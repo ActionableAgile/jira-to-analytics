@@ -62,17 +62,17 @@ class JiraSettings implements IJiraSettings {
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         }
 
-        if (this.Criteria.JQL) {
-          console.warn('Custom JQL not currently supported');
-        }
+        // if (this.Criteria.JQL) {
+        //   console.warn('Custom JQL not currently supported');
+        // }
 
-        if (this.Criteria.ValidResolutions) {
-          console.warn('Valid Resolutions not currently supported');
-        }
+        // if (this.Criteria.ValidResolutions) {
+        //   console.warn('Valid Resolutions not currently supported');
+        // }
 
         const workflow = settings.legacy 
-          ? getWorkflowArray(settings.Workflow, convertCsvStringToArray) 
-          : getWorkflowArray(settings.Workflow, convertToArray);
+          ? convertWorkflowToArray(settings.Workflow, convertCsvStringToArray) 
+          : convertWorkflowToArray(settings.Workflow, convertToArray);
         this.Workflow = workflow;
 
         this.Attributes = settings.Attributes;
@@ -109,7 +109,7 @@ class JiraSettings implements IJiraSettings {
   }
 }
 
-const getWorkflowArray = (workflowObject: any, extractFunction: any) => {
+const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
   const res = {};
   Object.keys(workflowObject).forEach(key => {
     res[key] = extractFunction(workflowObject[key]);

@@ -1,22 +1,7 @@
-// if strings.HasPrefix(value, "customfield_") {
-//   valueParts := strings.SplitN(value, ".", 2)
-//   fieldName := valueParts[0]
-//   contentName := "value"
-//   if len(valueParts) > 1 {
-//     contentName = valueParts[1]
-//   }
-//   attr := ConfigAttr{key, fieldName, contentName}
-//   config.Attributes = append(config.Attributes, attr)
-
-
-
-const getAttributes = (fields: any, attributesRequested: any) => {
-  const attributeAliases = Object.keys(attributesRequested); // human name alias
-  return attributeAliases.reduce((attributesMap, attributeAlias) => {
-    // needs to add the customfield_ stuff...
-    const attributeSystemName: string = attributesRequested[attributeAlias];
+const getAttributes = (fields: any, attributesRequested: string[]) => {
+  // const attributesSystemNames = Object.keys(attributesRequested).map(key => attributesRequested[key]); // human name alias
+  return attributesRequested.reduce((attributesMap, attributeSystemName) => {
     const attributeData: any = fields[attributeSystemName];
-
 
     let subAttribute: string = null;
     if (attributeSystemName.startsWith('customfield_') && attributeSystemName.split('.').length > 1) {

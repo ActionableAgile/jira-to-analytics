@@ -4,18 +4,20 @@ import { IWorkItem } from '../../core/work-item';
 
 class JiraExtractor {
   private settings: IJiraSettings;
+  private statusHook: any;
   private workItems: Array<IWorkItem>;
 
-  constructor(settings: IJiraSettings) {
+  constructor(settings: IJiraSettings, statusHook: any = () => {}) {
     if (!settings) {
       throw new Error('No JIRA Settings found. Must provide settings');
     }
     this.settings = settings;
+    this.statusHook = statusHook;
   }
 
-  getWorkItems(settings = this.settings): Promise<any> {
+  getWorkItems(settings = this.settings, hook = this.statusHook): Promise<any> {
     return new Promise((accept, reject) => {
-      getAllWorkItemsFromJiraApi(settings)
+      getAllWorkItemsFromJiraApi(settings, hook)
       .then(items => {
         this.workItems = items;
         accept(items);

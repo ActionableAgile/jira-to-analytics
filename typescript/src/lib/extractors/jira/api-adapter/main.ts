@@ -22,7 +22,9 @@ const createWorkItem = (issue: IIssue, settings: IJiraSettings): IWorkItem => {
   const name: string = issue.fields['summary'];
   const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
   const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
-  const attributes = getAttributes(issue.fields, settings.Attributes);
+
+  const requestedAttributeSystemNames: string[] = Object.keys(settings.Attributes).map(key => settings.Attributes[key]);
+  const attributes = getAttributes(issue.fields, requestedAttributeSystemNames);
 
   const workItem = new WorkItem(key, stagingDates, name, type, attributes);
   return workItem;
@@ -42,7 +44,7 @@ const getWorkItemsBatch = async function(start: number, batchSize: number, setti
   return workItems;
 };
 
-const getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, resultsPerBatch = 25): Promise<IWorkItem[]> {
+const getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, hook: any = () => {}, resultsPerBatch = 25): Promise<IWorkItem[]> {
   const metadata = await getJsonFromUrl(
       buildJiraQueryUrl(
         settings.ApiUrl, 
@@ -56,19 +58,23 @@ const getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, resul
   const batchSize: number = resultsPerBatch;
   const totalBatches: number = Math.ceil(totalJiras / batchSize); 
 
-  console.log(`Connection successful. ${totalJiras} issues detected.`);
+  // console.log(`Connection successful. ${totalJiras} issues detected.`);
 
   const allWorkItems: IWorkItem[] = [];
+  hook(0);
   for  (let i = 0; i < totalBatches; i++) {
     //log
     const rangeLower: number = i * batchSize;
     const rangeUpper: number = Math.min((i * batchSize) + batchSize - 1, totalJiras);
-    console.log(`Extracting batch ${i + 1}/${totalBatches} -- Isssue(s) ${rangeLower}-${rangeUpper} out of ${totalJiras}`);
+    // console.log(`Extracting batch ${i + 1}/${totalBatches} -- Isssue(s) ${rangeLower}-${rangeUpper} out of ${totalJiras}`);
 
     // extract
     const workItemBatch = await getWorkItemsBatch(i * batchSize, batchSize, settings);
     allWorkItems.push(...workItemBatch);
+    hook(Math.max(batchSize / totalJiras)*100);
   }
+
+  hook(100);
   return allWorkItems;
 };
 
