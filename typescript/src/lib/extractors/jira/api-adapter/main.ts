@@ -20,6 +20,7 @@ const getIssues = async function(query: string, username: string, password: stri
 const createWorkItem = (issue: IIssue, settings: IJiraSettings): IWorkItem => {
   const key: string = issue.key;
   const name: string = issue.fields['summary'];
+  // this one
   const stagingDates = getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
   const type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
 

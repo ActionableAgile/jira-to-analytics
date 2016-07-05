@@ -51,14 +51,14 @@ class JiraSettings implements IJiraSettings {
           const IssueTypes: string[] = convertCsvStringToArray(settings.Criteria.Types); // legacy yaml is Types
           const ValidResolutions: string[] = convertCsvStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
           const Filters: string[] = convertCsvStringToArray(settings.Criteria.Filters);
-          const JQL: string = settings.Criteria.JQL; // fix this, need to put this in an array
+          const JQL: string = settings.Criteria.JQL ? settings.Criteria.JQL : ''; // fix this, need to put this in an array
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         } else {
           const Projects: string[] = convertToArray(settings.Criteria.Project); // cur yaml is Project
           const IssueTypes: string[] = convertToArray(settings.Criteria['Issue types']); // cur yaml is Issue types
           const ValidResolutions: string[] = convertToArray(settings.Criteria['Valid resolutions']);
           const Filters: string[] = convertToArray(settings.Criteria.Filters);
-          const JQL: string = settings.Criteria.JQL;
+          const JQL: string = settings.Criteria.JQL ? settings.Criteria.JQL : '';
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         }
 
@@ -77,23 +77,11 @@ class JiraSettings implements IJiraSettings {
 
         this.Attributes = settings.Attributes;
 
-        // setup others
-        const stages = Object.keys(workflow);
-        const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
-          return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
-            return map.set(stageAlias, i);
-          }, map);
-        }, new Map<string, number>());
+        const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
+        const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
 
-        const createInFirstStage = stageMap.get('(Created)') === 0 ? true : false;
-        const resolvedInLastStage = stageMap.get('(Resolved)') === stages.length - 1 ? true : false;
-        if (stageMap.get('(Resolved)') && stageMap.get('(Resolved)') !== stages.length - 1) {
-          throw new Error('(Resolved) can only by used in last stage');
-        }
         this.CreateInFirstStage = createInFirstStage;
         this.ResolvedInLastStage = resolvedInLastStage;
-        this.Stages = stages;
-        this.StageMap = stageMap;
         this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
 
         // console.log('before');
