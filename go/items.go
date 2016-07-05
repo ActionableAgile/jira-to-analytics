@@ -205,6 +205,16 @@ func getItems(query string, config *Config) (items []*Item, unusedStages map[str
 						unusedStages[stageName] = count + 1
 					}
 				}
+				if jItem.Field == "Epic Status" {
+					stageName := jItem.ToString
+					if stageIndex, found := config.StageMap[strings.ToUpper(stageName)]; found {
+						date := history.Created
+						events[stageIndex] = append(events[stageIndex], date)
+					} else {
+						count := unusedStages[jItem.ToString]
+						unusedStages[stageName] = count + 1
+					}
+				}
 			}
 		}
 
