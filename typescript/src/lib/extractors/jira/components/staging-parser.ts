@@ -1,4 +1,4 @@
-import { IIssue } from '../../models';
+import { IIssue } from '../models';
 
 const getStagingDates = (
     issue: IIssue,
