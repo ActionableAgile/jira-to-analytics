@@ -73,12 +73,6 @@ var run = function (cliArgs) {
         // Import data
         var jiraExtractor = new main_1.JiraExtractor(jiraSettings, updateProgressHook);
         try {
-            var a = yield jiraExtractor.testConnection(jiraSettings);
-            console.log(a);
-            var b = yield jiraExtractor.getProjects(jiraSettings);
-            // console.log(b);
-            var c = yield jiraExtractor.getWorkflows('UT', jiraSettings);
-            // console.log(c);
             yield jiraExtractor.getWorkItems();
         }
         catch (e) {

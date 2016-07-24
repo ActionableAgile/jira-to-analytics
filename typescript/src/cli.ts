@@ -68,17 +68,7 @@ const run = async function(cliArgs: any): Promise<void> {
   // Import data
   const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
   try {
-    const a = await jiraExtractor.testConnection(jiraSettings);
-    console.log(a);
-
-    const b = await jiraExtractor.getProjects(jiraSettings);
-    // console.log(b);
-
-    const c = await jiraExtractor.getWorkflows('UT', jiraSettings)
-    // console.log(c);
-
     await jiraExtractor.getWorkItems();
-
   } catch (e) {
     console.log(`Error extracting JIRA Items ${e}`);
     throw e;
