@@ -1,6 +1,9 @@
 import { IJiraSettings, JiraSettings } from './settings'
 import { IIssueList, IIssue } from './models';
-import { buildJiraQueryUrl } from './components/query-builder';
+import { 
+  buildJiraSearchQueryUrl, 
+  buildJiraGetProjectsUrl,
+  buildJiraGetWorkflowsUrl } from './components/query-builder';
 import { getAttributes } from './components/attribute-parser';
 import { IWorkItem, WorkItem } from '../../core/work-item';
 import { getJsonFromUrl, getHeaders } from '../../core/http';
@@ -11,22 +14,33 @@ class JiraExtractor {
   private statusHook: any;
   private workItems: Array<IWorkItem>;
 
-  constructor(settings: IJiraSettings, statusHook: any = () => {}) {
+  constructor(settings: IJiraSettings, statusHook: Function = () => {}) {
     if (!settings) {
       throw new Error('No JIRA Settings found. Must provide settings');
     }
-
-    const stages = Object.keys(settings.Workflow);
-    const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
-      return settings.Workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
-        return map.set(stageAlias, i);
-      }, map);
-    }, new Map<string, number>());
-
     this.settings = settings;
-    this.settings.StageMap = stageMap;
-    this.settings.Stages = stages;
     this.statusHook = statusHook;
+  };
+
+  testConnection = async function(settings: IJiraSettings) {
+    const url = buildJiraGetProjectsUrl(settings.ApiUrl);
+    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+    const projects: any[] = await getJsonFromUrl(url, headers);
+    return projects.length ? true : false;
+  };
+
+  getProjects = async function(settings: IJiraSettings) {
+    const url = buildJiraGetProjectsUrl(settings.ApiUrl);
+    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+    const projects: any[] = await getJsonFromUrl(url, headers);
+    return projects;
+  }
+
+  getWorkflows = async function(project: string, settings: IJiraSettings) {
+    const url = buildJiraGetWorkflowsUrl(project, settings.ApiUrl);
+    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+    const workflows: any[] = await getJsonFromUrl(url, headers);    
+    return workflows;
   }
 
   getWorkItems(): Promise<any> {
@@ -41,14 +55,9 @@ class JiraExtractor {
     });
   };
 
-  testConnectionToJira = async function(settings: IJiraSettings): Promise<number> {
-    const metadata = await this.getWorkItemMetadata(settings);
-    return metadata.totalJiras ? metadata.totalJiras : false;
-  };
-
   getWorkItemMetadata = async function(settings: IJiraSettings): Promise<any> {
     const metadata = await getJsonFromUrl(
-        buildJiraQueryUrl(
+        buildJiraSearchQueryUrl(
           settings.ApiUrl, 
           settings.Criteria.Projects, 
           settings.Criteria.IssueTypes, 
@@ -98,7 +107,7 @@ class JiraExtractor {
   };
 
   getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings): Promise<IWorkItem[]> {
-    const url = buildJiraQueryUrl(
+    const url = buildJiraSearchQueryUrl(
       settings.ApiUrl, 
       settings.Criteria.Projects, 
       settings.Criteria.IssueTypes, 
@@ -128,7 +137,6 @@ class JiraExtractor {
 
     return allWorkItems;
   };
-
 };
 
 export {

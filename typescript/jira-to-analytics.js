@@ -15,9 +15,6 @@ var yargs_1 = require('yargs');
 var ProgressBar = require('progress');
 var defaultYamlPath = 'config.yaml';
 var defaultOutputPath = 'output.csv';
-// const progressBarDone =  (bar: ProgressBar) => {
-//   bar.terminate();
-// };
 var bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
     complete: '=',
     incomplete: ' ',
@@ -43,8 +40,6 @@ var writeFile = function (filePath, data) {
 };
 var run = function (cliArgs) {
     return __awaiter(this, void 0, Promise, function* () {
-        var start = new Date().getTime();
-        // log('Parsing settings');
         // Parse CLI settings
         var jiraConfigPath = cliArgs.i ? cliArgs.i : defaultYamlPath;
         var isLegacyYaml = (cliArgs.l || cliArgs.legacy) ? true : false;
@@ -65,22 +60,25 @@ var run = function (cliArgs) {
             throw e;
         }
         var jiraSettings = new main_1.JiraSettings(settings, 'yaml');
-        // console.log('Successfully parsed settings');
         log('Beginning extraction process');
+        // Progress bar setup
         var updateProgressHook = (function (bar) {
-            var count = 0;
-            return function (updateAmount) {
-                if (updateAmount === void 0) { updateAmount = null; }
-                count += updateAmount;
-                if (count < 100)
-                    bar.tick(count);
+            bar.tick();
+            return function (percentDone) {
+                if (percentDone === void 0) { percentDone = null; }
+                if (percentDone <= 100)
+                    bar.tick(percentDone);
             };
         })(bar);
-        bar.tick();
-        // updateProgressHook();
         // Import data
         var jiraExtractor = new main_1.JiraExtractor(jiraSettings, updateProgressHook);
         try {
+            var a = yield jiraExtractor.testConnection(jiraSettings);
+            console.log(a);
+            var b = yield jiraExtractor.getProjects(jiraSettings);
+            // console.log(b);
+            var c = yield jiraExtractor.getWorkflows('UT', jiraSettings);
+            // console.log(c);
             yield jiraExtractor.getWorkItems();
         }
         catch (e) {
@@ -102,7 +100,6 @@ var run = function (cliArgs) {
             console.log("Error writing jira data to " + outputPath);
         }
         var end = new Date().getTime();
-        // log(`Completed extraction in ${(end - start) / 1000} seconds`);
         log("Done. Results written to " + outputPath);
         return;
     });
@@ -119,7 +116,7 @@ var run = function (cliArgs) {
     });
 }(getArgs()));
 
-},{"./main":11,"fs":undefined,"js-yaml":56,"progress":116,"yargs":138}],2:[function(require,module,exports){
+},{"./main":10,"fs":undefined,"js-yaml":55,"progress":115,"yargs":137}],2:[function(require,module,exports){
 "use strict";
 require('isomorphic-fetch');
 function getHeaders(username, password) {
@@ -155,7 +152,7 @@ function getJsonFromUrl(url, headers) {
 exports.getJsonFromUrl = getJsonFromUrl;
 ;
 
-},{"isomorphic-fetch":55}],3:[function(require,module,exports){
+},{"isomorphic-fetch":54}],3:[function(require,module,exports){
 "use strict";
 ;
 var WorkItem = (function () {
@@ -215,10 +212,9 @@ function __export(m) {
 }
 __export(require('./jira/extractor'));
 
-},{"./jira/extractor":9}],5:[function(require,module,exports){
+},{"./jira/extractor":8}],5:[function(require,module,exports){
 "use strict";
 var getAttributes = function (fields, attributesRequested) {
-    // const attributesSystemNames = Object.keys(attributesRequested).map(key => attributesRequested[key]); // human name alias
     return attributesRequested.reduce(function (attributesMap, attributeSystemName) {
         var attributeData = fields[attributeSystemName];
         var subAttribute = null;
@@ -263,7 +259,7 @@ exports.parseAttributeArray = parseAttributeArray;
 
 },{}],6:[function(require,module,exports){
 "use strict";
-var buildJiraQueryUrl = function (url, projects, issueTypes, filters, startIndex, batchSize) {
+var buildJiraSearchQueryUrl = function (apiRootUrl, projects, issueTypes, filters, startIndex, batchSize) {
     if (issueTypes === void 0) { issueTypes = []; }
     if (filters === void 0) { filters = []; }
     if (startIndex === void 0) { startIndex = 0; }
@@ -280,10 +276,20 @@ var buildJiraQueryUrl = function (url, projects, issueTypes, filters, startIndex
     var filterClauses = filters.map(function (filter) { return ("filter=\"" + filter + "\""); });
     clauses.push.apply(clauses, filterClauses);
     var jql = clauses.join(' AND ') + " order by key";
-    var query = url + "/search?jql=" + encodeURIComponent(jql) + "&startAt=" + startIndex + "&maxResults=" + batchSize + "&expand=changelog";
+    var query = apiRootUrl + "/search?jql=" + encodeURIComponent(jql) + "&startAt=" + startIndex + "&maxResults=" + batchSize + "&expand=changelog";
     return query;
 };
-exports.buildJiraQueryUrl = buildJiraQueryUrl;
+exports.buildJiraSearchQueryUrl = buildJiraSearchQueryUrl;
+var buildJiraGetProjectsUrl = function (apiRootUrl) {
+    var url = apiRootUrl + "/project";
+    return url;
+};
+exports.buildJiraGetProjectsUrl = buildJiraGetProjectsUrl;
+var buildJiraGetWorkflowsUrl = function (project, apiRootUrl) {
+    var url = apiRootUrl + "/project/" + project + "/statuses";
+    return url;
+};
+exports.buildJiraGetWorkflowsUrl = buildJiraGetWorkflowsUrl;
 
 },{}],7:[function(require,module,exports){
 "use strict";
@@ -338,7 +344,8 @@ var populateStages = function (issue, stageMap, stageBins, unusedStages) {
             }
             // naive solution, does not differentiate between epic status stage or status stage/
             //  (lumpsthem together);
-            if (historyItem['field'] === 'Epic Status' && historyItem['fieldtype'] === 'custom') {
+            var customAttributes = ['Epic Status'];
+            if (customAttributes.includes(historyItem['field']) && historyItem['fieldtype'] === 'custom') {
                 var stageName = historyItem.toString;
                 if (stageMap.has(stageName)) {
                     var stageIndex = stageMap.get(stageName);
@@ -383,90 +390,98 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments)).next());
     });
 };
-var query_builder_1 = require('./components/query-builder');
-var attribute_parser_1 = require('./components/attribute-parser');
-var work_item_1 = require('../../../core/work-item');
-var http_1 = require('../../../core/http');
-var staging_parser_1 = require('./components/staging-parser');
-var getIssues = function (query, username, password) {
-    return __awaiter(this, void 0, Promise, function* () {
-        var headers = http_1.getHeaders(username, password);
-        var result = yield http_1.getJsonFromUrl(query, headers);
-        if (result.issues) {
-            var issues = result.issues;
-            return issues;
-        }
-        else {
-            throw new Error('Could not retrieve issues from object');
-        }
-    });
-};
-var createWorkItem = function (issue, settings) {
-    var key = issue.key;
-    var name = issue.fields['summary'];
-    var stagingDates = staging_parser_1.getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
-    var type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
-    var requestedAttributeSystemNames = Object.keys(settings.Attributes).map(function (key) { return settings.Attributes[key]; });
-    var attributes = attribute_parser_1.getAttributes(issue.fields, requestedAttributeSystemNames);
-    var workItem = new work_item_1.WorkItem(key, stagingDates, name, type, attributes);
-    return workItem;
-};
-var getWorkItemsBatch = function (start, batchSize, settings) {
-    return __awaiter(this, void 0, Promise, function* () {
-        var url = query_builder_1.buildJiraQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters, start, batchSize);
-        var issues = yield getIssues(url, settings.Connection.Username, settings.Connection.Password);
-        var workItems = issues.map(function (issue) { return createWorkItem(issue, settings); });
-        return workItems;
-    });
-};
-exports.getWorkItemsBatch = getWorkItemsBatch;
-var getAllWorkItemsFromJiraApi = function (settings, hook, resultsPerBatch) {
-    return __awaiter(this, void 0, Promise, function* () {
-        if (hook === void 0) { hook = function () { }; }
-        if (resultsPerBatch === void 0) { resultsPerBatch = 25; }
-        var metadata = yield http_1.getJsonFromUrl(query_builder_1.buildJiraQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), http_1.getHeaders(settings.Connection.Username, settings.Connection.Password));
-        var totalJiras = metadata.total;
-        var batchSize = resultsPerBatch;
-        var totalBatches = Math.ceil(totalJiras / batchSize);
-        // console.log(`Connection successful. ${totalJiras} issues detected.`);
-        var allWorkItems = [];
-        hook(0);
-        for (var i = 0; i < totalBatches; i++) {
-            //log
-            var rangeLower = i * batchSize;
-            var rangeUpper = Math.min((i * batchSize) + batchSize - 1, totalJiras);
-            // console.log(`Extracting batch ${i + 1}/${totalBatches} -- Isssue(s) ${rangeLower}-${rangeUpper} out of ${totalJiras}`);
-            // extract
-            var workItemBatch = yield getWorkItemsBatch(i * batchSize, batchSize, settings);
-            allWorkItems.push.apply(allWorkItems, workItemBatch);
-            hook(Math.max(batchSize / totalJiras) * 100);
-        }
-        hook(100);
-        return allWorkItems;
-    });
-};
-exports.getAllWorkItemsFromJiraApi = getAllWorkItemsFromJiraApi;
-
-},{"../../../core/http":2,"../../../core/work-item":3,"./components/attribute-parser":5,"./components/query-builder":6,"./components/staging-parser":7}],9:[function(require,module,exports){
-"use strict";
-var main_1 = require('./api-adapter/main');
 var settings_1 = require('./settings');
 exports.JiraSettings = settings_1.JiraSettings;
+var query_builder_1 = require('./components/query-builder');
+var attribute_parser_1 = require('./components/attribute-parser');
+var work_item_1 = require('../../core/work-item');
+var http_1 = require('../../core/http');
+var staging_parser_1 = require('./components/staging-parser');
 var JiraExtractor = (function () {
     function JiraExtractor(settings, statusHook) {
         if (statusHook === void 0) { statusHook = function () { }; }
+        this.testConnection = function (settings) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var url = query_builder_1.buildJiraGetProjectsUrl(settings.ApiUrl);
+                var headers = http_1.getHeaders(settings.Connection.Username, settings.Connection.Password);
+                var projects = yield http_1.getJsonFromUrl(url, headers);
+                return projects.length ? true : false;
+            });
+        };
+        this.getProjects = function (settings) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var url = query_builder_1.buildJiraGetProjectsUrl(settings.ApiUrl);
+                var headers = http_1.getHeaders(settings.Connection.Username, settings.Connection.Password);
+                var projects = yield http_1.getJsonFromUrl(url, headers);
+                return projects;
+            });
+        };
+        this.getWorkflows = function (project, settings) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var url = query_builder_1.buildJiraGetWorkflowsUrl(project, settings.ApiUrl);
+                var headers = http_1.getHeaders(settings.Connection.Username, settings.Connection.Password);
+                var workflows = yield http_1.getJsonFromUrl(url, headers);
+                return workflows;
+            });
+        };
+        this.getWorkItemMetadata = function (settings) {
+            return __awaiter(this, void 0, Promise, function* () {
+                var metadata = yield http_1.getJsonFromUrl(query_builder_1.buildJiraSearchQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters), http_1.getHeaders(settings.Connection.Username, settings.Connection.Password));
+                return metadata;
+            });
+        };
+        this.getIssues = function (query, username, password) {
+            return __awaiter(this, void 0, Promise, function* () {
+                var headers = http_1.getHeaders(username, password);
+                var result = yield http_1.getJsonFromUrl(query, headers);
+                if (result.issues) {
+                    var issues = result.issues;
+                    return issues;
+                }
+                else {
+                    throw new Error('Could not retrieve issues from object');
+                }
+            });
+        };
+        this.getWorkItemsBatch = function (start, batchSize, settings) {
+            return __awaiter(this, void 0, Promise, function* () {
+                var _this = this;
+                var url = query_builder_1.buildJiraSearchQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters, start, batchSize);
+                var issues = yield this.getIssues(url, settings.Connection.Username, settings.Connection.Password);
+                var workItems = issues.map(function (issue) { return _this.createWorkItem(issue, settings); });
+                return workItems;
+            });
+        };
+        this.getAllWorkItemsFromJiraApi = function (settings, hook, resultsPerBatch) {
+            return __awaiter(this, void 0, Promise, function* () {
+                if (hook === void 0) { hook = function () { }; }
+                if (resultsPerBatch === void 0) { resultsPerBatch = 25; }
+                var metadata = yield this.getWorkItemMetadata(settings);
+                var totalJiras = metadata.total;
+                var batchSize = resultsPerBatch;
+                var totalBatches = Math.ceil(totalJiras / batchSize);
+                var allWorkItems = [];
+                hook(0);
+                for (var i = 0; i < totalBatches; i++) {
+                    var workItemBatch = yield this.getWorkItemsBatch(i * batchSize, batchSize, settings);
+                    allWorkItems.push.apply(allWorkItems, workItemBatch);
+                    hook(Math.max(batchSize / totalJiras) * 100);
+                }
+                hook(100);
+                return allWorkItems;
+            });
+        };
         if (!settings) {
             throw new Error('No JIRA Settings found. Must provide settings');
         }
         this.settings = settings;
         this.statusHook = statusHook;
     }
-    JiraExtractor.prototype.getWorkItems = function (settings, hook) {
+    ;
+    JiraExtractor.prototype.getWorkItems = function () {
         var _this = this;
-        if (settings === void 0) { settings = this.settings; }
-        if (hook === void 0) { hook = this.statusHook; }
         return new Promise(function (accept, reject) {
-            main_1.getAllWorkItemsFromJiraApi(settings, hook)
+            _this.getAllWorkItemsFromJiraApi(_this.settings, _this.statusHook)
                 .then(function (items) {
                 _this.workItems = items;
                 accept(items);
@@ -485,6 +500,7 @@ var JiraExtractor = (function () {
         var csv = header + "\n" + body;
         return csv;
     };
+    ;
     JiraExtractor.prototype.toSerializedArray = function (workItems, stages, attributes) {
         if (workItems === void 0) { workItems = this.workItems; }
         if (stages === void 0) { stages = this.settings.Stages; }
@@ -494,33 +510,47 @@ var JiraExtractor = (function () {
         var serializedData = "[" + header + body + "]";
         return serializedData;
     };
+    ;
+    JiraExtractor.prototype.createWorkItem = function (issue, settings) {
+        var key = issue.key;
+        var name = issue.fields['summary'];
+        // refactor this one
+        var stagingDates = staging_parser_1.getStagingDates(issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage);
+        var type = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+        var requestedAttributeSystemNames = Object.keys(settings.Attributes).map(function (key) { return settings.Attributes[key]; });
+        var attributes = attribute_parser_1.getAttributes(issue.fields, requestedAttributeSystemNames);
+        var workItem = new work_item_1.WorkItem(key, stagingDates, name, type, attributes);
+        return workItem;
+    };
+    ;
     return JiraExtractor;
 }());
 exports.JiraExtractor = JiraExtractor;
 ;
 
-},{"./api-adapter/main":8,"./settings":10}],10:[function(require,module,exports){
+},{"../../core/http":2,"../../core/work-item":3,"./components/attribute-parser":5,"./components/query-builder":6,"./components/staging-parser":7,"./settings":9}],9:[function(require,module,exports){
 "use strict";
 ;
 var JiraSettings = (function () {
-    function JiraSettings(settings, source) {
+    function JiraSettings(config, source) {
+        var _this = this;
         switch (source.toUpperCase()) {
             case 'YAML':
-                this.Connection = settings.Connection;
-                if (settings.legacy) {
-                    var Projects = convertCsvStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
-                    var IssueTypes = convertCsvStringToArray(settings.Criteria.Types); // legacy yaml is Types
-                    var ValidResolutions = convertCsvStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
-                    var Filters = convertCsvStringToArray(settings.Criteria.Filters);
-                    var JQL = settings.Criteria.JQL; // fix this, need to put this in an array
+                this.Connection = config.Connection;
+                if (config.legacy) {
+                    var Projects = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
+                    var IssueTypes = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
+                    var ValidResolutions = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
+                    var Filters = convertCsvStringToArray(config.Criteria.Filters);
+                    var JQL = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an array
                     this.Criteria = { Projects: Projects, IssueTypes: IssueTypes, ValidResolutions: ValidResolutions, Filters: Filters, JQL: JQL };
                 }
                 else {
-                    var Projects = convertToArray(settings.Criteria.Project); // cur yaml is Project
-                    var IssueTypes = convertToArray(settings.Criteria['Issue types']); // cur yaml is Issue types
-                    var ValidResolutions = convertToArray(settings.Criteria['Valid resolutions']);
-                    var Filters = convertToArray(settings.Criteria.Filters);
-                    var JQL = settings.Criteria.JQL;
+                    var Projects = convertToArray(config.Criteria.Project); // cur yaml is Project
+                    var IssueTypes = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
+                    var ValidResolutions = convertToArray(config.Criteria['Valid resolutions']);
+                    var Filters = convertToArray(config.Criteria.Filters);
+                    var JQL = config.Criteria.JQL ? config.Criteria.JQL : '';
                     this.Criteria = { Projects: Projects, IssueTypes: IssueTypes, ValidResolutions: ValidResolutions, Filters: Filters, JQL: JQL };
                 }
                 // if (this.Criteria.JQL) {
@@ -529,33 +559,24 @@ var JiraSettings = (function () {
                 // if (this.Criteria.ValidResolutions) {
                 //   console.warn('Valid Resolutions not currently supported');
                 // }
-                var workflow_1 = settings.legacy
-                    ? convertWorkflowToArray(settings.Workflow, convertCsvStringToArray)
-                    : convertWorkflowToArray(settings.Workflow, convertToArray);
-                this.Workflow = workflow_1;
-                this.Attributes = settings.Attributes;
-                // setup others
-                var stages = Object.keys(workflow_1);
+                var workflow = config.legacy
+                    ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
+                    : convertWorkflowToArray(config.Workflow, convertToArray);
+                this.Workflow = workflow;
+                this.Attributes = config.Attributes;
+                var createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
+                var resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
+                this.CreateInFirstStage = createInFirstStage;
+                this.ResolvedInLastStage = resolvedInLastStage;
+                this.ApiUrl = config.Connection.Domain + "/rest/api/latest";
+                var stages = Object.keys(this.Workflow);
                 var stageMap = stages.reduce(function (map, stage, i) {
-                    return workflow_1[stage].reduce(function (map, stageAlias) {
+                    return _this.Workflow[stage].reduce(function (map, stageAlias) {
                         return map.set(stageAlias, i);
                     }, map);
                 }, new Map());
-                var createInFirstStage = stageMap.get('(Created)') === 0 ? true : false;
-                var resolvedInLastStage = stageMap.get('(Resolved)') === stages.length - 1 ? true : false;
-                if (stageMap.get('(Resolved)') && stageMap.get('(Resolved)') !== stages.length - 1) {
-                    throw new Error('(Resolved) can only by used in last stage');
-                }
-                this.CreateInFirstStage = createInFirstStage;
-                this.ResolvedInLastStage = resolvedInLastStage;
-                this.Stages = stages;
                 this.StageMap = stageMap;
-                this.ApiUrl = settings.Connection.Domain + "/rest/api/latest";
-                // console.log('before');
-                // console.log(settings);
-                // console.log('//////////////////////////////////////');
-                // console.log('after');
-                // console.log(this);
+                this.Stages = stages;
                 return;
             default:
                 throw new Error(source + " source not found");
@@ -582,20 +603,20 @@ var convertCsvStringToArray = function (s) {
     return s.split(',').map(function (x) { return x.trim(); });
 };
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 __export(require('./lib/extractors/extractors'));
 
-},{"./lib/extractors/extractors":4}],12:[function(require,module,exports){
+},{"./lib/extractors/extractors":4}],11:[function(require,module,exports){
 'use strict';
 module.exports = function () {
 	return /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 };
 
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 var blacklist = [
@@ -607,7 +628,7 @@ module.exports = Object.keys(process.binding('natives')).filter(function (el) {
 	return !/^_|^internal|\//.test(el) && blacklist.indexOf(el) === -1;
 }).sort();
 
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var stringWidth = require('string-width')
 var stripAnsi = require('strip-ansi')
 var wrap = require('wrap-ansi')
@@ -925,7 +946,7 @@ module.exports = function (opts) {
   })
 }
 
-},{"string-width":127,"strip-ansi":128,"wrap-ansi":133}],15:[function(require,module,exports){
+},{"string-width":126,"strip-ansi":127,"wrap-ansi":132}],14:[function(require,module,exports){
 'use strict';
 var numberIsNan = require('number-is-nan');
 
@@ -960,7 +981,7 @@ module.exports = function (str, pos) {
 	return first;
 };
 
-},{"number-is-nan":104}],16:[function(require,module,exports){
+},{"number-is-nan":103}],15:[function(require,module,exports){
 'use strict';
 module.exports = function (str, sep) {
 	if (typeof str !== 'string') {
@@ -975,7 +996,7 @@ module.exports = function (str, sep) {
 		.toLowerCase();
 };
 
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 var iconvLite = require('iconv-lite');
@@ -1090,7 +1111,7 @@ function checkEncoding(name) {
     toUpperCase();
 }
 
-},{"./iconv-loader":18,"iconv-lite":47}],18:[function(require,module,exports){
+},{"./iconv-loader":17,"iconv-lite":46}],17:[function(require,module,exports){
 'use strict';
 
 var iconv_package;
@@ -1106,7 +1127,7 @@ try {
 
 module.exports = Iconv;
 
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var util = require('util');
@@ -1223,7 +1244,7 @@ errorEx.line = function (str, def) {
 
 module.exports = errorEx;
 
-},{"is-arrayish":50,"util":undefined}],20:[function(require,module,exports){
+},{"is-arrayish":49,"util":undefined}],19:[function(require,module,exports){
 'use strict';
 var path = require('path');
 var pathExists = require('path-exists');
@@ -1278,7 +1299,7 @@ module.exports.sync = function (filename, opts) {
 	return null;
 };
 
-},{"path":undefined,"path-exists":110,"pinkie-promise":113}],21:[function(require,module,exports){
+},{"path":undefined,"path-exists":109,"pinkie-promise":112}],20:[function(require,module,exports){
 'use strict'
 
 var fs = require('fs')
@@ -1301,7 +1322,7 @@ function clone (obj) {
   return copy
 }
 
-},{"fs":undefined}],22:[function(require,module,exports){
+},{"fs":undefined}],21:[function(require,module,exports){
 var fs = require('fs')
 var polyfills = require('./polyfills.js')
 var legacy = require('./legacy-streams.js')
@@ -1556,7 +1577,7 @@ function retry () {
   }
 }
 
-},{"./fs.js":21,"./legacy-streams.js":23,"./polyfills.js":24,"assert":undefined,"fs":undefined,"util":undefined}],23:[function(require,module,exports){
+},{"./fs.js":20,"./legacy-streams.js":22,"./polyfills.js":23,"assert":undefined,"fs":undefined,"util":undefined}],22:[function(require,module,exports){
 var Stream = require('stream').Stream
 
 module.exports = legacy
@@ -1676,7 +1697,7 @@ function legacy (fs) {
   }
 }
 
-},{"stream":undefined}],24:[function(require,module,exports){
+},{"stream":undefined}],23:[function(require,module,exports){
 var fs = require('./fs.js')
 var constants = require('constants')
 
@@ -1930,7 +1951,7 @@ function chownErOk (er) {
   return false
 }
 
-},{"./fs.js":21,"constants":undefined}],25:[function(require,module,exports){
+},{"./fs.js":20,"constants":undefined}],24:[function(require,module,exports){
 'use strict'
 
 var gitHosts = module.exports = {
@@ -1996,7 +2017,7 @@ Object.keys(gitHosts).forEach(function (name) {
     }).join('|') + '):$')
 })
 
-},{}],26:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 'use strict'
 var gitHosts = require('./git-host-info.js')
 
@@ -2094,7 +2115,7 @@ GitHost.prototype.toString = function () {
   return (this[this.default] || this.sshurl).call(this)
 }
 
-},{"./git-host-info.js":25}],27:[function(require,module,exports){
+},{"./git-host-info.js":24}],26:[function(require,module,exports){
 'use strict'
 var url = require('url')
 var gitHosts = require('./git-host-info.js')
@@ -2199,7 +2220,7 @@ function parseGitUrl (giturl) {
   }
 }
 
-},{"./git-host-info.js":25,"./git-host.js":26,"url":undefined}],28:[function(require,module,exports){
+},{"./git-host-info.js":24,"./git-host.js":25,"url":undefined}],27:[function(require,module,exports){
 "use strict"
 
 // Multibyte codec. In this scheme, a character is represented by 1 or more bytes.
@@ -2755,7 +2776,7 @@ function findIdx(table, val) {
 }
 
 
-},{}],29:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict"
 
 // Description of supported double byte encodings and aliases.
@@ -2927,7 +2948,7 @@ module.exports = {
 
 };
 
-},{"./tables/big5-added.json":35,"./tables/cp936.json":36,"./tables/cp949.json":37,"./tables/cp950.json":38,"./tables/eucjp.json":39,"./tables/gb18030-ranges.json":40,"./tables/gbk-added.json":41,"./tables/shiftjis.json":42}],30:[function(require,module,exports){
+},{"./tables/big5-added.json":34,"./tables/cp936.json":35,"./tables/cp949.json":36,"./tables/cp950.json":37,"./tables/eucjp.json":38,"./tables/gb18030-ranges.json":39,"./tables/gbk-added.json":40,"./tables/shiftjis.json":41}],29:[function(require,module,exports){
 "use strict"
 
 // Update this array if you add/rename/remove files in this directory.
@@ -2951,7 +2972,7 @@ for (var i = 0; i < modules.length; i++) {
             exports[enc] = module[enc];
 }
 
-},{"./dbcs-codec":28,"./dbcs-data":29,"./internal":31,"./sbcs-codec":32,"./sbcs-data":34,"./sbcs-data-generated":33,"./utf16":43,"./utf7":44}],31:[function(require,module,exports){
+},{"./dbcs-codec":27,"./dbcs-data":28,"./internal":30,"./sbcs-codec":31,"./sbcs-data":33,"./sbcs-data-generated":32,"./utf16":42,"./utf7":43}],30:[function(require,module,exports){
 "use strict"
 
 // Export Node.js internal encodings.
@@ -3140,7 +3161,7 @@ InternalDecoderCesu8.prototype.end = function() {
     return res;
 }
 
-},{"string_decoder":undefined}],32:[function(require,module,exports){
+},{"string_decoder":undefined}],31:[function(require,module,exports){
 "use strict"
 
 // Single-byte codec. Needs a 'chars' string parameter that contains 256 or 128 chars that
@@ -3214,7 +3235,7 @@ SBCSDecoder.prototype.write = function(buf) {
 SBCSDecoder.prototype.end = function() {
 }
 
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 "use strict"
 
 // Generated data for sbcs codec. Don't edit manually. Regenerate using generation/gen-sbcs.js script.
@@ -3666,7 +3687,7 @@ module.exports = {
     "chars": "���������������������������������กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรฤลฦวศษสหฬอฮฯะัาำิีึืฺุู����฿เแโใไๅๆ็่้๊๋์ํ๎๏๐๑๒๓๔๕๖๗๘๙๚๛����"
   }
 }
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 "use strict"
 
 // Manually added data to be used by sbcs codec in addition to generated one.
@@ -3837,7 +3858,7 @@ module.exports = {
 };
 
 
-},{}],35:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 module.exports=[
 ["8740","䏰䰲䘃䖦䕸𧉧䵷䖳𧲱䳢𧳅㮕䜶䝄䱇䱀𤊿𣘗𧍒𦺋𧃒䱗𪍑䝏䗚䲅𧱬䴇䪤䚡𦬣爥𥩔𡩣𣸆𣽡晍囻"],
 ["8767","綕夝𨮹㷴霴𧯯寛𡵞媤㘥𩺰嫑宷峼杮薓𩥅瑡璝㡵𡵓𣚞𦀡㻬"],
@@ -3961,7 +3982,7 @@ module.exports=[
 ["fea1","𤅟𤩹𨮏孆𨰃𡢞瓈𡦈甎瓩甞𨻙𡩋寗𨺬鎅畍畊畧畮𤾂㼄𤴓疎瑝疞疴瘂瘬癑癏癯癶𦏵皐臯㟸𦤑𦤎皡皥皷盌𦾟葢𥂝𥅽𡸜眞眦着撯𥈠睘𣊬瞯𨥤𨥨𡛁矴砉𡍶𤨒棊碯磇磓隥礮𥗠磗礴碱𧘌辸袄𨬫𦂃𢘜禆褀椂禀𥡗禝𧬹礼禩渪𧄦㺨秆𩄍秔"]
 ]
 
-},{}],36:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127,"€"],
 ["8140","丂丄丅丆丏丒丗丟丠両丣並丩丮丯丱丳丵丷丼乀乁乂乄乆乊乑乕乗乚乛乢乣乤乥乧乨乪",5,"乲乴",9,"乿",6,"亇亊"],
@@ -4227,7 +4248,7 @@ module.exports=[
 ["fe40","兀嗀﨎﨏﨑﨓﨔礼﨟蘒﨡﨣﨤﨧﨨﨩"]
 ]
 
-},{}],37:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["8141","갂갃갅갆갋",4,"갘갞갟갡갢갣갥",6,"갮갲갳갴"],
@@ -4502,7 +4523,7 @@ module.exports=[
 ["fda1","爻肴酵驍侯候厚后吼喉嗅帿後朽煦珝逅勛勳塤壎焄熏燻薰訓暈薨喧暄煊萱卉喙毁彙徽揮暉煇諱輝麾休携烋畦虧恤譎鷸兇凶匈洶胸黑昕欣炘痕吃屹紇訖欠欽歆吸恰洽翕興僖凞喜噫囍姬嬉希憙憘戱晞曦熙熹熺犧禧稀羲詰"]
 ]
 
-},{}],38:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["a140","　，、。．‧；：？！︰…‥﹐﹑﹒·﹔﹕﹖﹗｜–︱—︳╴︴﹏（）︵︶｛｝︷︸〔〕︹︺【】︻︼《》︽︾〈〉︿﹀「」﹁﹂『』﹃﹄﹙﹚"],
@@ -4681,7 +4702,7 @@ module.exports=[
 ["f9a1","龤灨灥糷虪蠾蠽蠿讞貜躩軉靋顳顴飌饡馫驤驦驧鬤鸕鸗齈戇欞爧虌躨钂钀钁驩驨鬮鸙爩虋讟钃鱹麷癵驫鱺鸝灩灪麤齾齉龘碁銹裏墻恒粧嫺╔╦╗╠╬╣╚╩╝╒╤╕╞╪╡╘╧╛╓╥╖╟╫╢╙╨╜║═╭╮╰╯▓"]
 ]
 
-},{}],39:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",127],
 ["8ea1","｡",62],
@@ -4865,9 +4886,9 @@ module.exports=[
 ["8feda1","黸黿鼂鼃鼉鼏鼐鼑鼒鼔鼖鼗鼙鼚鼛鼟鼢鼦鼪鼫鼯鼱鼲鼴鼷鼹鼺鼼鼽鼿齁齃",4,"齓齕齖齗齘齚齝齞齨齩齭",4,"齳齵齺齽龏龐龑龒龔龖龗龞龡龢龣龥"]
 ]
 
-},{}],40:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 module.exports={"uChars":[128,165,169,178,184,216,226,235,238,244,248,251,253,258,276,284,300,325,329,334,364,463,465,467,469,471,473,475,477,506,594,610,712,716,730,930,938,962,970,1026,1104,1106,8209,8215,8218,8222,8231,8241,8244,8246,8252,8365,8452,8454,8458,8471,8482,8556,8570,8596,8602,8713,8720,8722,8726,8731,8737,8740,8742,8748,8751,8760,8766,8777,8781,8787,8802,8808,8816,8854,8858,8870,8896,8979,9322,9372,9548,9588,9616,9622,9634,9652,9662,9672,9676,9680,9702,9735,9738,9793,9795,11906,11909,11913,11917,11928,11944,11947,11951,11956,11960,11964,11979,12284,12292,12312,12319,12330,12351,12436,12447,12535,12543,12586,12842,12850,12964,13200,13215,13218,13253,13263,13267,13270,13384,13428,13727,13839,13851,14617,14703,14801,14816,14964,15183,15471,15585,16471,16736,17208,17325,17330,17374,17623,17997,18018,18212,18218,18301,18318,18760,18811,18814,18820,18823,18844,18848,18872,19576,19620,19738,19887,40870,59244,59336,59367,59413,59417,59423,59431,59437,59443,59452,59460,59478,59493,63789,63866,63894,63976,63986,64016,64018,64021,64025,64034,64037,64042,65074,65093,65107,65112,65127,65132,65375,65510,65536],"gbChars":[0,36,38,45,50,81,89,95,96,100,103,104,105,109,126,133,148,172,175,179,208,306,307,308,309,310,311,312,313,341,428,443,544,545,558,741,742,749,750,805,819,820,7922,7924,7925,7927,7934,7943,7944,7945,7950,8062,8148,8149,8152,8164,8174,8236,8240,8262,8264,8374,8380,8381,8384,8388,8390,8392,8393,8394,8396,8401,8406,8416,8419,8424,8437,8439,8445,8482,8485,8496,8521,8603,8936,8946,9046,9050,9063,9066,9076,9092,9100,9108,9111,9113,9131,9162,9164,9218,9219,11329,11331,11334,11336,11346,11361,11363,11366,11370,11372,11375,11389,11682,11686,11687,11692,11694,11714,11716,11723,11725,11730,11736,11982,11989,12102,12336,12348,12350,12384,12393,12395,12397,12510,12553,12851,12962,12973,13738,13823,13919,13933,14080,14298,14585,14698,15583,15847,16318,16434,16438,16481,16729,17102,17122,17315,17320,17402,17418,17859,17909,17911,17915,17916,17936,17939,17961,18664,18703,18814,18962,19043,33469,33470,33471,33484,33485,33490,33497,33501,33505,33513,33520,33536,33550,37845,37921,37948,38029,38038,38064,38065,38066,38069,38075,38076,38078,39108,39109,39113,39114,39115,39116,39265,39394,189000]}
-},{}],41:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 module.exports=[
 ["a140","",62],
 ["a180","",32],
@@ -4924,7 +4945,7 @@ module.exports=[
 ["fe80","䜣䜩䝼䞍⻊䥇䥺䥽䦂䦃䦅䦆䦟䦛䦷䦶䲣䲟䲠䲡䱷䲢䴓",6,"䶮",93]
 ]
 
-},{}],42:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 module.exports=[
 ["0","\u0000",128],
 ["a1","｡",62],
@@ -5051,7 +5072,7 @@ module.exports=[
 ["fc40","髜魵魲鮏鮱鮻鰀鵰鵫鶴鸙黑"]
 ]
 
-},{}],43:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 "use strict"
 
 // == UTF16-BE codec. ==========================================================
@@ -5227,7 +5248,7 @@ function detectEncoding(buf, defaultEncoding) {
 
 
 
-},{}],44:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 "use strict"
 
 // UTF-7 codec, according to https://tools.ietf.org/html/rfc2152
@@ -5518,7 +5539,7 @@ Utf7IMAPDecoder.prototype.end = function() {
 
 
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 "use strict"
 
 var BOMChar = '\uFEFF';
@@ -5572,7 +5593,7 @@ StripBOMWrapper.prototype.end = function() {
 }
 
 
-},{}],46:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 "use strict"
 
 // == Extend Node primitives to use iconv-lite =================================
@@ -5788,7 +5809,7 @@ module.exports = function (iconv) {
     }
 }
 
-},{"buffer":undefined,"stream":undefined}],47:[function(require,module,exports){
+},{"buffer":undefined,"stream":undefined}],46:[function(require,module,exports){
 "use strict"
 
 var bomHandling = require('./bom-handling'),
@@ -5931,7 +5952,7 @@ if (nodeVer) {
 }
 
 
-},{"../encodings":30,"./bom-handling":45,"./extend-node":46,"./streams":48}],48:[function(require,module,exports){
+},{"../encodings":29,"./bom-handling":44,"./extend-node":45,"./streams":47}],47:[function(require,module,exports){
 "use strict"
 
 var Transform = require("stream").Transform;
@@ -6053,7 +6074,7 @@ IconvLiteDecoderStream.prototype.collect = function(cb) {
 }
 
 
-},{"stream":undefined}],49:[function(require,module,exports){
+},{"stream":undefined}],48:[function(require,module,exports){
 'use strict';
 module.exports = function (obj) {
 	if (typeof obj !== 'object') {
@@ -6070,7 +6091,7 @@ module.exports = function (obj) {
 	return ret;
 };
 
-},{}],50:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 'use strict';
 
 module.exports = function isArrayish(obj) {
@@ -6082,7 +6103,7 @@ module.exports = function isArrayish(obj) {
 		(obj.length >= 0 && obj.splice instanceof Function);
 };
 
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 var builtinModules = require('builtin-modules');
 
@@ -6094,7 +6115,7 @@ module.exports = function (str) {
 	return builtinModules.indexOf(str) !== -1;
 };
 
-},{"builtin-modules":13}],52:[function(require,module,exports){
+},{"builtin-modules":12}],51:[function(require,module,exports){
 'use strict';
 var numberIsNan = require('number-is-nan');
 
@@ -6142,7 +6163,7 @@ module.exports = function (x) {
 	return false;
 }
 
-},{"number-is-nan":104}],53:[function(require,module,exports){
+},{"number-is-nan":103}],52:[function(require,module,exports){
 'use strict';
 
 var isStream = module.exports = function (stream) {
@@ -6165,7 +6186,7 @@ isStream.transform = function (stream) {
 	return isStream.duplex(stream) && typeof stream._transform === 'function' && typeof stream._transformState === 'object';
 };
 
-},{}],54:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 
 exports = module.exports = function(bytes)
 {
@@ -6243,7 +6264,7 @@ exports = module.exports = function(bytes)
     return true;
 }
 
-},{}],55:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 "use strict";
 
 var realFetch = require('node-fetch');
@@ -6261,7 +6282,7 @@ if (!global.fetch) {
 	global.Request = realFetch.Request;
 }
 
-},{"node-fetch":92}],56:[function(require,module,exports){
+},{"node-fetch":91}],55:[function(require,module,exports){
 'use strict';
 
 
@@ -6270,7 +6291,7 @@ var yaml = require('./lib/js-yaml.js');
 
 module.exports = yaml;
 
-},{"./lib/js-yaml.js":57}],57:[function(require,module,exports){
+},{"./lib/js-yaml.js":56}],56:[function(require,module,exports){
 'use strict';
 
 
@@ -6311,7 +6332,7 @@ module.exports.parse          = deprecated('parse');
 module.exports.compose        = deprecated('compose');
 module.exports.addConstructor = deprecated('addConstructor');
 
-},{"./js-yaml/dumper":59,"./js-yaml/exception":60,"./js-yaml/loader":61,"./js-yaml/schema":63,"./js-yaml/schema/core":64,"./js-yaml/schema/default_full":65,"./js-yaml/schema/default_safe":66,"./js-yaml/schema/failsafe":67,"./js-yaml/schema/json":68,"./js-yaml/type":69}],58:[function(require,module,exports){
+},{"./js-yaml/dumper":58,"./js-yaml/exception":59,"./js-yaml/loader":60,"./js-yaml/schema":62,"./js-yaml/schema/core":63,"./js-yaml/schema/default_full":64,"./js-yaml/schema/default_safe":65,"./js-yaml/schema/failsafe":66,"./js-yaml/schema/json":67,"./js-yaml/type":68}],57:[function(require,module,exports){
 'use strict';
 
 
@@ -6372,7 +6393,7 @@ module.exports.repeat         = repeat;
 module.exports.isNegativeZero = isNegativeZero;
 module.exports.extend         = extend;
 
-},{}],59:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-use-before-define*/
@@ -7176,7 +7197,7 @@ function safeDump(input, options) {
 module.exports.dump     = dump;
 module.exports.safeDump = safeDump;
 
-},{"./common":58,"./exception":60,"./schema/default_full":65,"./schema/default_safe":66}],60:[function(require,module,exports){
+},{"./common":57,"./exception":59,"./schema/default_full":64,"./schema/default_safe":65}],59:[function(require,module,exports){
 // YAML error class. http://stackoverflow.com/questions/8458984
 //
 'use strict';
@@ -7221,7 +7242,7 @@ YAMLException.prototype.toString = function toString(compact) {
 
 module.exports = YAMLException;
 
-},{}],61:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len,no-use-before-define*/
@@ -8809,7 +8830,7 @@ module.exports.load        = load;
 module.exports.safeLoadAll = safeLoadAll;
 module.exports.safeLoad    = safeLoad;
 
-},{"./common":58,"./exception":60,"./mark":62,"./schema/default_full":65,"./schema/default_safe":66}],62:[function(require,module,exports){
+},{"./common":57,"./exception":59,"./mark":61,"./schema/default_full":64,"./schema/default_safe":65}],61:[function(require,module,exports){
 'use strict';
 
 
@@ -8887,7 +8908,7 @@ Mark.prototype.toString = function toString(compact) {
 
 module.exports = Mark;
 
-},{"./common":58}],63:[function(require,module,exports){
+},{"./common":57}],62:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable max-len*/
@@ -8993,7 +9014,7 @@ Schema.create = function createSchema() {
 
 module.exports = Schema;
 
-},{"./common":58,"./exception":60,"./type":69}],64:[function(require,module,exports){
+},{"./common":57,"./exception":59,"./type":68}],63:[function(require,module,exports){
 // Standard YAML's Core schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2804923
 //
@@ -9013,7 +9034,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":63,"./json":68}],65:[function(require,module,exports){
+},{"../schema":62,"./json":67}],64:[function(require,module,exports){
 // JS-YAML's default schema for `load` function.
 // It is not described in the YAML specification.
 //
@@ -9040,7 +9061,7 @@ module.exports = Schema.DEFAULT = new Schema({
   ]
 });
 
-},{"../schema":63,"../type/js/function":74,"../type/js/regexp":75,"../type/js/undefined":76,"./default_safe":66}],66:[function(require,module,exports){
+},{"../schema":62,"../type/js/function":73,"../type/js/regexp":74,"../type/js/undefined":75,"./default_safe":65}],65:[function(require,module,exports){
 // JS-YAML's default schema for `safeLoad` function.
 // It is not described in the YAML specification.
 //
@@ -9070,7 +9091,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":63,"../type/binary":70,"../type/merge":78,"../type/omap":80,"../type/pairs":81,"../type/set":83,"../type/timestamp":85,"./core":64}],67:[function(require,module,exports){
+},{"../schema":62,"../type/binary":69,"../type/merge":77,"../type/omap":79,"../type/pairs":80,"../type/set":82,"../type/timestamp":84,"./core":63}],66:[function(require,module,exports){
 // Standard YAML's Failsafe schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2802346
 
@@ -9089,7 +9110,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":63,"../type/map":77,"../type/seq":82,"../type/str":84}],68:[function(require,module,exports){
+},{"../schema":62,"../type/map":76,"../type/seq":81,"../type/str":83}],67:[function(require,module,exports){
 // Standard YAML's JSON schema.
 // http://www.yaml.org/spec/1.2/spec.html#id2803231
 //
@@ -9116,7 +9137,7 @@ module.exports = new Schema({
   ]
 });
 
-},{"../schema":63,"../type/bool":71,"../type/float":72,"../type/int":73,"../type/null":79,"./failsafe":67}],69:[function(require,module,exports){
+},{"../schema":62,"../type/bool":70,"../type/float":71,"../type/int":72,"../type/null":78,"./failsafe":66}],68:[function(require,module,exports){
 'use strict';
 
 var YAMLException = require('./exception');
@@ -9179,7 +9200,7 @@ function Type(tag, options) {
 
 module.exports = Type;
 
-},{"./exception":60}],70:[function(require,module,exports){
+},{"./exception":59}],69:[function(require,module,exports){
 'use strict';
 
 /*eslint-disable no-bitwise*/
@@ -9316,7 +9337,7 @@ module.exports = new Type('tag:yaml.org,2002:binary', {
   represent: representYamlBinary
 });
 
-},{"../type":69}],71:[function(require,module,exports){
+},{"../type":68}],70:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9353,7 +9374,7 @@ module.exports = new Type('tag:yaml.org,2002:bool', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":69}],72:[function(require,module,exports){
+},{"../type":68}],71:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -9460,7 +9481,7 @@ module.exports = new Type('tag:yaml.org,2002:float', {
   defaultStyle: 'lowercase'
 });
 
-},{"../common":58,"../type":69}],73:[function(require,module,exports){
+},{"../common":57,"../type":68}],72:[function(require,module,exports){
 'use strict';
 
 var common = require('../common');
@@ -9630,7 +9651,7 @@ module.exports = new Type('tag:yaml.org,2002:int', {
   }
 });
 
-},{"../common":58,"../type":69}],74:[function(require,module,exports){
+},{"../common":57,"../type":68}],73:[function(require,module,exports){
 'use strict';
 
 var esprima;
@@ -9716,7 +9737,7 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
   represent: representJavascriptFunction
 });
 
-},{"../../type":69}],75:[function(require,module,exports){
+},{"../../type":68}],74:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -9778,7 +9799,7 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
   represent: representJavascriptRegExp
 });
 
-},{"../../type":69}],76:[function(require,module,exports){
+},{"../../type":68}],75:[function(require,module,exports){
 'use strict';
 
 var Type = require('../../type');
@@ -9808,7 +9829,7 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
   represent: representJavascriptUndefined
 });
 
-},{"../../type":69}],77:[function(require,module,exports){
+},{"../../type":68}],76:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9818,7 +9839,7 @@ module.exports = new Type('tag:yaml.org,2002:map', {
   construct: function (data) { return data !== null ? data : {}; }
 });
 
-},{"../type":69}],78:[function(require,module,exports){
+},{"../type":68}],77:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9832,7 +9853,7 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
   resolve: resolveYamlMerge
 });
 
-},{"../type":69}],79:[function(require,module,exports){
+},{"../type":68}],78:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9868,7 +9889,7 @@ module.exports = new Type('tag:yaml.org,2002:null', {
   defaultStyle: 'lowercase'
 });
 
-},{"../type":69}],80:[function(require,module,exports){
+},{"../type":68}],79:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9914,7 +9935,7 @@ module.exports = new Type('tag:yaml.org,2002:omap', {
   construct: constructYamlOmap
 });
 
-},{"../type":69}],81:[function(require,module,exports){
+},{"../type":68}],80:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9969,7 +9990,7 @@ module.exports = new Type('tag:yaml.org,2002:pairs', {
   construct: constructYamlPairs
 });
 
-},{"../type":69}],82:[function(require,module,exports){
+},{"../type":68}],81:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -9979,7 +10000,7 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
   construct: function (data) { return data !== null ? data : []; }
 });
 
-},{"../type":69}],83:[function(require,module,exports){
+},{"../type":68}],82:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -10010,7 +10031,7 @@ module.exports = new Type('tag:yaml.org,2002:set', {
   construct: constructYamlSet
 });
 
-},{"../type":69}],84:[function(require,module,exports){
+},{"../type":68}],83:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -10020,7 +10041,7 @@ module.exports = new Type('tag:yaml.org,2002:str', {
   construct: function (data) { return data !== null ? data : ''; }
 });
 
-},{"../type":69}],85:[function(require,module,exports){
+},{"../type":68}],84:[function(require,module,exports){
 'use strict';
 
 var Type = require('../type');
@@ -10110,7 +10131,7 @@ module.exports = new Type('tag:yaml.org,2002:timestamp', {
   represent: representYamlTimestamp
 });
 
-},{"../type":69}],86:[function(require,module,exports){
+},{"../type":68}],85:[function(require,module,exports){
 'use strict';
 var invertKv = require('invert-kv');
 var all = require('./lcid.json');
@@ -10134,7 +10155,7 @@ exports.to = function (localeId) {
 
 exports.all = all;
 
-},{"./lcid.json":87,"invert-kv":49}],87:[function(require,module,exports){
+},{"./lcid.json":86,"invert-kv":48}],86:[function(require,module,exports){
 module.exports={
 	"af_ZA": 1078,
 	"am_ET": 1118,
@@ -10339,7 +10360,7 @@ module.exports={
 	"zu_ZA": 1077
 }
 
-},{}],88:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 'use strict';
 var path = require('path');
 var fs = require('graceful-fs');
@@ -10362,7 +10383,7 @@ module.exports.sync = function (fp) {
 	return parse(fs.readFileSync(fp, 'utf8'), fp);
 };
 
-},{"graceful-fs":22,"parse-json":107,"path":undefined,"pify":112,"pinkie-promise":113,"strip-bom":129}],89:[function(require,module,exports){
+},{"graceful-fs":21,"parse-json":106,"path":undefined,"pify":111,"pinkie-promise":112,"strip-bom":128}],88:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -10760,7 +10781,7 @@ var assign = createAssigner(function(object, source) {
 
 module.exports = assign;
 
-},{"lodash.keys":90,"lodash.rest":91}],90:[function(require,module,exports){
+},{"lodash.keys":89,"lodash.rest":90}],89:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -11230,7 +11251,7 @@ function keys(object) {
 
 module.exports = keys;
 
-},{}],91:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -11577,7 +11598,7 @@ function toNumber(value) {
 
 module.exports = rest;
 
-},{}],92:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 
 /**
  * index.js
@@ -11806,7 +11827,7 @@ Fetch.Response = Response;
 Fetch.Headers = Headers;
 Fetch.Request = Request;
 
-},{"./lib/body":93,"./lib/fetch-error":94,"./lib/headers":95,"./lib/request":96,"./lib/response":97,"http":undefined,"https":undefined,"stream":undefined,"url":undefined,"zlib":undefined}],93:[function(require,module,exports){
+},{"./lib/body":92,"./lib/fetch-error":93,"./lib/headers":94,"./lib/request":95,"./lib/response":96,"http":undefined,"https":undefined,"stream":undefined,"url":undefined,"zlib":undefined}],92:[function(require,module,exports){
 
 /**
  * body.js
@@ -12041,7 +12062,7 @@ Body.prototype._clone = function(instance) {
 // expose Promise
 Body.Promise = global.Promise;
 
-},{"./fetch-error":94,"encoding":17,"is-stream":53,"stream":undefined}],94:[function(require,module,exports){
+},{"./fetch-error":93,"encoding":16,"is-stream":52,"stream":undefined}],93:[function(require,module,exports){
 
 /**
  * fetch-error.js
@@ -12077,7 +12098,7 @@ function FetchError(message, type, systemError) {
 
 require('util').inherits(FetchError, Error);
 
-},{"util":undefined}],95:[function(require,module,exports){
+},{"util":undefined}],94:[function(require,module,exports){
 
 /**
  * headers.js
@@ -12220,7 +12241,7 @@ Headers.prototype.raw = function() {
 	return this._headers;
 };
 
-},{}],96:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 
 /**
  * request.js
@@ -12297,7 +12318,7 @@ Request.prototype.clone = function() {
 	return new Request(this);
 };
 
-},{"./body":93,"./headers":95,"url":undefined}],97:[function(require,module,exports){
+},{"./body":92,"./headers":94,"url":undefined}],96:[function(require,module,exports){
 
 /**
  * response.js
@@ -12349,7 +12370,7 @@ Response.prototype.clone = function() {
 	});
 };
 
-},{"./body":93,"./headers":95,"http":undefined}],98:[function(require,module,exports){
+},{"./body":92,"./headers":94,"http":undefined}],97:[function(require,module,exports){
 module.exports = extractDescription
 
 // Extracts description from contents of a readme file in markdown format
@@ -12365,7 +12386,7 @@ function extractDescription (d) {
   return d.slice(s, e).join(' ').trim()
 }
 
-},{}],99:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 var semver = require("semver")
 var validateLicense = require('validate-npm-package-license');
 var hostedGitInfo = require("hosted-git-info")
@@ -12785,7 +12806,7 @@ function bugsTypos(bugs, warn) {
   })
 }
 
-},{"./extract_description":98,"./typos":102,"hosted-git-info":27,"is-builtin-module":51,"semver":121,"url":undefined,"validate-npm-package-license":131}],100:[function(require,module,exports){
+},{"./extract_description":97,"./typos":101,"hosted-git-info":26,"is-builtin-module":50,"semver":120,"url":undefined,"validate-npm-package-license":130}],99:[function(require,module,exports){
 var util = require("util")
 var messages = require("./warning_messages.json")
 
@@ -12809,7 +12830,7 @@ function makeTypoWarning (providedName, probableName, field) {
   }
   return util.format(messages.typo, providedName, probableName)
 }
-},{"./warning_messages.json":103,"util":undefined}],101:[function(require,module,exports){
+},{"./warning_messages.json":102,"util":undefined}],100:[function(require,module,exports){
 module.exports = normalize
 
 var fixer = require("./fixer")
@@ -12850,7 +12871,7 @@ function ucFirst (string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-},{"./fixer":99,"./make_warning":100}],102:[function(require,module,exports){
+},{"./fixer":98,"./make_warning":99}],101:[function(require,module,exports){
 module.exports={
   "topLevel": { 
     "dependancies": "dependencies"
@@ -12877,7 +12898,7 @@ module.exports={
   "script": { "server": "start", "tests": "test" }
 }
 
-},{}],103:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 module.exports={
   "repositories": "'repositories' (plural) Not supported. Please pick one as the 'repository' field"
   ,"missingRepository": "No repository field."
@@ -12910,13 +12931,13 @@ module.exports={
   ,"typo": "%s should probably be %s."
 }
 
-},{}],104:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 'use strict';
 module.exports = Number.isNaN || function (x) {
 	return x !== x;
 };
 
-},{}],105:[function(require,module,exports){
+},{}],104:[function(require,module,exports){
 'use strict';
 /* eslint-disable no-unused-vars */
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -13001,7 +13022,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],106:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 'use strict';
 var childProcess = require('child_process');
 var execFileSync = childProcess.execFileSync;
@@ -13130,7 +13151,7 @@ module.exports.sync = function (opts) {
 	return cache;
 };
 
-},{"child_process":undefined,"lcid":86}],107:[function(require,module,exports){
+},{"child_process":undefined,"lcid":85}],106:[function(require,module,exports){
 'use strict';
 var errorEx = require('error-ex');
 var fallback = require('./vendor/parse');
@@ -13167,7 +13188,7 @@ module.exports = function (x, reviver, filename) {
 	}
 };
 
-},{"./vendor/parse":108,"error-ex":19}],108:[function(require,module,exports){
+},{"./vendor/parse":107,"error-ex":18}],107:[function(require,module,exports){
 /*
  * Author: Alex Kocharin <alex@kocharin.ru>
  * GIT: https://github.com/rlidwka/jju
@@ -13921,7 +13942,7 @@ module.exports.tokenize = function tokenizeJSON(input, options) {
 }
 
 
-},{"./unicode":109}],109:[function(require,module,exports){
+},{"./unicode":108}],108:[function(require,module,exports){
 
 // This is autogenerated with esprima tools, see:
 // https://github.com/ariya/esprima/blob/master/esprima.js
@@ -13994,7 +14015,7 @@ module.exports.NonAsciiIdentifierStart = /[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u
 
 module.exports.NonAsciiIdentifierPart = /[\xAA\xB5\xBA\xC0-\xD6\xD8-\xF6\xF8-\u02C1\u02C6-\u02D1\u02E0-\u02E4\u02EC\u02EE\u0300-\u0374\u0376\u0377\u037A-\u037D\u0386\u0388-\u038A\u038C\u038E-\u03A1\u03A3-\u03F5\u03F7-\u0481\u0483-\u0487\u048A-\u0527\u0531-\u0556\u0559\u0561-\u0587\u0591-\u05BD\u05BF\u05C1\u05C2\u05C4\u05C5\u05C7\u05D0-\u05EA\u05F0-\u05F2\u0610-\u061A\u0620-\u0669\u066E-\u06D3\u06D5-\u06DC\u06DF-\u06E8\u06EA-\u06FC\u06FF\u0710-\u074A\u074D-\u07B1\u07C0-\u07F5\u07FA\u0800-\u082D\u0840-\u085B\u08A0\u08A2-\u08AC\u08E4-\u08FE\u0900-\u0963\u0966-\u096F\u0971-\u0977\u0979-\u097F\u0981-\u0983\u0985-\u098C\u098F\u0990\u0993-\u09A8\u09AA-\u09B0\u09B2\u09B6-\u09B9\u09BC-\u09C4\u09C7\u09C8\u09CB-\u09CE\u09D7\u09DC\u09DD\u09DF-\u09E3\u09E6-\u09F1\u0A01-\u0A03\u0A05-\u0A0A\u0A0F\u0A10\u0A13-\u0A28\u0A2A-\u0A30\u0A32\u0A33\u0A35\u0A36\u0A38\u0A39\u0A3C\u0A3E-\u0A42\u0A47\u0A48\u0A4B-\u0A4D\u0A51\u0A59-\u0A5C\u0A5E\u0A66-\u0A75\u0A81-\u0A83\u0A85-\u0A8D\u0A8F-\u0A91\u0A93-\u0AA8\u0AAA-\u0AB0\u0AB2\u0AB3\u0AB5-\u0AB9\u0ABC-\u0AC5\u0AC7-\u0AC9\u0ACB-\u0ACD\u0AD0\u0AE0-\u0AE3\u0AE6-\u0AEF\u0B01-\u0B03\u0B05-\u0B0C\u0B0F\u0B10\u0B13-\u0B28\u0B2A-\u0B30\u0B32\u0B33\u0B35-\u0B39\u0B3C-\u0B44\u0B47\u0B48\u0B4B-\u0B4D\u0B56\u0B57\u0B5C\u0B5D\u0B5F-\u0B63\u0B66-\u0B6F\u0B71\u0B82\u0B83\u0B85-\u0B8A\u0B8E-\u0B90\u0B92-\u0B95\u0B99\u0B9A\u0B9C\u0B9E\u0B9F\u0BA3\u0BA4\u0BA8-\u0BAA\u0BAE-\u0BB9\u0BBE-\u0BC2\u0BC6-\u0BC8\u0BCA-\u0BCD\u0BD0\u0BD7\u0BE6-\u0BEF\u0C01-\u0C03\u0C05-\u0C0C\u0C0E-\u0C10\u0C12-\u0C28\u0C2A-\u0C33\u0C35-\u0C39\u0C3D-\u0C44\u0C46-\u0C48\u0C4A-\u0C4D\u0C55\u0C56\u0C58\u0C59\u0C60-\u0C63\u0C66-\u0C6F\u0C82\u0C83\u0C85-\u0C8C\u0C8E-\u0C90\u0C92-\u0CA8\u0CAA-\u0CB3\u0CB5-\u0CB9\u0CBC-\u0CC4\u0CC6-\u0CC8\u0CCA-\u0CCD\u0CD5\u0CD6\u0CDE\u0CE0-\u0CE3\u0CE6-\u0CEF\u0CF1\u0CF2\u0D02\u0D03\u0D05-\u0D0C\u0D0E-\u0D10\u0D12-\u0D3A\u0D3D-\u0D44\u0D46-\u0D48\u0D4A-\u0D4E\u0D57\u0D60-\u0D63\u0D66-\u0D6F\u0D7A-\u0D7F\u0D82\u0D83\u0D85-\u0D96\u0D9A-\u0DB1\u0DB3-\u0DBB\u0DBD\u0DC0-\u0DC6\u0DCA\u0DCF-\u0DD4\u0DD6\u0DD8-\u0DDF\u0DF2\u0DF3\u0E01-\u0E3A\u0E40-\u0E4E\u0E50-\u0E59\u0E81\u0E82\u0E84\u0E87\u0E88\u0E8A\u0E8D\u0E94-\u0E97\u0E99-\u0E9F\u0EA1-\u0EA3\u0EA5\u0EA7\u0EAA\u0EAB\u0EAD-\u0EB9\u0EBB-\u0EBD\u0EC0-\u0EC4\u0EC6\u0EC8-\u0ECD\u0ED0-\u0ED9\u0EDC-\u0EDF\u0F00\u0F18\u0F19\u0F20-\u0F29\u0F35\u0F37\u0F39\u0F3E-\u0F47\u0F49-\u0F6C\u0F71-\u0F84\u0F86-\u0F97\u0F99-\u0FBC\u0FC6\u1000-\u1049\u1050-\u109D\u10A0-\u10C5\u10C7\u10CD\u10D0-\u10FA\u10FC-\u1248\u124A-\u124D\u1250-\u1256\u1258\u125A-\u125D\u1260-\u1288\u128A-\u128D\u1290-\u12B0\u12B2-\u12B5\u12B8-\u12BE\u12C0\u12C2-\u12C5\u12C8-\u12D6\u12D8-\u1310\u1312-\u1315\u1318-\u135A\u135D-\u135F\u1380-\u138F\u13A0-\u13F4\u1401-\u166C\u166F-\u167F\u1681-\u169A\u16A0-\u16EA\u16EE-\u16F0\u1700-\u170C\u170E-\u1714\u1720-\u1734\u1740-\u1753\u1760-\u176C\u176E-\u1770\u1772\u1773\u1780-\u17D3\u17D7\u17DC\u17DD\u17E0-\u17E9\u180B-\u180D\u1810-\u1819\u1820-\u1877\u1880-\u18AA\u18B0-\u18F5\u1900-\u191C\u1920-\u192B\u1930-\u193B\u1946-\u196D\u1970-\u1974\u1980-\u19AB\u19B0-\u19C9\u19D0-\u19D9\u1A00-\u1A1B\u1A20-\u1A5E\u1A60-\u1A7C\u1A7F-\u1A89\u1A90-\u1A99\u1AA7\u1B00-\u1B4B\u1B50-\u1B59\u1B6B-\u1B73\u1B80-\u1BF3\u1C00-\u1C37\u1C40-\u1C49\u1C4D-\u1C7D\u1CD0-\u1CD2\u1CD4-\u1CF6\u1D00-\u1DE6\u1DFC-\u1F15\u1F18-\u1F1D\u1F20-\u1F45\u1F48-\u1F4D\u1F50-\u1F57\u1F59\u1F5B\u1F5D\u1F5F-\u1F7D\u1F80-\u1FB4\u1FB6-\u1FBC\u1FBE\u1FC2-\u1FC4\u1FC6-\u1FCC\u1FD0-\u1FD3\u1FD6-\u1FDB\u1FE0-\u1FEC\u1FF2-\u1FF4\u1FF6-\u1FFC\u200C\u200D\u203F\u2040\u2054\u2071\u207F\u2090-\u209C\u20D0-\u20DC\u20E1\u20E5-\u20F0\u2102\u2107\u210A-\u2113\u2115\u2119-\u211D\u2124\u2126\u2128\u212A-\u212D\u212F-\u2139\u213C-\u213F\u2145-\u2149\u214E\u2160-\u2188\u2C00-\u2C2E\u2C30-\u2C5E\u2C60-\u2CE4\u2CEB-\u2CF3\u2D00-\u2D25\u2D27\u2D2D\u2D30-\u2D67\u2D6F\u2D7F-\u2D96\u2DA0-\u2DA6\u2DA8-\u2DAE\u2DB0-\u2DB6\u2DB8-\u2DBE\u2DC0-\u2DC6\u2DC8-\u2DCE\u2DD0-\u2DD6\u2DD8-\u2DDE\u2DE0-\u2DFF\u2E2F\u3005-\u3007\u3021-\u302F\u3031-\u3035\u3038-\u303C\u3041-\u3096\u3099\u309A\u309D-\u309F\u30A1-\u30FA\u30FC-\u30FF\u3105-\u312D\u3131-\u318E\u31A0-\u31BA\u31F0-\u31FF\u3400-\u4DB5\u4E00-\u9FCC\uA000-\uA48C\uA4D0-\uA4FD\uA500-\uA60C\uA610-\uA62B\uA640-\uA66F\uA674-\uA67D\uA67F-\uA697\uA69F-\uA6F1\uA717-\uA71F\uA722-\uA788\uA78B-\uA78E\uA790-\uA793\uA7A0-\uA7AA\uA7F8-\uA827\uA840-\uA873\uA880-\uA8C4\uA8D0-\uA8D9\uA8E0-\uA8F7\uA8FB\uA900-\uA92D\uA930-\uA953\uA960-\uA97C\uA980-\uA9C0\uA9CF-\uA9D9\uAA00-\uAA36\uAA40-\uAA4D\uAA50-\uAA59\uAA60-\uAA76\uAA7A\uAA7B\uAA80-\uAAC2\uAADB-\uAADD\uAAE0-\uAAEF\uAAF2-\uAAF6\uAB01-\uAB06\uAB09-\uAB0E\uAB11-\uAB16\uAB20-\uAB26\uAB28-\uAB2E\uABC0-\uABEA\uABEC\uABED\uABF0-\uABF9\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFA6D\uFA70-\uFAD9\uFB00-\uFB06\uFB13-\uFB17\uFB1D-\uFB28\uFB2A-\uFB36\uFB38-\uFB3C\uFB3E\uFB40\uFB41\uFB43\uFB44\uFB46-\uFBB1\uFBD3-\uFD3D\uFD50-\uFD8F\uFD92-\uFDC7\uFDF0-\uFDFB\uFE00-\uFE0F\uFE20-\uFE26\uFE33\uFE34\uFE4D-\uFE4F\uFE70-\uFE74\uFE76-\uFEFC\uFF10-\uFF19\uFF21-\uFF3A\uFF3F\uFF41-\uFF5A\uFF66-\uFFBE\uFFC2-\uFFC7\uFFCA-\uFFCF\uFFD2-\uFFD7\uFFDA-\uFFDC]/
 
-},{}],110:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 'use strict';
 var fs = require('fs');
 var Promise = require('pinkie-promise');
@@ -14020,7 +14041,7 @@ module.exports.sync = function (fp) {
 	}
 };
 
-},{"fs":undefined,"pinkie-promise":113}],111:[function(require,module,exports){
+},{"fs":undefined,"pinkie-promise":112}],110:[function(require,module,exports){
 'use strict';
 var fs = require('graceful-fs');
 var Promise = require('pinkie-promise');
@@ -14051,7 +14072,7 @@ exports.fileSync = typeSync.bind(null, 'statSync', 'isFile');
 exports.dirSync = typeSync.bind(null, 'statSync', 'isDirectory');
 exports.symlinkSync = typeSync.bind(null, 'lstatSync', 'isSymbolicLink');
 
-},{"graceful-fs":22,"pify":112,"pinkie-promise":113}],112:[function(require,module,exports){
+},{"graceful-fs":21,"pify":111,"pinkie-promise":112}],111:[function(require,module,exports){
 'use strict';
 
 var processFn = function (fn, P, opts) {
@@ -14121,12 +14142,12 @@ var pify = module.exports = function (obj, P, opts) {
 
 pify.all = pify;
 
-},{}],113:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 'use strict';
 
 module.exports = typeof Promise === 'function' ? Promise : require('pinkie');
 
-},{"pinkie":114}],114:[function(require,module,exports){
+},{"pinkie":113}],113:[function(require,module,exports){
 'use strict';
 
 var PENDING = 'pending';
@@ -14420,7 +14441,7 @@ Promise.reject = function (reason) {
 
 module.exports = Promise;
 
-},{}],115:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 'use strict';
 var findUp = require('find-up');
 var loadJsonFile = require('load-json-file');
@@ -14484,10 +14505,10 @@ module.exports.filepath = function (conf) {
 	return conf[fpSymbol];
 };
 
-},{"find-up":20,"load-json-file":88,"object-assign":105,"symbol":130}],116:[function(require,module,exports){
+},{"find-up":19,"load-json-file":87,"object-assign":104,"symbol":129}],115:[function(require,module,exports){
 module.exports = require('./lib/node-progress');
 
-},{"./lib/node-progress":117}],117:[function(require,module,exports){
+},{"./lib/node-progress":116}],116:[function(require,module,exports){
 /*!
  * node-progress
  * Copyright(c) 2011 TJ Holowaychuk <tj@vision-media.ca>
@@ -14669,7 +14690,7 @@ ProgressBar.prototype.terminate = function () {
   } else console.log();
 };
 
-},{}],118:[function(require,module,exports){
+},{}],117:[function(require,module,exports){
 'use strict';
 var findUp = require('find-up');
 var readPkg = require('read-pkg');
@@ -14702,7 +14723,7 @@ module.exports.sync = function (opts) {
 	};
 };
 
-},{"find-up":20,"read-pkg":119}],119:[function(require,module,exports){
+},{"find-up":19,"read-pkg":118}],118:[function(require,module,exports){
 'use strict';
 var path = require('path');
 var loadJsonFile = require('load-json-file');
@@ -14752,7 +14773,7 @@ module.exports.sync = function (fp, opts) {
 	return x;
 };
 
-},{"load-json-file":88,"normalize-package-data":101,"path":undefined,"path-type":111}],120:[function(require,module,exports){
+},{"load-json-file":87,"normalize-package-data":100,"path":undefined,"path-type":110}],119:[function(require,module,exports){
 module.exports = function (_require) {
   _require = _require || require
   var main = _require.main
@@ -14772,7 +14793,7 @@ function handleIISNode (main) {
   }
 }
 
-},{}],121:[function(require,module,exports){
+},{}],120:[function(require,module,exports){
 exports = module.exports = SemVer;
 
 // The debug function is excluded entirely from the minified version.
@@ -15962,7 +15983,7 @@ function outside(version, range, hilo, loose) {
   return true;
 }
 
-},{}],122:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 module.exports = function (blocking) {
   [process.stdout, process.stderr].forEach(function (stream) {
     if (stream._handle && typeof stream._handle.setBlocking === 'function') {
@@ -15971,7 +15992,7 @@ module.exports = function (blocking) {
   })
 }
 
-},{}],123:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 var licenseIDs = require('spdx-license-ids');
 
 function valid(string) {
@@ -16210,16 +16231,16 @@ module.exports = function(identifier) {
   return null;
 };
 
-},{"spdx-license-ids":126}],124:[function(require,module,exports){
+},{"spdx-license-ids":125}],123:[function(require,module,exports){
 var parser = require('./parser.generated.js').parser
 
 module.exports = function(argument) {
   return parser.parse(argument) }
 
-},{"./parser.generated.js":125}],125:[function(require,module,exports){
+},{"./parser.generated.js":124}],124:[function(require,module,exports){
 var spdxparse=function(){var o=function(k,v,o,l){for(o=o||{},l=k.length;l--;o[k[l]]=v);return o},$V0=[1,5],$V1=[1,6],$V2=[1,7],$V3=[1,4],$V4=[1,9],$V5=[1,10],$V6=[5,14,15,17],$V7=[5,12,14,15,17];var parser={trace:function trace(){},yy:{},symbols_:{error:2,start:3,expression:4,EOS:5,simpleExpression:6,LICENSE:7,PLUS:8,LICENSEREF:9,DOCUMENTREF:10,COLON:11,WITH:12,EXCEPTION:13,AND:14,OR:15,OPEN:16,CLOSE:17,$accept:0,$end:1},terminals_:{2:"error",5:"EOS",7:"LICENSE",8:"PLUS",9:"LICENSEREF",10:"DOCUMENTREF",11:"COLON",12:"WITH",13:"EXCEPTION",14:"AND",15:"OR",16:"OPEN",17:"CLOSE"},productions_:[0,[3,2],[6,1],[6,2],[6,1],[6,3],[4,1],[4,3],[4,3],[4,3],[4,3]],performAction:function anonymous(yytext,yyleng,yylineno,yy,yystate,$$,_$){var $0=$$.length-1;switch(yystate){case 1:return this.$=$$[$0-1];break;case 2:case 4:case 5:this.$={license:yytext};break;case 3:this.$={license:$$[$0-1],plus:true};break;case 6:this.$=$$[$0];break;case 7:this.$={exception:$$[$0]};this.$.license=$$[$0-2].license;if($$[$0-2].hasOwnProperty("plus")){this.$.plus=$$[$0-2].plus}break;case 8:this.$={conjunction:"and",left:$$[$0-2],right:$$[$0]};break;case 9:this.$={conjunction:"or",left:$$[$0-2],right:$$[$0]};break;case 10:this.$=$$[$0-1];break}},table:[{3:1,4:2,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{1:[3]},{5:[1,8],14:$V4,15:$V5},o($V6,[2,6],{12:[1,11]}),{4:12,6:3,7:$V0,9:$V1,10:$V2,16:$V3},o($V7,[2,2],{8:[1,13]}),o($V7,[2,4]),{11:[1,14]},{1:[2,1]},{4:15,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{4:16,6:3,7:$V0,9:$V1,10:$V2,16:$V3},{13:[1,17]},{14:$V4,15:$V5,17:[1,18]},o($V7,[2,3]),{9:[1,19]},o($V6,[2,8]),o([5,15,17],[2,9],{14:$V4}),o($V6,[2,7]),o($V6,[2,10]),o($V7,[2,5])],defaultActions:{8:[2,1]},parseError:function parseError(str,hash){if(hash.recoverable){this.trace(str)}else{throw new Error(str)}},parse:function parse(input){var self=this,stack=[0],tstack=[],vstack=[null],lstack=[],table=this.table,yytext="",yylineno=0,yyleng=0,recovering=0,TERROR=2,EOF=1;var args=lstack.slice.call(arguments,1);var lexer=Object.create(this.lexer);var sharedState={yy:{}};for(var k in this.yy){if(Object.prototype.hasOwnProperty.call(this.yy,k)){sharedState.yy[k]=this.yy[k]}}lexer.setInput(input,sharedState.yy);sharedState.yy.lexer=lexer;sharedState.yy.parser=this;if(typeof lexer.yylloc=="undefined"){lexer.yylloc={}}var yyloc=lexer.yylloc;lstack.push(yyloc);var ranges=lexer.options&&lexer.options.ranges;if(typeof sharedState.yy.parseError==="function"){this.parseError=sharedState.yy.parseError}else{this.parseError=Object.getPrototypeOf(this).parseError}function popStack(n){stack.length=stack.length-2*n;vstack.length=vstack.length-n;lstack.length=lstack.length-n}_token_stack:function lex(){var token;token=lexer.lex()||EOF;if(typeof token!=="number"){token=self.symbols_[token]||token}return token}var symbol,preErrorSymbol,state,action,a,r,yyval={},p,len,newState,expected;while(true){state=stack[stack.length-1];if(this.defaultActions[state]){action=this.defaultActions[state]}else{if(symbol===null||typeof symbol=="undefined"){symbol=lex()}action=table[state]&&table[state][symbol]}if(typeof action==="undefined"||!action.length||!action[0]){var errStr="";expected=[];for(p in table[state]){if(this.terminals_[p]&&p>TERROR){expected.push("'"+this.terminals_[p]+"'")}}if(lexer.showPosition){errStr="Parse error on line "+(yylineno+1)+":\n"+lexer.showPosition()+"\nExpecting "+expected.join(", ")+", got '"+(this.terminals_[symbol]||symbol)+"'"}else{errStr="Parse error on line "+(yylineno+1)+": Unexpected "+(symbol==EOF?"end of input":"'"+(this.terminals_[symbol]||symbol)+"'")}this.parseError(errStr,{text:lexer.match,token:this.terminals_[symbol]||symbol,line:lexer.yylineno,loc:yyloc,expected:expected})}if(action[0]instanceof Array&&action.length>1){throw new Error("Parse Error: multiple actions possible at state: "+state+", token: "+symbol)}switch(action[0]){case 1:stack.push(symbol);vstack.push(lexer.yytext);lstack.push(lexer.yylloc);stack.push(action[1]);symbol=null;if(!preErrorSymbol){yyleng=lexer.yyleng;yytext=lexer.yytext;yylineno=lexer.yylineno;yyloc=lexer.yylloc;if(recovering>0){recovering--}}else{symbol=preErrorSymbol;preErrorSymbol=null}break;case 2:len=this.productions_[action[1]][1];yyval.$=vstack[vstack.length-len];yyval._$={first_line:lstack[lstack.length-(len||1)].first_line,last_line:lstack[lstack.length-1].last_line,first_column:lstack[lstack.length-(len||1)].first_column,last_column:lstack[lstack.length-1].last_column};if(ranges){yyval._$.range=[lstack[lstack.length-(len||1)].range[0],lstack[lstack.length-1].range[1]]}r=this.performAction.apply(yyval,[yytext,yyleng,yylineno,sharedState.yy,action[1],vstack,lstack].concat(args));if(typeof r!=="undefined"){return r}if(len){stack=stack.slice(0,-1*len*2);vstack=vstack.slice(0,-1*len);lstack=lstack.slice(0,-1*len)}stack.push(this.productions_[action[1]][0]);vstack.push(yyval.$);lstack.push(yyval._$);newState=table[stack[stack.length-2]][stack[stack.length-1]];stack.push(newState);break;case 3:return true}}return true}};var lexer=function(){var lexer={EOF:1,parseError:function parseError(str,hash){if(this.yy.parser){this.yy.parser.parseError(str,hash)}else{throw new Error(str)}},setInput:function(input,yy){this.yy=yy||this.yy||{};this._input=input;this._more=this._backtrack=this.done=false;this.yylineno=this.yyleng=0;this.yytext=this.matched=this.match="";this.conditionStack=["INITIAL"];this.yylloc={first_line:1,first_column:0,last_line:1,last_column:0};if(this.options.ranges){this.yylloc.range=[0,0]}this.offset=0;return this},input:function(){var ch=this._input[0];this.yytext+=ch;this.yyleng++;this.offset++;this.match+=ch;this.matched+=ch;var lines=ch.match(/(?:\r\n?|\n).*/g);if(lines){this.yylineno++;this.yylloc.last_line++}else{this.yylloc.last_column++}if(this.options.ranges){this.yylloc.range[1]++}this._input=this._input.slice(1);return ch},unput:function(ch){var len=ch.length;var lines=ch.split(/(?:\r\n?|\n)/g);this._input=ch+this._input;this.yytext=this.yytext.substr(0,this.yytext.length-len);this.offset-=len;var oldLines=this.match.split(/(?:\r\n?|\n)/g);this.match=this.match.substr(0,this.match.length-1);this.matched=this.matched.substr(0,this.matched.length-1);if(lines.length-1){this.yylineno-=lines.length-1}var r=this.yylloc.range;this.yylloc={first_line:this.yylloc.first_line,last_line:this.yylineno+1,first_column:this.yylloc.first_column,last_column:lines?(lines.length===oldLines.length?this.yylloc.first_column:0)+oldLines[oldLines.length-lines.length].length-lines[0].length:this.yylloc.first_column-len};if(this.options.ranges){this.yylloc.range=[r[0],r[0]+this.yyleng-len]}this.yyleng=this.yytext.length;return this},more:function(){this._more=true;return this},reject:function(){if(this.options.backtrack_lexer){this._backtrack=true}else{return this.parseError("Lexical error on line "+(this.yylineno+1)+". You can only invoke reject() in the lexer when the lexer is of the backtracking persuasion (options.backtrack_lexer = true).\n"+this.showPosition(),{text:"",token:null,line:this.yylineno})}return this},less:function(n){this.unput(this.match.slice(n))},pastInput:function(){var past=this.matched.substr(0,this.matched.length-this.match.length);return(past.length>20?"...":"")+past.substr(-20).replace(/\n/g,"")},upcomingInput:function(){var next=this.match;if(next.length<20){next+=this._input.substr(0,20-next.length)}return(next.substr(0,20)+(next.length>20?"...":"")).replace(/\n/g,"")},showPosition:function(){var pre=this.pastInput();var c=new Array(pre.length+1).join("-");return pre+this.upcomingInput()+"\n"+c+"^"},test_match:function(match,indexed_rule){var token,lines,backup;if(this.options.backtrack_lexer){backup={yylineno:this.yylineno,yylloc:{first_line:this.yylloc.first_line,last_line:this.last_line,first_column:this.yylloc.first_column,last_column:this.yylloc.last_column},yytext:this.yytext,match:this.match,matches:this.matches,matched:this.matched,yyleng:this.yyleng,offset:this.offset,_more:this._more,_input:this._input,yy:this.yy,conditionStack:this.conditionStack.slice(0),done:this.done};if(this.options.ranges){backup.yylloc.range=this.yylloc.range.slice(0)}}lines=match[0].match(/(?:\r\n?|\n).*/g);if(lines){this.yylineno+=lines.length}this.yylloc={first_line:this.yylloc.last_line,last_line:this.yylineno+1,first_column:this.yylloc.last_column,last_column:lines?lines[lines.length-1].length-lines[lines.length-1].match(/\r?\n?/)[0].length:this.yylloc.last_column+match[0].length};this.yytext+=match[0];this.match+=match[0];this.matches=match;this.yyleng=this.yytext.length;if(this.options.ranges){this.yylloc.range=[this.offset,this.offset+=this.yyleng]}this._more=false;this._backtrack=false;this._input=this._input.slice(match[0].length);this.matched+=match[0];token=this.performAction.call(this,this.yy,this,indexed_rule,this.conditionStack[this.conditionStack.length-1]);if(this.done&&this._input){this.done=false}if(token){return token}else if(this._backtrack){for(var k in backup){this[k]=backup[k]}return false}return false},next:function(){if(this.done){return this.EOF}if(!this._input){this.done=true}var token,match,tempMatch,index;if(!this._more){this.yytext="";this.match=""}var rules=this._currentRules();for(var i=0;i<rules.length;i++){tempMatch=this._input.match(this.rules[rules[i]]);if(tempMatch&&(!match||tempMatch[0].length>match[0].length)){match=tempMatch;index=i;if(this.options.backtrack_lexer){token=this.test_match(tempMatch,rules[i]);if(token!==false){return token}else if(this._backtrack){match=false;continue}else{return false}}else if(!this.options.flex){break}}}if(match){token=this.test_match(match,rules[index]);if(token!==false){return token}return false}if(this._input===""){return this.EOF}else{return this.parseError("Lexical error on line "+(this.yylineno+1)+". Unrecognized text.\n"+this.showPosition(),{text:"",token:null,line:this.yylineno})}},lex:function lex(){var r=this.next();if(r){return r}else{return this.lex()}},begin:function begin(condition){this.conditionStack.push(condition)},popState:function popState(){var n=this.conditionStack.length-1;if(n>0){return this.conditionStack.pop()}else{return this.conditionStack[0]}},_currentRules:function _currentRules(){if(this.conditionStack.length&&this.conditionStack[this.conditionStack.length-1]){return this.conditions[this.conditionStack[this.conditionStack.length-1]].rules}else{return this.conditions["INITIAL"].rules}},topState:function topState(n){n=this.conditionStack.length-1-Math.abs(n||0);if(n>=0){return this.conditionStack[n]}else{return"INITIAL"}},pushState:function pushState(condition){this.begin(condition)},stateStackSize:function stateStackSize(){return this.conditionStack.length},options:{},performAction:function anonymous(yy,yy_,$avoiding_name_collisions,YY_START){var YYSTATE=YY_START;switch($avoiding_name_collisions){case 0:return 5;break;case 1:break;case 2:return 8;break;case 3:return 16;break;case 4:return 17;break;case 5:return 11;break;case 6:return 10;break;case 7:return 9;break;case 8:return 14;break;case 9:return 15;break;case 10:return 12;break;case 11:return 7;break;case 12:return 7;break;case 13:return 7;break;case 14:return 13;break;case 15:return 13;break;case 16:return 13;break;case 17:return 13;break;case 18:return 13;break;case 19:return 13;break;case 20:return 13;break;case 21:return 13;break;case 22:return 7;break;case 23:return 7;break;case 24:return 13;break;case 25:return 13;break;case 26:return 13;break;case 27:return 7;break;case 28:return 13;break;case 29:return 13;break;case 30:return 13;break;case 31:return 7;break;case 32:return 7;break;case 33:return 13;break;case 34:return 13;break;case 35:return 13;break;case 36:return 7;break;case 37:return 13;break;case 38:return 7;break;case 39:return 7;break;case 40:return 7;break;case 41:return 7;break;case 42:return 7;break;case 43:return 7;break;case 44:return 7;break;case 45:return 7;break;case 46:return 7;break;case 47:return 7;break;case 48:return 7;break;case 49:return 7;break;case 50:return 7;break;case 51:return 13;break;case 52:return 7;break;case 53:return 7;break;case 54:return 7;break;case 55:return 13;break;case 56:return 7;break;case 57:return 7;break;case 58:return 7;break;case 59:return 13;break;case 60:return 7;break;case 61:return 13;break;case 62:return 7;break;case 63:return 7;break;case 64:return 7;break;case 65:return 7;break;case 66:return 7;break;case 67:return 7;break;case 68:return 7;break;case 69:return 7;break;case 70:return 7;break;case 71:return 7;break;case 72:return 7;break;case 73:return 7;break;case 74:return 7;break;case 75:return 7;break;case 76:return 7;break;case 77:return 7;break;case 78:return 7;break;case 79:return 7;break;case 80:return 7;break;case 81:return 7;break;case 82:return 7;break;case 83:return 7;break;case 84:return 7;break;case 85:return 7;break;case 86:return 7;break;case 87:return 7;break;case 88:return 7;break;case 89:return 7;break;case 90:return 7;break;case 91:return 7;break;case 92:return 7;break;case 93:return 7;break;case 94:return 7;break;case 95:return 7;break;case 96:return 7;break;case 97:return 7;break;case 98:return 7;break;case 99:return 7;break;case 100:return 7;break;case 101:return 7;break;case 102:return 7;break;case 103:return 7;break;case 104:return 7;break;case 105:return 7;break;case 106:return 7;break;case 107:return 7;break;case 108:return 7;break;case 109:return 7;break;case 110:return 7;break;case 111:return 7;break;case 112:return 7;break;case 113:return 7;break;case 114:return 7;break;case 115:return 7;break;case 116:return 7;break;case 117:return 7;break;case 118:return 7;break;case 119:return 7;break;case 120:return 7;break;case 121:return 7;break;case 122:return 7;break;case 123:return 7;break;case 124:return 7;break;case 125:return 7;break;case 126:return 7;break;case 127:return 7;break;case 128:return 7;break;case 129:return 7;break;case 130:return 7;break;case 131:return 7;break;case 132:return 7;break;case 133:return 7;break;case 134:return 7;break;case 135:return 7;break;case 136:return 7;break;case 137:return 7;break;case 138:return 7;break;case 139:return 7;break;case 140:return 7;break;case 141:return 7;break;case 142:return 7;break;case 143:return 7;break;case 144:return 7;break;case 145:return 7;break;case 146:return 7;break;case 147:return 7;break;case 148:return 7;break;case 149:return 7;break;case 150:return 7;break;case 151:return 7;break;case 152:return 7;break;case 153:return 7;break;case 154:return 7;break;case 155:return 7;break;case 156:return 7;break;case 157:return 7;break;case 158:return 7;break;case 159:return 7;break;case 160:return 7;break;case 161:return 7;break;case 162:return 7;break;case 163:return 7;break;case 164:return 7;break;case 165:return 7;break;case 166:return 7;break;case 167:return 7;break;case 168:return 7;break;case 169:return 7;break;case 170:return 7;break;case 171:return 7;break;case 172:return 7;break;case 173:return 7;break;case 174:return 7;break;case 175:return 7;break;case 176:return 7;break;case 177:return 7;break;case 178:return 7;break;case 179:return 7;break;case 180:return 7;break;case 181:return 7;break;case 182:return 7;break;case 183:return 7;break;case 184:return 7;break;case 185:return 7;break;case 186:return 7;break;case 187:return 7;break;case 188:return 7;break;case 189:return 7;break;case 190:return 7;break;case 191:return 7;break;case 192:return 7;break;case 193:return 7;break;case 194:return 7;break;case 195:return 7;break;case 196:return 7;break;case 197:return 7;break;case 198:return 7;break;case 199:return 7;break;case 200:return 7;break;case 201:return 7;break;case 202:return 7;break;case 203:return 7;break;case 204:return 7;break;case 205:return 7;break;case 206:return 7;break;case 207:return 7;break;case 208:return 7;break;case 209:return 7;break;case 210:return 7;break;case 211:return 7;break;case 212:return 7;break;case 213:return 7;break;case 214:return 7;break;case 215:return 7;break;case 216:return 7;break;case 217:return 7;break;case 218:return 7;break;case 219:return 7;break;case 220:return 7;break;case 221:return 7;break;case 222:return 7;break;case 223:return 7;break;case 224:return 7;break;case 225:return 7;break;case 226:return 7;break;case 227:return 7;break;case 228:return 7;break;case 229:return 7;break;case 230:return 7;break;case 231:return 7;break;case 232:return 7;break;case 233:return 7;break;case 234:return 7;break;case 235:return 7;break;case 236:return 7;break;case 237:return 7;break;case 238:return 7;break;case 239:return 7;break;case 240:return 7;break;case 241:return 7;break;case 242:return 7;break;case 243:return 7;break;case 244:return 7;break;case 245:return 7;break;case 246:return 7;break;case 247:return 7;break;case 248:return 7;break;case 249:return 7;break;case 250:return 7;break;case 251:return 7;break;case 252:return 7;break;case 253:return 7;break;case 254:return 7;break;case 255:return 7;break;case 256:return 7;break;case 257:return 7;break;case 258:return 7;break;case 259:return 7;break;case 260:return 7;break;case 261:return 7;break;case 262:return 7;break;case 263:return 7;break;case 264:return 7;break;case 265:return 7;break;case 266:return 7;break;case 267:return 7;break;case 268:return 7;break;case 269:return 7;break;case 270:return 7;break;case 271:return 7;break;case 272:return 7;break;case 273:return 7;break;case 274:return 7;break;case 275:return 7;break;case 276:return 7;break;case 277:return 7;break;case 278:return 7;break;case 279:return 7;break;case 280:return 7;break;case 281:return 7;break;case 282:return 7;break;case 283:return 7;break;case 284:return 7;break;case 285:return 7;break;case 286:return 7;break;case 287:return 7;break;case 288:return 7;break;case 289:return 7;break;case 290:return 7;break;case 291:return 7;break;case 292:return 7;break;case 293:return 7;break;case 294:return 7;break;case 295:return 7;break;case 296:return 7;break;case 297:return 7;break;case 298:return 7;break;case 299:return 7;break;case 300:return 7;break;case 301:return 7;break;case 302:return 7;break;case 303:return 7;break;case 304:return 7;break;case 305:return 7;break;case 306:return 7;break;case 307:return 7;break;case 308:return 7;break;case 309:return 7;break;case 310:return 7;break;case 311:return 7;break;case 312:return 7;break;case 313:return 7;break;case 314:return 7;break;case 315:return 7;break;case 316:return 7;break;case 317:return 7;break;case 318:return 7;break;case 319:return 7;break;case 320:return 7;break;case 321:return 7;break;case 322:return 7;break;case 323:return 7;break;case 324:return 7;break;case 325:return 7;break;case 326:return 7;break;case 327:return 7;break;case 328:return 7;break;case 329:return 7;break;case 330:return 7;break;case 331:return 7;break;case 332:return 7;break;case 333:return 7;break;case 334:return 7;break;case 335:return 7;break;case 336:return 7;break;case 337:return 7;break;case 338:return 7;break}},rules:[/^(?:$)/,/^(?:\s+)/,/^(?:\+)/,/^(?:\()/,/^(?:\))/,/^(?::)/,/^(?:DocumentRef-([0-9A-Za-z-+.]+))/,/^(?:LicenseRef-([0-9A-Za-z-+.]+))/,/^(?:AND)/,/^(?:OR)/,/^(?:WITH)/,/^(?:MPL-2\.0-no-copyleft-exception)/,/^(?:CNRI-Python-GPL-Compatible)/,/^(?:BSD-3-Clause-Attribution)/,/^(?:WxWindows-exception-3\.1)/,/^(?:Classpath-exception-2\.0)/,/^(?:gnu-javamail-exception)/,/^(?:freertos-exception-2\.0)/,/^(?:i2p-gpl-java-exception)/,/^(?:Autoconf-exception-2\.0)/,/^(?:Nokia-Qt-exception-1\.1)/,/^(?:Autoconf-exception-3\.0)/,/^(?:zlib-acknowledgement)/,/^(?:BSD-2-Clause-FreeBSD)/,/^(?:u-boot-exception-2\.0)/,/^(?:Bison-exception-2\.2)/,/^(?:CLISP-exception-2\.0)/,/^(?:BSD-2-Clause-NetBSD)/,/^(?:FLTK-exception-2\.0)/,/^(?:eCos-exception-2\.0)/,/^(?:Font-exception-2\.0)/,/^(?:BSD-3-Clause-Clear)/,/^(?:BSD-3-Clause-LBNL)/,/^(?:GCC-exception-3\.1)/,/^(?:Qwt-exception-1\.0)/,/^(?:GCC-exception-2\.0)/,/^(?:Artistic-1\.0-Perl)/,/^(?:Libtool-exception)/,/^(?:Artistic-1\.0-cl8)/,/^(?:CC-BY-NC-SA-4\.0)/,/^(?:CC-BY-NC-SA-1\.0)/,/^(?:CC-BY-NC-ND-4\.0)/,/^(?:CC-BY-NC-SA-3\.0)/,/^(?:CC-BY-NC-ND-3\.0)/,/^(?:CC-BY-NC-SA-2\.5)/,/^(?:CC-BY-NC-ND-2\.0)/,/^(?:CC-BY-NC-ND-1\.0)/,/^(?:CC-BY-NC-SA-2\.0)/,/^(?:MIT-advertising)/,/^(?:BSD-4-Clause-UC)/,/^(?:CC-BY-NC-ND-2\.5)/,/^(?:FLTK-exception)/,/^(?:SugarCRM-1\.1\.3)/,/^(?:CrystalStacker)/,/^(?:BSD-Protection)/,/^(?:LZMA-exception)/,/^(?:BitTorrent-1\.1)/,/^(?:BitTorrent-1\.0)/,/^(?:Frameworx-1\.0)/,/^(?:mif-exception)/,/^(?:Interbase-1\.0)/,/^(?:389-exception)/,/^(?:HaskellReport)/,/^(?:CC-BY-NC-3\.0)/,/^(?:CC-BY-ND-4\.0)/,/^(?:CC-BY-NC-1\.0)/,/^(?:CC-BY-NC-2\.0)/,/^(?:CC-BY-NC-2\.5)/,/^(?:CC-BY-SA-4\.0)/,/^(?:CC-BY-NC-4\.0)/,/^(?:W3C-19980720)/,/^(?:BSD-4-Clause)/,/^(?:Artistic-1\.0)/,/^(?:BSD-3-Clause)/,/^(?:CC-BY-ND-1\.0)/,/^(?:BSD-2-Clause)/,/^(?:CC-BY-ND-2\.0)/,/^(?:CC-BY-ND-2\.5)/,/^(?:CC-BY-ND-3\.0)/,/^(?:Artistic-2\.0)/,/^(?:CC-BY-SA-1\.0)/,/^(?:CC-BY-SA-2\.0)/,/^(?:CC-BY-SA-2\.5)/,/^(?:CC-BY-SA-3\.0)/,/^(?:XFree86-1\.1)/,/^(?:OLDAP-2\.0\.1)/,/^(?:bzip2-1\.0\.6)/,/^(?:OLDAP-2\.2\.1)/,/^(?:ImageMagick)/,/^(?:Unicode-TOU)/,/^(?:Adobe-Glyph)/,/^(?:CUA-OPL-1\.0)/,/^(?:CNRI-Jython)/,/^(?:CNRI-Python)/,/^(?:bzip2-1\.0\.5)/,/^(?:OLDAP-2\.2\.2)/,/^(?:PostgreSQL)/,/^(?:Apache-1\.1)/,/^(?:CECILL-1\.0)/,/^(?:Apache-2\.0)/,/^(?:Zimbra-1\.4)/,/^(?:CECILL-1\.1)/,/^(?:Zimbra-1\.3)/,/^(?:Adobe-2006)/,/^(?:JasPer-2\.0)/,/^(?:CECILL-2\.0)/,/^(?:TORQUE-1\.1)/,/^(?:CECILL-2\.1)/,/^(?:Watcom-1\.0)/,/^(?:Intel-ACPI)/,/^(?:ClArtistic)/,/^(?:Spencer-99)/,/^(?:Condor-1\.1)/,/^(?:Spencer-94)/,/^(?:gSOAP-1\.3b)/,/^(?:EUDatagrid)/,/^(?:Spencer-86)/,/^(?:Python-2\.0)/,/^(?:RHeCos-1\.1)/,/^(?:CATOSL-1\.1)/,/^(?:Apache-1\.0)/,/^(?:FreeImage)/,/^(?:SGI-B-1\.1)/,/^(?:SGI-B-1\.0)/,/^(?:SimPL-2\.0)/,/^(?:Sleepycat)/,/^(?:Crossword)/,/^(?:ErlPL-1\.1)/,/^(?:CPOL-1\.02)/,/^(?:OLDAP-2\.8)/,/^(?:OLDAP-2\.7)/,/^(?:OLDAP-2\.6)/,/^(?:CC-BY-1\.0)/,/^(?:OLDAP-2\.5)/,/^(?:OLDAP-2\.4)/,/^(?:OLDAP-2\.3)/,/^(?:SISSL-1\.2)/,/^(?:Unlicense)/,/^(?:SGI-B-2\.0)/,/^(?:OLDAP-2\.2)/,/^(?:OLDAP-2\.1)/,/^(?:CC-BY-2\.5)/,/^(?:D-FSL-1\.0)/,/^(?:LPPL-1\.3a)/,/^(?:LPPL-1\.3c)/,/^(?:OLDAP-2\.0)/,/^(?:CC-BY-3\.0)/,/^(?:Leptonica)/,/^(?:OLDAP-1\.4)/,/^(?:OLDAP-1\.3)/,/^(?:OLDAP-1\.2)/,/^(?:OLDAP-1\.1)/,/^(?:MakeIndex)/,/^(?:CC-BY-4\.0)/,/^(?:NPOSL-3\.0)/,/^(?:CC-BY-2\.0)/,/^(?:PHP-3\.01)/,/^(?:ANTLR-PD)/,/^(?:APSL-1\.0)/,/^(?:MIT-enna)/,/^(?:IBM-pibs)/,/^(?:APSL-1\.1)/,/^(?:APSL-1\.2)/,/^(?:Beerware)/,/^(?:EUPL-1\.0)/,/^(?:EUPL-1\.1)/,/^(?:diffmark)/,/^(?:CDDL-1\.0)/,/^(?:Zend-2\.0)/,/^(?:CDDL-1\.1)/,/^(?:CPAL-1\.0)/,/^(?:APSL-2\.0)/,/^(?:LPPL-1\.0)/,/^(?:AGPL-1\.0)/,/^(?:Giftware)/,/^(?:Abstyles)/,/^(?:LPPL-1\.1)/,/^(?:LPPL-1\.2)/,/^(?:Sendmail)/,/^(?:CECILL-B)/,/^(?:AGPL-3\.0)/,/^(?:GFDL-1\.1)/,/^(?:GFDL-1\.2)/,/^(?:GFDL-1\.3)/,/^(?:RPSL-1\.0)/,/^(?:LPL-1\.02)/,/^(?:CECILL-C)/,/^(?:Afmparse)/,/^(?:LGPL-2\.1)/,/^(?:PDDL-1\.0)/,/^(?:ODbL-1\.0)/,/^(?:OCLC-2\.0)/,/^(?:LGPL-3\.0)/,/^(?:Newsletr)/,/^(?:Motosoto)/,/^(?:NBPL-1\.0)/,/^(?:NASA-1\.3)/,/^(?:LGPL-2\.0)/,/^(?:FSFULLR)/,/^(?:MPL-2\.0)/,/^(?:Multics)/,/^(?:AFL-1\.1)/,/^(?:MPL-1\.1)/,/^(?:AFL-1\.2)/,/^(?:MPL-1\.0)/,/^(?:AFL-2\.0)/,/^(?:AFL-2\.1)/,/^(?:AFL-3\.0)/,/^(?:NPL-1\.0)/,/^(?:NPL-1\.1)/,/^(?:APL-1\.0)/,/^(?:Aladdin)/,/^(?:AMDPLPA)/,/^(?:BSL-1\.0)/,/^(?:Borceux)/,/^(?:Caldera)/,/^(?:MIT-CMU)/,/^(?:CPL-1\.0)/,/^(?:ZPL-2\.1)/,/^(?:ZPL-2\.0)/,/^(?:ZPL-1\.1)/,/^(?:CC0-1\.0)/,/^(?:YPL-1\.1)/,/^(?:LPL-1\.0)/,/^(?:libtiff)/,/^(?:YPL-1\.0)/,/^(?:Dotseqn)/,/^(?:Latex2e)/,/^(?:VSL-1\.0)/,/^(?:VOSTROM)/,/^(?:UPL-1\.0)/,/^(?:dvipdfm)/,/^(?:EPL-1\.0)/,/^(?:ECL-1\.0)/,/^(?:ECL-2\.0)/,/^(?:SPL-1\.0)/,/^(?:IPL-1\.0)/,/^(?:EFL-1\.0)/,/^(?:EFL-2\.0)/,/^(?:OPL-1\.0)/,/^(?:OSL-1\.0)/,/^(?:OSL-1\.1)/,/^(?:OSL-2\.0)/,/^(?:OSL-2\.1)/,/^(?:OSL-3\.0)/,/^(?:OpenSSL)/,/^(?:PHP-3\.0)/,/^(?:gnuplot)/,/^(?:Entessa)/,/^(?:GPL-3\.0)/,/^(?:Eurosym)/,/^(?:psutils)/,/^(?:GPL-2\.0)/,/^(?:QPL-1\.0)/,/^(?:MIT-feh)/,/^(?:OFL-1\.1)/,/^(?:GPL-1\.0)/,/^(?:RPL-1\.1)/,/^(?:RPL-1\.5)/,/^(?:OFL-1\.0)/,/^(?:Saxpath)/,/^(?:Bahyph)/,/^(?:RSA-MD)/,/^(?:Naumen)/,/^(?:NetCDF)/,/^(?:mpich2)/,/^(?:Glulxe)/,/^(?:APAFML)/,/^(?:psfrag)/,/^(?:Plexus)/,/^(?:SAX-PD)/,/^(?:MITNFA)/,/^(?:eGenix)/,/^(?:iMatix)/,/^(?:Imlib2)/,/^(?:Libpng)/,/^(?:xinetd)/,/^(?:LGPLLR)/,/^(?:Wsuipa)/,/^(?:SMLNJ)/,/^(?:RSCPL)/,/^(?:SISSL)/,/^(?:Rdisc)/,/^(?:Noweb)/,/^(?:Qhull)/,/^(?:Nunit)/,/^(?:GL2PS)/,/^(?:TMate)/,/^(?:MirOS)/,/^(?:MS-RL)/,/^(?:Intel)/,/^(?:MS-PL)/,/^(?:OGTSL)/,/^(?:WTFPL)/,/^(?:Nokia)/,/^(?:XSkat)/,/^(?:Glide)/,/^(?:FSFUL)/,/^(?:AMPAS)/,/^(?:Xerox)/,/^(?:0BSD)/,/^(?:Ruby)/,/^(?:JSON)/,/^(?:MTLL)/,/^(?:Cube)/,/^(?:Zlib)/,/^(?:NCSA)/,/^(?:TOSL)/,/^(?:Xnet)/,/^(?:DSDP)/,/^(?:HPND)/,/^(?:Barr)/,/^(?:SNIA)/,/^(?:ADSL)/,/^(?:NLPL)/,/^(?:Fair)/,/^(?:NOSL)/,/^(?:NGPL)/,/^(?:SCEA)/,/^(?:Zed)/,/^(?:DOC)/,/^(?:ICU)/,/^(?:Vim)/,/^(?:xpp)/,/^(?:OML)/,/^(?:AAL)/,/^(?:AML)/,/^(?:W3C)/,/^(?:ISC)/,/^(?:IPA)/,/^(?:X11)/,/^(?:MIT)/,/^(?:FTL)/,/^(?:IJG)/,/^(?:TCL)/,/^(?:SWL)/,/^(?:NTP)/,/^(?:Mup)/,/^(?:NRL)/],conditions:{INITIAL:{rules:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338],inclusive:true}}};return lexer}();parser.lexer=lexer;function Parser(){this.yy={}}Parser.prototype=parser;parser.Parser=Parser;return new Parser}();if(typeof require!=="undefined"&&typeof exports!=="undefined"){exports.parser=spdxparse;exports.Parser=spdxparse.Parser;exports.parse=function(){return spdxparse.parse.apply(spdxparse,arguments)};exports.main=function commonjsMain(args){if(!args[1]){console.log("Usage: "+args[0]+" FILE");process.exit(1)}var source=require("fs").readFileSync(require("path").normalize(args[1]),"utf8");return exports.parser.parse(source)};if(typeof module!=="undefined"&&require.main===module){exports.main(process.argv.slice(1))}}
 
-},{"fs":undefined,"path":undefined}],126:[function(require,module,exports){
+},{"fs":undefined,"path":undefined}],125:[function(require,module,exports){
 module.exports=[
   "Glide",
   "Abstyles",
@@ -16551,7 +16572,7 @@ module.exports=[
   "WXwindows"
 ]
 
-},{}],127:[function(require,module,exports){
+},{}],126:[function(require,module,exports){
 'use strict';
 var stripAnsi = require('strip-ansi');
 var codePointAt = require('code-point-at');
@@ -16585,7 +16606,7 @@ module.exports = function (str) {
 	return width;
 };
 
-},{"code-point-at":15,"is-fullwidth-code-point":52,"strip-ansi":128}],128:[function(require,module,exports){
+},{"code-point-at":14,"is-fullwidth-code-point":51,"strip-ansi":127}],127:[function(require,module,exports){
 'use strict';
 var ansiRegex = require('ansi-regex')();
 
@@ -16593,7 +16614,7 @@ module.exports = function (str) {
 	return typeof str === 'string' ? str.replace(ansiRegex, '') : str;
 };
 
-},{"ansi-regex":12}],129:[function(require,module,exports){
+},{"ansi-regex":11}],128:[function(require,module,exports){
 'use strict';
 var isUtf8 = require('is-utf8');
 
@@ -16612,7 +16633,7 @@ module.exports = function (x) {
 	return x;
 };
 
-},{"is-utf8":54}],130:[function(require,module,exports){
+},{"is-utf8":53}],129:[function(require,module,exports){
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16669,7 +16690,7 @@ Symbol.keyFor = function keyFor(sym) {
 
 module.exports = this.Symbol || Symbol;
 
-},{}],131:[function(require,module,exports){
+},{}],130:[function(require,module,exports){
 var parse = require('spdx-expression-parse');
 var correct = require('spdx-correct');
 
@@ -16755,7 +16776,7 @@ module.exports = function(argument) {
   }
 };
 
-},{"spdx-correct":123,"spdx-expression-parse":124}],132:[function(require,module,exports){
+},{"spdx-correct":122,"spdx-expression-parse":123}],131:[function(require,module,exports){
 'use strict';
 
 /*!
@@ -16789,7 +16810,7 @@ module.exports = (function () {
   return {height: height, width: width};
 })();
 
-},{"tty":undefined}],133:[function(require,module,exports){
+},{"tty":undefined}],132:[function(require,module,exports){
 'use strict';
 var stringWidth = require('string-width');
 
@@ -16953,7 +16974,7 @@ module.exports = function (str, cols, opts) {
 	}).join('\n');
 };
 
-},{"string-width":127}],134:[function(require,module,exports){
+},{"string-width":126}],133:[function(require,module,exports){
 var fs = require('fs')
 var path = require('path')
 var util = require('util')
@@ -17127,7 +17148,7 @@ module.exports = function (opts) {
   return y18n
 }
 
-},{"fs":undefined,"path":undefined,"util":undefined}],135:[function(require,module,exports){
+},{"fs":undefined,"path":undefined,"util":undefined}],134:[function(require,module,exports){
 var assign = require('lodash.assign')
 var camelCase = require('camelcase')
 var path = require('path')
@@ -17813,7 +17834,7 @@ Parser.detailed = function (args, opts) {
 
 module.exports = Parser
 
-},{"./lib/tokenize-arg-string":136,"camelcase":137,"lodash.assign":89,"path":undefined,"util":undefined}],136:[function(require,module,exports){
+},{"./lib/tokenize-arg-string":135,"camelcase":136,"lodash.assign":88,"path":undefined,"util":undefined}],135:[function(require,module,exports){
 // take an un-split argv string and tokenize it.
 module.exports = function (argString) {
   if (Array.isArray(argString)) return argString
@@ -17849,7 +17870,7 @@ module.exports = function (argString) {
   return args
 }
 
-},{}],137:[function(require,module,exports){
+},{}],136:[function(require,module,exports){
 'use strict';
 
 function preserveCamelCase(str) {
@@ -17907,7 +17928,7 @@ module.exports = function () {
 	});
 };
 
-},{}],138:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 // classic singleton yargs API, to use yargs
 // without running as a singleton do:
 // require('yargs/yargs')(process.argv.slice(2))
@@ -17940,7 +17961,7 @@ function singletonify (inst) {
   })
 }
 
-},{"./yargs":144}],139:[function(require,module,exports){
+},{"./yargs":143}],138:[function(require,module,exports){
 // handles parsing positional arguments,
 // and populating argv with said positional
 // arguments.
@@ -18093,7 +18114,7 @@ module.exports = function (yargs, usage, validation) {
   return self
 }
 
-},{}],140:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 (function (__dirname){
 const fs = require('fs')
 const path = require('path')
@@ -18196,7 +18217,7 @@ module.exports = function (yargs, usage, command) {
 }
 
 }).call(this,"/Users/johnjoh/Desktop/actionableagile/jira-to-analytics/typescript/node_modules/yargs/lib")
-},{"fs":undefined,"path":undefined}],141:[function(require,module,exports){
+},{"fs":undefined,"path":undefined}],140:[function(require,module,exports){
 module.exports = function (original, filter) {
   const obj = {}
   filter = filter || function (k, v) { return true }
@@ -18208,7 +18229,7 @@ module.exports = function (original, filter) {
   return obj
 }
 
-},{}],142:[function(require,module,exports){
+},{}],141:[function(require,module,exports){
 // this file handles outputting usage instructions,
 // failures, etc. keeps logging in one place.
 const cliui = require('cliui')
@@ -18618,7 +18639,7 @@ module.exports = function (yargs, y18n) {
   return self
 }
 
-},{"./obj-filter":141,"cliui":14,"decamelize":16,"set-blocking":122,"string-width":127,"window-size":132}],143:[function(require,module,exports){
+},{"./obj-filter":140,"cliui":13,"decamelize":15,"set-blocking":121,"string-width":126,"window-size":131}],142:[function(require,module,exports){
 const objFilter = require('./obj-filter')
 
 // validation-type-stuff, missing params,
@@ -18899,7 +18920,7 @@ module.exports = function (yargs, usage, y18n) {
   return self
 }
 
-},{"./obj-filter":141}],144:[function(require,module,exports){
+},{"./obj-filter":140}],143:[function(require,module,exports){
 (function (__dirname){
 const assert = require('assert')
 const assign = require('lodash.assign')
@@ -19665,5 +19686,5 @@ function rebase (base, dir) {
 }
 
 }).call(this,"/Users/johnjoh/Desktop/actionableagile/jira-to-analytics/typescript/node_modules/yargs")
-},{"./lib/command":139,"./lib/completion":140,"./lib/obj-filter":141,"./lib/usage":142,"./lib/validation":143,"assert":undefined,"lodash.assign":89,"os-locale":106,"path":undefined,"pkg-conf":115,"read-pkg-up":118,"require-main-filename":120,"set-blocking":122,"window-size":132,"y18n":134,"yargs-parser":135}]},{},[1])(1)
+},{"./lib/command":138,"./lib/completion":139,"./lib/obj-filter":140,"./lib/usage":141,"./lib/validation":142,"assert":undefined,"lodash.assign":88,"os-locale":105,"path":undefined,"pkg-conf":114,"read-pkg-up":117,"require-main-filename":119,"set-blocking":121,"window-size":131,"y18n":133,"yargs-parser":134}]},{},[1])(1)
 });

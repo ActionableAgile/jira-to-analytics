@@ -3,7 +3,7 @@ interface IWorkItem {
   StageDates: Array<string>;
   Name: string;
   Type: string;
-  Attributes: {};
+  Attributes: any;
   toCSV();
   toSerializedArray();
 };
@@ -13,7 +13,7 @@ class WorkItem implements IWorkItem {
   StageDates: Array<string>;
   Name: string;
   Type: string;
-  Attributes: {};
+  Attributes: any;
   constructor(id: string, stageDates: string[], name: string, type: string, attributes: {}) {
     this.Id = id;
     this.StageDates = stageDates;

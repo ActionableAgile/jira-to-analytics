@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { IIssue } from '../../../lib/extractors/jira/models';
 import { JiraExtractor, JiraSettings } from '../../../lib/extractors/jira/extractor';
 import { getAttributes } from '../../../lib/extractors/jira/components/attribute-parser';
-import { buildJiraQueryUrl } from '../../../lib/extractors/jira/components/query-builder';
+import { buildJiraSearchQueryUrl } from '../../../lib/extractors/jira/components/query-builder';
 import { getStagingDates } from '../../../lib/extractors/jira/components/staging-parser';
 
 describe('jira repository', () => {
@@ -17,7 +17,7 @@ describe('jira repository', () => {
 
       // const jiraSettings = 
       // const jiraExtractor = JiraExtractor();
-      const actual = buildJiraQueryUrl(baseUrl, projects, issueTypes, filters, startIndex, batchSize);
+      const actual = buildJiraSearchQueryUrl(baseUrl, projects, issueTypes, filters, startIndex, batchSize);
       const expected = 'http://baseurl.com/search?jql=project%20in%20(Project1%2CProject2)%20AND%20issuetype%20in%20(Issue1%2CIssue2)%20AND%20filter%3D%22Filter1%22%20AND%20filter%3D%22Filter2%22%20order%20by%20key&startAt=2&maxResults=25&expand=changelog';
       expect(expected).to.equal(actual);
     });
