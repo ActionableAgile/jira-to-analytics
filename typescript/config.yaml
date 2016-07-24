@@ -30,6 +30,7 @@ Workflow:
     Done: 
         - Closed
         - Cancelled
+        - (Resolved)
 
 # Map field names to additional attributes to extract
 Attributes:

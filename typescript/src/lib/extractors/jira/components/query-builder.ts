@@ -1,5 +1,5 @@
-const buildJiraQueryUrl = (
-    url: string, 
+const buildJiraSearchQueryUrl = (
+    apiRootUrl: string, 
     projects: Array<string>, 
     issueTypes: Array<string> = [], 
     filters: Array<string> = [],
@@ -23,10 +23,22 @@ const buildJiraQueryUrl = (
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
-  const query = `${url}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
+  const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
 };
 
+const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
+  const url = `${apiRootUrl}/project`;
+  return url;
+};
+
+const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
+  const url = `${apiRootUrl}/project/${project}/statuses`;
+  return url;
+};
+
 export {
-    buildJiraQueryUrl,
+    buildJiraSearchQueryUrl,
+    buildJiraGetProjectsUrl,
+    buildJiraGetWorkflowsUrl,
 };

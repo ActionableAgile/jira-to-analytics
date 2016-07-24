@@ -41,24 +41,24 @@ class JiraSettings implements IJiraSettings {
   CreateInFirstStage: boolean;
   ResolvedInLastStage: boolean;
 
-  constructor(settings: any, source: string) {
+  constructor(config: any, source: string) {
     switch (source.toUpperCase()) {
       case 'YAML':
-        this.Connection = settings.Connection;
+        this.Connection = config.Connection;
 
-        if (settings.legacy) {
-          const Projects: string[] = convertCsvStringToArray(settings.Criteria.Projects); // legacy yaml is Projects (with an s)
-          const IssueTypes: string[] = convertCsvStringToArray(settings.Criteria.Types); // legacy yaml is Types
-          const ValidResolutions: string[] = convertCsvStringToArray(settings.Criteria['Valid resolutions']); // not used in legacy
-          const Filters: string[] = convertCsvStringToArray(settings.Criteria.Filters);
-          const JQL: string = settings.Criteria.JQL; // fix this, need to put this in an array
+        if (config.legacy) {
+          const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
+          const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
+          const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
+          const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
+          const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an array
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         } else {
-          const Projects: string[] = convertToArray(settings.Criteria.Project); // cur yaml is Project
-          const IssueTypes: string[] = convertToArray(settings.Criteria['Issue types']); // cur yaml is Issue types
-          const ValidResolutions: string[] = convertToArray(settings.Criteria['Valid resolutions']);
-          const Filters: string[] = convertToArray(settings.Criteria.Filters);
-          const JQL: string = settings.Criteria.JQL;
+          const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
+          const IssueTypes: string[] = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
+          const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
+          const Filters: string[] = convertToArray(config.Criteria.Filters);
+          const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : '';
           this.Criteria = { Projects, IssueTypes, ValidResolutions, Filters, JQL };
         }
 
@@ -70,39 +70,29 @@ class JiraSettings implements IJiraSettings {
         //   console.warn('Valid Resolutions not currently supported');
         // }
 
-        const workflow = settings.legacy 
-          ? convertWorkflowToArray(settings.Workflow, convertCsvStringToArray) 
-          : convertWorkflowToArray(settings.Workflow, convertToArray);
+        const workflow = config.legacy 
+          ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray) 
+          : convertWorkflowToArray(config.Workflow, convertToArray);
         this.Workflow = workflow;
 
-        this.Attributes = settings.Attributes;
+        this.Attributes = config.Attributes;
 
-        // setup others
-        const stages = Object.keys(workflow);
+        const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
+        const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
+
+        this.CreateInFirstStage = createInFirstStage;
+        this.ResolvedInLastStage = resolvedInLastStage;
+        this.ApiUrl = `${config.Connection.Domain}/rest/api/latest`;
+
+        const stages = Object.keys(this.Workflow);
         const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
-          return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
+          return this.Workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
             return map.set(stageAlias, i);
           }, map);
         }, new Map<string, number>());
-
-        const createInFirstStage = stageMap.get('(Created)') === 0 ? true : false;
-        const resolvedInLastStage = stageMap.get('(Resolved)') === stages.length - 1 ? true : false;
-        if (stageMap.get('(Resolved)') && stageMap.get('(Resolved)') !== stages.length - 1) {
-          throw new Error('(Resolved) can only by used in last stage');
-        }
-        this.CreateInFirstStage = createInFirstStage;
-        this.ResolvedInLastStage = resolvedInLastStage;
-        this.Stages = stages;
         this.StageMap = stageMap;
-        this.ApiUrl = `${settings.Connection.Domain}/rest/api/latest`;
-
-        // console.log('before');
-        // console.log(settings);
-        // console.log('//////////////////////////////////////');
-        // console.log('after');
-        // console.log(this);
+        this.Stages = stages;
         return;
-        
       default:
         throw new Error(`${source} source not found`);
     }

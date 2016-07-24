@@ -1,5 +1,4 @@
 const getAttributes = (fields: any, attributesRequested: string[]) => {
-  // const attributesSystemNames = Object.keys(attributesRequested).map(key => attributesRequested[key]); // human name alias
   return attributesRequested.reduce((attributesMap, attributeSystemName) => {
     const attributeData: any = fields[attributeSystemName];
 

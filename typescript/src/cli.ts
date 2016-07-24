@@ -6,11 +6,6 @@ import * as ProgressBar from 'progress';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
-
-// const progressBarDone =  (bar: ProgressBar) => {
-//   bar.terminate();
-// };
-
 const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
     complete: '=',
     incomplete: ' ',
@@ -38,9 +33,6 @@ const writeFile = (filePath: string, data: any) =>
   });
 
 const run = async function(cliArgs: any): Promise<void> {
-  const start = new Date().getTime();
-
-  // log('Parsing settings');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
@@ -61,26 +53,20 @@ const run = async function(cliArgs: any): Promise<void> {
     throw e;
   }
   const jiraSettings = new JiraSettings(settings, 'yaml');
-  // console.log('Successfully parsed settings');
   
-
   log('Beginning extraction process');
 
+  // Progress bar setup
   const updateProgressHook = (bar => {
-    let count = 0;
-    return (updateAmount = null) => {
-      count += updateAmount;
-      if (count < 100) 
-        bar.tick(count);
+    bar.tick();
+    return (percentDone = null) => {
+      if (percentDone <= 100) 
+        bar.tick(percentDone);
     } 
   })(bar);
-
-  bar.tick();
-  // updateProgressHook();
   
   // Import data
   const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
-
   try {
     await jiraExtractor.getWorkItems();
   } catch (e) {
@@ -100,10 +86,10 @@ const run = async function(cliArgs: any): Promise<void> {
   } catch (e) {
     console.log(`Error writing jira data to ${outputPath}`);
   }
-  const end = new Date().getTime();
-  // log(`Completed extraction in ${(end - start) / 1000} seconds`);
-  log(`Done. Results written to ${outputPath}`);
 
+  const end = new Date().getTime();
+  log(`Done. Results written to ${outputPath}`);
+  
   return;
 };
 
