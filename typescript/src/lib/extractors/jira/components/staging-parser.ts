@@ -1,4 +1,4 @@
-import { IIssue } from '../../models';
+import { IIssue } from '../models';
 
 const getStagingDates = (
     issue: IIssue,
@@ -56,7 +56,8 @@ const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages = new M
       }
       // naive solution, does not differentiate between epic status stage or status stage/
       //  (lumpsthem together);
-      if (historyItem['field'] === 'Epic Status' && historyItem['fieldtype'] === 'custom') {
+      const customAttributes = ['Epic Status'];
+      if (customAttributes.includes(historyItem['field']) && historyItem['fieldtype'] === 'custom') {
         const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
