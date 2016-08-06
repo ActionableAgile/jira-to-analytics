@@ -12,6 +12,12 @@ const getIssues = async function(query: string, username: string, password: stri
   }
 };
 
+const getMetadata = async function(query: string, username: string, password: string): Promise<any> {
+  const headers: Headers = getHeaders(username, password);
+  const result: any = await getJsonFromUrl(query, headers);
+  return result;
+};
+
 const testConnection = async function(apiUrl: string, username?: string, password?: string) {
   const url = buildJiraGetProjectsUrl(apiUrl);
   const headers: Headers = getHeaders(username, password);
@@ -35,6 +41,7 @@ const getWorkflows = async function(project: string, apiUrl :string, username?: 
 
 export {
   getIssues,
+  getMetadata,
   testConnection,
   getProjects,
   getWorkflows,

@@ -66,14 +66,14 @@ const run = async function(cliArgs: any): Promise<void> {
   })(bar);
   
   // Import data
-  const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
+  const jiraExtractor = new JiraExtractor();
   try {
-    const workItems = await jiraExtractor.getWorkItems;
+    const workItems = await jiraExtractor.getWorkItems(jiraSettings, updateProgressHook);
 
     // Export data
     let data: string;
     if (outputType === 'CSV') {
-      data = await jiraExtractor.toCSV();
+      data = await jiraExtractor.toCSV(workItems, jiraSettings.Stages, jiraSettings.Attributes);
     } else if (outputType === 'JSON') {
       // data = jiraExtractor.toSerializedArray();
     }

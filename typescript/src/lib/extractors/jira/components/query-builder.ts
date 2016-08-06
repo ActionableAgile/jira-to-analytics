@@ -1,6 +1,6 @@
 const buildJiraSearchQueryUrl = (
-    apiRootUrl: string, 
-    projects: Array<string>, 
+    apiRootUrl: string = '', 
+    projects: Array<string> = [], 
     issueTypes: Array<string> = [], 
     filters: Array<string> = [],
     startIndex: number = 0, 
@@ -9,8 +9,8 @@ const buildJiraSearchQueryUrl = (
   let clauses: string[] = [];
 
   const projectClause = (projects.length > 1)
-  ? `project in (${projects.join(',')})`
-  : `project=${projects[0]}`;
+    ? `project in (${projects.join(',')})`
+    : `project=${projects[0]}`;
   clauses.push(projectClause);
 
   if (issueTypes.length > 0) {
@@ -28,7 +28,6 @@ const buildJiraSearchQueryUrl = (
 
 const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
   return buildJiraGetProjectsUrl(apiRootUrl, project, 'statuses');
-  // const url = `${apiRootUrl}/project/${project}/statuses`;
 };
 
 const buildJiraGetProjectsUrl = (apiRootUrl, project = '', additionalProjectResource = ''): string => {

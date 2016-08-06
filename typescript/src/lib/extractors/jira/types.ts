@@ -27,23 +27,23 @@ interface IIssueList {
 
 // Internal Jira Extractor Settings Interface
 interface IJiraSettings {
-  Connection: {
-    Domain: string,
+  Connection?: {
+    Domain?: string,
     Username?: string,
     Password?: string,
   };
-  Criteria: {
-    Projects: Array<string>,
-    IssueTypes: Array<string>,
+  Criteria?: {
+    Projects?: Array<string>,
+    IssueTypes?: Array<string>,
     ValidResolutions?: Array<string>,
     Filters?: Array<string>,
     JQL?: string,
   };
-  Workflow: {};
-  Attributes: {};
-  Stages: Array<string>;
-  StageMap: Map<string, number>;
-  ApiUrl: string;
-  CreateInFirstStage: boolean;
-  ResolvedInLastStage: boolean;
+  Workflow?: {};
+  Attributes?: {};
+  Stages?: Array<string>;
+  StageMap?: Map<string, number>;
+  ApiUrl?: string;
+  CreateInFirstStage?: boolean;
+  ResolvedInLastStage?: boolean;
 };
