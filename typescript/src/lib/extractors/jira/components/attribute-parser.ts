@@ -7,7 +7,7 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
       const multipartAttribute: string[] = attributeSystemName.split('.');
       subAttribute = multipartAttribute[1];
     }
-
+    
     const parsed: string = Array.isArray(attributeData)
       ? parseAttributeArray(attributeData)
       : parseAttribute(attributeData, subAttribute); // subattribute only supported for nonarrays currently
@@ -44,4 +44,4 @@ export {
   parseAttribute,
   parseAttributeArray,
   getAttributes,
-}
+};

@@ -1,5 +1,3 @@
-import { IIssue } from '../models';
-
 const getStagingDates = (
     issue: IIssue,
     stages: string[],

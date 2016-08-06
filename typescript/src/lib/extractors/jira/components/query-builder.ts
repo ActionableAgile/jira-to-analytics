@@ -4,8 +4,7 @@ const buildJiraSearchQueryUrl = (
     issueTypes: Array<string> = [], 
     filters: Array<string> = [],
     startIndex: number = 0, 
-    batchSize: number = 1
-    ): string => {
+    batchSize: number = 1): string => {
     
   let clauses: string[] = [];
 
@@ -38,7 +37,7 @@ const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string =
 };
 
 export {
-    buildJiraSearchQueryUrl,
-    buildJiraGetProjectsUrl,
-    buildJiraGetWorkflowsUrl,
+  buildJiraSearchQueryUrl,
+  buildJiraGetProjectsUrl,
+  buildJiraGetWorkflowsUrl,
 };

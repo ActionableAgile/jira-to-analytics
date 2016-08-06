@@ -59,7 +59,7 @@ const run = async function(cliArgs: any): Promise<void> {
   // Progress bar setup
   const updateProgressHook = (bar => {
     bar.tick();
-    return (percentDone = null) => {
+    return (percentDone: number) => {
       if (percentDone <= 100) 
         bar.tick(percentDone);
     } 
@@ -97,7 +97,7 @@ const run = async function(cliArgs: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
-    console.log(`Error running ActionableAgile Command Line Tool`)
+    console.log(`Error running ActionableAgile Command Line Tool`);
     console.log(e);
   }
 }(getArgs()));

@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { IIssue } from '../../../lib/extractors/jira/models';
 import { JiraExtractor, JiraSettings } from '../../../lib/extractors/jira/extractor';
 import { getAttributes } from '../../../lib/extractors/jira/components/attribute-parser';
 import { buildJiraSearchQueryUrl } from '../../../lib/extractors/jira/components/query-builder';

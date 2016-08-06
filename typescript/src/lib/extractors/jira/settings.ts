@@ -1,25 +1,3 @@
-interface IJiraSettings {
-  Connection: {
-    Domain: string,
-    Username?: string,
-    Password?: string,
-  };
-  Criteria: {
-    Projects: Array<string>,
-    IssueTypes: Array<string>,
-    ValidResolutions?: Array<string>,
-    Filters?: Array<string>,
-    JQL?: string,
-  };
-  Workflow: {};
-  Attributes: {};
-  Stages: Array<string>;
-  StageMap: Map<string, number>;
-  ApiUrl: string;
-  CreateInFirstStage: boolean;
-  ResolvedInLastStage: boolean;
-};
-
 class JiraSettings implements IJiraSettings {
   Connection: {
     Domain: string,
@@ -118,6 +96,5 @@ const convertCsvStringToArray = (s: string): string[] => {
 };
 
 export {
-  IJiraSettings,
   JiraSettings,
 };

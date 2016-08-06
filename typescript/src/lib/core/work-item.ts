@@ -1,13 +1,3 @@
-interface IWorkItem {
-  Id: string;
-  StageDates: Array<string>;
-  Name: string;
-  Type: string;
-  Attributes: any;
-  toCSV();
-  toSerializedArray();
-};
-
 class WorkItem implements IWorkItem {
   Id: string;
   StageDates: Array<string>;
@@ -66,6 +56,5 @@ class WorkItem implements IWorkItem {
 };
 
 export {
-  IWorkItem,
   WorkItem,
 };

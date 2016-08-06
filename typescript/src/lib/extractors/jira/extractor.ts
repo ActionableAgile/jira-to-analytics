@@ -1,11 +1,10 @@
-import { IJiraSettings, JiraSettings } from './settings'
-import { IIssueList, IIssue } from './models';
+import { JiraSettings } from './settings'
 import { 
   buildJiraSearchQueryUrl, 
   buildJiraGetProjectsUrl,
   buildJiraGetWorkflowsUrl } from './components/query-builder';
 import { getAttributes } from './components/attribute-parser';
-import { IWorkItem, WorkItem } from '../../core/work-item';
+import { WorkItem } from '../../core/work-item';
 import { getJsonFromUrl, getHeaders } from '../../core/http';
 import { getStagingDates } from './components/staging-parser';
 
@@ -22,26 +21,26 @@ class JiraExtractor {
     this.statusHook = statusHook;
   };
 
-  testConnection = async function(settings: IJiraSettings) {
-    const url = buildJiraGetProjectsUrl(settings.ApiUrl);
-    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
-    const projects: any[] = await getJsonFromUrl(url, headers);
-    return projects.length ? true : false;
-  };
+  // testConnection = async function(settings: IJiraSettings) {
+  //   const url = buildJiraGetProjectsUrl(settings.ApiUrl);
+  //   const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+  //   const projects: any[] = await getJsonFromUrl(url, headers);
+  //   return projects.length ? true : false;
+  // };
 
-  getProjects = async function(settings: IJiraSettings) {
-    const url = buildJiraGetProjectsUrl(settings.ApiUrl);
-    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
-    const projects: any[] = await getJsonFromUrl(url, headers);
-    return projects;
-  }
+  // getProjects = async function(settings: IJiraSettings) {
+  //   const url = buildJiraGetProjectsUrl(settings.ApiUrl);
+  //   const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+  //   const projects: any[] = await getJsonFromUrl(url, headers);
+  //   return projects;
+  // }
 
-  getWorkflows = async function(project: string, settings: IJiraSettings) {
-    const url = buildJiraGetWorkflowsUrl(project, settings.ApiUrl);
-    const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
-    const workflows: any[] = await getJsonFromUrl(url, headers);    
-    return workflows;
-  }
+  // getWorkflows = async function(project: string, settings: IJiraSettings) {
+  //   const url = buildJiraGetWorkflowsUrl(project, settings.ApiUrl);
+  //   const headers: Headers = getHeaders(settings.Connection.Username, settings.Connection.Password);
+  //   const workflows: any[] = await getJsonFromUrl(url, headers);    
+  //   return workflows;
+  // }
 
   getWorkItems(): Promise<any> {
     return new Promise((accept, reject) => {
