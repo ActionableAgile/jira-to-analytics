@@ -5,8 +5,21 @@ import { getStagingDates } from './staging-parser';
 import { getAttributes } from './attribute-parser';
 import { getIssues } from './jira-adapter';
 
-const getWorkItems = async function(settings, statusHook) {
-  const workItems = await this.getAllWorkItemsFromJiraApi(settings, statusHook);
+const getWorkItems = async function(settings: IJiraSettings, statusHook) {
+
+  const apiUrl = settings.ApiUrl;
+  const projects = settings.Criteria.Projects;
+  const issueTypes = settings.Criteria.IssueTypes;
+  const filters = settings.Criteria.Filters;
+  const stages = settings.Stages;
+  const stageMap = settings.StageMap;
+  const createInFirstStage = settings.CreateInFirstStage;
+  const resolvedInLastStage = settings.ResolvedInLastStage;
+  const attributes = settings.Attributes;
+  const username = settings.Connection.Username;
+  const password = settings.Connection.Password;
+
+  const workItems = await getAllWorkItemsFromJiraApi(apiUrl, projects, issueTypes, filters, stages, stageMap, createInFirstStage, resolvedInLastStage, attributes, username, password, statusHook);
   return workItems;
 };
 

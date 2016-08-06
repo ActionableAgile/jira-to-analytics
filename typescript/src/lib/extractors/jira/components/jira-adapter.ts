@@ -31,7 +31,7 @@ const getWorkflows = async function(project: string, apiUrl :string, username?: 
   const headers: Headers = getHeaders(username, password);
   const workflows: any[] = await getJsonFromUrl(url, headers);    
   return workflows;
-}
+};
 
 export {
   getIssues,

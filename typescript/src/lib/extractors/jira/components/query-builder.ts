@@ -26,14 +26,21 @@ const buildJiraSearchQueryUrl = (
   return query;
 };
 
-const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project`;
-  return url;
+const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
+  return buildJiraGetProjectsUrl(apiRootUrl, project, 'statuses');
+  // const url = `${apiRootUrl}/project/${project}/statuses`;
 };
 
-const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project/${project}/statuses`;
-  return url;
+const buildJiraGetProjectsUrl = (apiRootUrl, project = '', additionalProjectResource = ''): string => {
+  if (project) {
+    if (additionalProjectResource) {
+      return `${apiRootUrl}/project/${project}/${additionalProjectResource}`;
+    } else {
+      return `${apiRootUrl}/project/${project}/`;
+    }
+  } else {
+    return `${apiRootUrl}/project/`;
+  }
 };
 
 export {

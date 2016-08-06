@@ -34,10 +34,10 @@ describe('end to end system tests', () => {
       const jiraSettings = new JiraSettings(yaml, 'yaml');
       const jiraExtractor = new JiraExtractor(jiraSettings);
       return jiraExtractor.getWorkItems().then(() => {
-        const actualCsv = jiraExtractor.toCSV();
-        // fs.writeFileSync('compare_csv', csvData);
-        return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(expectedCsv => {
-          expect(expectedCsv).to.equal(actualCsv);
+        const actualCsv = jiraExtractor.toCSV().then(actualCsv => {
+          return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(expectedCsv => {
+            expect(expectedCsv).to.equal(actualCsv);
+          });
         });
       });
     });
@@ -50,14 +50,47 @@ describe('end to end system tests', () => {
       const jiraSettings = new JiraSettings(yaml, 'yaml');
       const jiraExtractor = new JiraExtractor(jiraSettings);
       return jiraExtractor.getWorkItems().then(() => {
-        const csvData = jiraExtractor.toCSV();
-        return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(actual => {
-          expect(actual).to.equal(csvData);
+        const csvData = jiraExtractor.toCSV().then(csvData => {
+          return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(actual => {
+            expect(actual).to.equal(csvData);
+          });
         });
       });
     });
   });
 });
+
+//   describe('e2e naive w/ v1 (legacy) yaml', () => {
+//     it('should get sample json and convert it to csv', () => {
+//       const yaml = safeLoad(fs.readFileSync(yamlPathVersion1, 'utf8'));
+//       yaml.legacy = true;
+//       const jiraSettings = new JiraSettings(yaml, 'yaml');
+//       const jiraExtractor = new JiraExtractor(jiraSettings);
+//       return jiraExtractor.getWorkItems().then(() => {
+//         const actualCsv = jiraExtractor.toCSV();
+//         // fs.writeFileSync('compare_csv', csvData);
+//         return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(expectedCsv => {
+//           expect(expectedCsv).to.equal(actualCsv);
+//         });
+//       });
+//     });
+//   });
+
+//   describe('e2e naive w/ v1 yaml', () => {
+//     it('should get sample json and convert it to csv correctly', () => {
+//       const yaml = safeLoad(fs.readFileSync(yamlPathVersion2, 'utf8'));
+//       yaml.legacy = false;
+//       const jiraSettings = new JiraSettings(yaml, 'yaml');
+//       const jiraExtractor = new JiraExtractor(jiraSettings);
+//       return jiraExtractor.getWorkItems().then(() => {
+//         const csvData = jiraExtractor.toCSV();
+//         return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(actual => {
+//           expect(actual).to.equal(csvData);
+//         });
+//       });
+//     });
+//   });
+// });
 
 const readString = (path) => {
     return new Promise((accept, reject) => {

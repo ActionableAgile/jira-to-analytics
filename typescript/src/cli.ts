@@ -68,29 +68,30 @@ const run = async function(cliArgs: any): Promise<void> {
   // Import data
   const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
   try {
-    await jiraExtractor.getWorkItems();
+    const workItems = await jiraExtractor.getWorkItems;
+
+    // Export data
+    let data: string;
+    if (outputType === 'CSV') {
+      data = await jiraExtractor.toCSV();
+    } else if (outputType === 'JSON') {
+      // data = jiraExtractor.toSerializedArray();
+    }
+    try {
+      await writeFile(outputPath, data);
+    } catch (e) {
+      console.log(`Error writing jira data to ${outputPath}`);
+    }
+
+    const end = new Date().getTime();
+    log(`Done. Results written to ${outputPath}`);
+    
+    return;
   } catch (e) {
     console.log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
 
-  // Export data
-  let data: string;
-  if (outputType === 'CSV') {
-    data = jiraExtractor.toCSV();
-  } else if (outputType === 'JSON') {
-    data = jiraExtractor.toSerializedArray();
-  }
-  try {
-    await writeFile(outputPath, data);
-  } catch (e) {
-    console.log(`Error writing jira data to ${outputPath}`);
-  }
-
-  const end = new Date().getTime();
-  log(`Done. Results written to ${outputPath}`);
-  
-  return;
 };
 
 (async function(args: any): Promise<void> {
