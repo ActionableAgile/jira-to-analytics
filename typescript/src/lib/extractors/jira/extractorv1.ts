@@ -106,17 +106,17 @@
 //   };
 
 //   getWorkItemsBatch = async function(start: number, batchSize: number, settings: IJiraSettings): Promise<IWorkItem[]> {
-//     const url = buildJiraSearchQueryUrl(
-//       settings.ApiUrl, 
-//       settings.Criteria.Projects, 
-//       settings.Criteria.IssueTypes, 
-//       settings.Criteria.Filters, 
-//       start, 
-//       batchSize
-//     );
-//     const issues = await this.getIssues(url, settings.Connection.Username, settings.Connection.Password);
-//     const workItems = issues.map(issue => this.createWorkItem(issue, settings));
-//     return workItems;
+    // const url = buildJiraSearchQueryUrl(
+    //   settings.ApiUrl, 
+    //   settings.Criteria.Projects, 
+    //   settings.Criteria.IssueTypes, 
+    //   settings.Criteria.Filters, 
+    //   start, 
+    //   batchSize
+    // );
+    // const issues = await this.getIssues(url, settings.Connection.Username, settings.Connection.Password);
+    // const workItems = issues.map(issue => this.createWorkItem(issue, settings));
+    // return workItems;
 //   };
 
 //   getAllWorkItemsFromJiraApi = async function(settings: IJiraSettings, hook: any = () => {}, resultsPerBatch = 25): Promise<IWorkItem[]> {

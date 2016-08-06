@@ -8,12 +8,16 @@ class JiraExtractor {
 
   constructor() {};
 
-  getAllWorkItems = async function() {
-    ////
+  getWorkItemBatched = async function(
+    url, stages, stageMap, createInFirstStage, resolvedInLastStage, attributes, username?, password?, 
+    startIndex: number = 0, batchSize: number = 1) {
+    
+    const issues = await this.getIssues(url, username, password);
+    return issues.map(issue => convertIssueToWorkItem(
+      issue, stages, stageMap, createInFirstStage, resolvedInLastStage, attributes));
   };
 
   getWorkItems = async function(settings: IJiraSettings, hook: Function = () => {}) {
-
     const resultsPerBatch = 25;
     const metaDataUrl = buildJiraSearchQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters)
     const metadata = await getMetadata(metaDataUrl, settings.Connection.Username, settings.Connection.Password);
@@ -36,14 +40,14 @@ class JiraExtractor {
         start, 
         batchSize
       );
-      const issues = await this.getIssues(url, settings.Connection.Username, settings.Connection.Password);
-      
-      const workItemBatch = issues.map(issue => convertIssueToWorkItem(
-        issue, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage, settings.Attributes));
+
+      const workItemBatch = await this.getWorkItemBatched(
+        url, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage, settings.Attributes,
+        settings.Connection.Username, settings.Connection.Password, start, batchSize);
       
       allWorkItems.push(...workItemBatch);
 
-      hook(Math.max(batchSize / totalJiras)*100);
+      hook(Math.max(batchSize / totalJiras) * 100);
     }
     hook(100);
     return allWorkItems;
