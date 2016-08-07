@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { JiraExtractor, JiraSettings } from './main';
+import { JiraExtractor } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
@@ -52,7 +52,6 @@ const run = async function(cliArgs: any): Promise<void> {
     console.log(`Error parsing settings ${e}`);
     throw e;
   }
-  const jiraSettings = new JiraSettings(settings, 'yaml');
   
   log('Beginning extraction process');
 
@@ -66,16 +65,19 @@ const run = async function(cliArgs: any): Promise<void> {
   })(bar);
   
   // Import data
-  const jiraExtractor = new JiraExtractor();
+  const jiraExtractor = new JiraExtractor()
+    .importSettings(settings, 'yaml')
+    .setBatchSize(25)
+
   try {
-    const workItems = await jiraExtractor.getWorkItems(jiraSettings, updateProgressHook);
+    const workItems = await jiraExtractor.extractAll(updateProgressHook);
 
     // Export data
     let data: string;
     if (outputType === 'CSV') {
-      data = await jiraExtractor.toCSV(workItems, jiraSettings.Stages, jiraSettings.Attributes);
+      data = await jiraExtractor.toCSV(workItems);
     } else if (outputType === 'JSON') {
-      // data = jiraExtractor.toSerializedArray();
+      data = jiraExtractor.toSerializedArray(workItems);
     }
     try {
       await writeFile(outputPath, data);
@@ -91,7 +93,6 @@ const run = async function(cliArgs: any): Promise<void> {
     console.log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
-
 };
 
 (async function(args: any): Promise<void> {

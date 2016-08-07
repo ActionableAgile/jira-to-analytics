@@ -1,7 +1,7 @@
 {
   "name": "actionableagileimporttool",
-  "version": "0.4.2",
-  "description": "",
+  "version": "1.0.0",
+  "description": "Tool to extract data from JIRA into a format understood by the ActionableAgile metrics tool",
   "main": "dist/main.js",
   "typings": "dist/main",
   "scripts": {
@@ -17,9 +17,9 @@
     "bundle-standalone": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
     "build-release": "npm run bundle-standalone"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["typescript", "javascript", "agile", "actionableagile", "scrum", "kanban", "jira", "extract", "nodejs", "node", "yawml", "tool", "metrics"],
+  "author": "johnrjj@gmail.com",
+  "license": "MIT",
   "devDependencies": {
     "browserify": "^13.0.1",
     "chai": "^3.5.0",

@@ -1,5 +1,5 @@
 const buildJiraSearchQueryUrl = (
-    apiRootUrl: string = '', 
+    apiRootUrl: string, 
     projects: Array<string> = [], 
     issueTypes: Array<string> = [], 
     filters: Array<string> = [],
@@ -26,7 +26,7 @@ const buildJiraSearchQueryUrl = (
   return query;
 };
 
-const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
+const buildJiraGetWorkflowsUrl = (apiRootUrl: string, project: string): string => {
   return buildJiraGetProjectsUrl(apiRootUrl, project, 'statuses');
 };
 

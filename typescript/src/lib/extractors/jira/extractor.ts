@@ -1,68 +1,75 @@
-import { JiraSettings } from './settings'
 import { toCSV, toSerializedArray } from './components/exporter';
-import { buildJiraSearchQueryUrl } from './components/query-builder';
 import { getIssues, getMetadata, testConnection, getProjects, getWorkflows } from './components/jira-adapter';
-import { convertIssueToWorkItem } from './components/work-item-adapter';
+import { extractBatch, extractAll } from './components/extract';
+import { importConfig } from './components/import-config';
 
 class JiraExtractor {
+  config: IJiraSettings = null;
+  batchSize: number;
 
-  constructor() {};
-
-  getWorkItemBatched = async function(
-    url, stages, stageMap, createInFirstStage, resolvedInLastStage, attributes, username?, password?, 
-    startIndex: number = 0, batchSize: number = 1) {
-    
-    const issues = await this.getIssues(url, username, password);
-    return issues.map(issue => convertIssueToWorkItem(
-      issue, stages, stageMap, createInFirstStage, resolvedInLastStage, attributes));
+  constructor(config?: IJiraSettings) {
+    this.config = config;
   };
 
-  getWorkItems = async function(settings: IJiraSettings, hook: Function = () => {}) {
-    const resultsPerBatch = 25;
-    const metaDataUrl = buildJiraSearchQueryUrl(settings.ApiUrl, settings.Criteria.Projects, settings.Criteria.IssueTypes, settings.Criteria.Filters)
-    const metadata = await getMetadata(metaDataUrl, settings.Connection.Username, settings.Connection.Password);
+  setConfig(c: IJiraSettings) {
+    this.config = c;
+    return this;
+  };
 
-    const totalJiras: number = metadata.total; 
-    const batchSize: number = resultsPerBatch;
-    const totalBatches: number = Math.ceil(totalJiras / batchSize); 
+  setBatchSize(x: number) {
+    this.batchSize = x;
+    return this;
+  };
 
-    const allWorkItems: IWorkItem[] = [];
+  importSettings(configObjToImport, source) {
+    const config = importConfig(configObjToImport, source);
+    this.setConfig(config);
+    return this;
+  };
 
-    hook(0);
-    
-    for (let i = 0; i < totalBatches; i++) {
-      const start = i * batchSize;
-      const url = buildJiraSearchQueryUrl(
-        settings.ApiUrl, 
-        settings.Criteria.Projects, 
-        settings.Criteria.IssueTypes, 
-        settings.Criteria.Filters, 
-        start, 
-        batchSize
-      );
+  extractAll = async function(statusHook?) {
+    const batchSize = this.batchSize || 25;
+    const hook = statusHook || (() => {});
 
-      const workItemBatch = await this.getWorkItemBatched(
-        url, settings.Stages, settings.StageMap, settings.CreateInFirstStage, settings.ResolvedInLastStage, settings.Attributes,
-        settings.Connection.Username, settings.Connection.Password, start, batchSize);
-      
-      allWorkItems.push(...workItemBatch);
+    const { apiUrl, projects, issueTypes, filters, workflow, attributes, username, password } = this.destructureConfig(this.config);
+    return extractAll(apiUrl, projects, issueTypes, filters, workflow, attributes, batchSize, hook, username, password);
+  };
 
-      hook(Math.max(batchSize / totalJiras) * 100);
-    }
-    hook(100);
-    return allWorkItems;
+  extractBatch = async function(batchSize?, startIndex = 0) {
+    const { apiUrl, projects, issueTypes, filters, workflow, attributes, username, password, } = this.destructureConfig(this.config);
+    return extractBatch(apiUrl, projects, issueTypes, filters, workflow, attributes, username, password, startIndex, batchSize);
+  };
+
+  private destructureConfig(config: IJiraSettings) {
+    const apiUrl = this.config.Connection.ApiUrl;
+    const projects = this.config.Criteria.Projects;
+    const issueTypes = this.config.Criteria.IssueTypes;
+    const filters = this.config.Criteria.Filters;
+    const workflow = this.config.Workflow;
+    const attributes = this.config.Attributes;
+    const username = this.config.Connection.Username;
+    const password = this.config.Connection.Password;
+
+    return {
+      apiUrl, projects, issueTypes, filters, workflow, attributes, username, password,
+    };
+  };
+
+  toCSV(workItems, withHeader?) {
+    return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
+  };
+
+  toSerializedArray(workItems, withHeader?) {
+    return toSerializedArray(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
   };
 
   testConnection = testConnection;
   getProjects = getProjects;
   getWorkflows = getWorkflows;
   getIssues = getIssues;
-
-  toSerializedArray = toSerializedArray;
-  toCSV = toCSV;
+  getMetadata = getMetadata;
 };
 
 export {
   JiraExtractor,
-  JiraSettings,
 };

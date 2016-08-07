@@ -1,9 +1,16 @@
-const getStagingDates = (
-    issue: IIssue,
-    stages: string[],
-    stageMap: Map<string, number>,
-    createInFirstStage: boolean = true,
-    resolvedInLastStage: boolean = false): string[] => {
+const getStagingDates = (issue: IIssue, workflow): string[] => {
+
+  // get this out of here, yaml schema shouldnt be coupled to business logic
+  const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
+  const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
+
+  const stages = Object.keys(workflow);
+  const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
+    return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
+      return map.set(stageAlias, i);
+    }, map);
+  }, new Map<string, number>());
+
   let stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
 
   if (createInFirstStage) {
