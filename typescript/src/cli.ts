@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { JiraExtractor, JiraSettings } from './main';
+import { JiraExtractor } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
@@ -52,52 +52,54 @@ const run = async function(cliArgs: any): Promise<void> {
     console.log(`Error parsing settings ${e}`);
     throw e;
   }
-  const jiraSettings = new JiraSettings(settings, 'yaml');
   
   log('Beginning extraction process');
 
   // Progress bar setup
   const updateProgressHook = (bar => {
     bar.tick();
-    return (percentDone = null) => {
+    return (percentDone: number) => {
       if (percentDone <= 100) 
         bar.tick(percentDone);
     } 
   })(bar);
   
   // Import data
-  const jiraExtractor = new JiraExtractor(jiraSettings, updateProgressHook);
+  const jiraExtractor = new JiraExtractor()
+    .importSettings(settings, 'yaml')
+    .setBatchSize(25)
+
   try {
-    await jiraExtractor.getWorkItems();
+    const workItems = await jiraExtractor.extractAll(updateProgressHook);
+
+    // Export data
+    let data: string;
+    if (outputType === 'CSV') {
+      data = await jiraExtractor.toCSV(workItems);
+    } else if (outputType === 'JSON') {
+      data = jiraExtractor.toSerializedArray(workItems);
+    }
+    try {
+      await writeFile(outputPath, data);
+    } catch (e) {
+      console.log(`Error writing jira data to ${outputPath}`);
+    }
+
+    const end = new Date().getTime();
+    log(`Done. Results written to ${outputPath}`);
+    
+    return;
   } catch (e) {
     console.log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
-
-  // Export data
-  let data: string;
-  if (outputType === 'CSV') {
-    data = jiraExtractor.toCSV();
-  } else if (outputType === 'JSON') {
-    data = jiraExtractor.toSerializedArray();
-  }
-  try {
-    await writeFile(outputPath, data);
-  } catch (e) {
-    console.log(`Error writing jira data to ${outputPath}`);
-  }
-
-  const end = new Date().getTime();
-  log(`Done. Results written to ${outputPath}`);
-  
-  return;
 };
 
 (async function(args: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
-    console.log(`Error running ActionableAgile Command Line Tool`)
+    console.log(`Error running ActionableAgile Command Line Tool`);
     console.log(e);
   }
 }(getArgs()));

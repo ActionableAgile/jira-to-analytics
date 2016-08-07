@@ -4,7 +4,6 @@ import 'isomorphic-fetch';
 import * as fs from 'fs';
 import { safeLoad } from 'js-yaml';
 import { JiraExtractor } from '../../lib/extractors/jira/extractor';
-import { JiraSettings } from '../../lib/extractors/jira/settings';
 import json from '../data/json/jira-issues-request';
 
 const yamlPathVersion1 = './src/test/data/config/config-v1.yaml';
@@ -31,10 +30,9 @@ describe('end to end system tests', () => {
     it('should get sample json and convert it to csv', () => {
       const yaml = safeLoad(fs.readFileSync(yamlPathVersion1, 'utf8'));
       yaml.legacy = true;
-      const jiraSettings = new JiraSettings(yaml, 'yaml');
-      const jiraExtractor = new JiraExtractor(jiraSettings);
-      return jiraExtractor.getWorkItems().then(() => {
-        const actualCsv = jiraExtractor.toCSV();
+      const jiraExtractor = new JiraExtractor().setBatchSize(25).importSettings(yaml, 'yaml');
+      return jiraExtractor.extractAll().then(workItems => {
+        const actualCsv = jiraExtractor.toCSV(workItems);
         // fs.writeFileSync('compare_csv', csvData);
         return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(expectedCsv => {
           expect(expectedCsv).to.equal(actualCsv);
@@ -47,10 +45,9 @@ describe('end to end system tests', () => {
     it('should get sample json and convert it to csv correctly', () => {
       const yaml = safeLoad(fs.readFileSync(yamlPathVersion2, 'utf8'));
       yaml.legacy = false;
-      const jiraSettings = new JiraSettings(yaml, 'yaml');
-      const jiraExtractor = new JiraExtractor(jiraSettings);
-      return jiraExtractor.getWorkItems().then(() => {
-        const csvData = jiraExtractor.toCSV();
+      const jiraExtractor = new JiraExtractor().setBatchSize(25).importSettings(yaml, 'yaml');
+      return jiraExtractor.extractAll().then(workItems => {
+        const csvData = jiraExtractor.toCSV(workItems);
         return readString('./src/test/data/csv/sample-jira-issues-csv.csv').then(actual => {
           expect(actual).to.equal(csvData);
         });
