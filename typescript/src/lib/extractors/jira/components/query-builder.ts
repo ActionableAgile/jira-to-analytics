@@ -1,16 +1,17 @@
 const buildJiraSearchQueryUrl = (
     apiRootUrl: string, 
-    projects: Array<string> = [], 
+    projects: Array<string>, 
     issueTypes: Array<string> = [], 
     filters: Array<string> = [],
     startIndex: number = 0, 
-    batchSize: number = 1): string => {
+    batchSize: number = 1
+    ): string => {
     
   let clauses: string[] = [];
 
   const projectClause = (projects.length > 1)
-    ? `project in (${projects.join(',')})`
-    : `project=${projects[0]}`;
+  ? `project in (${projects.join(',')})`
+  : `project=${projects[0]}`;
   clauses.push(projectClause);
 
   if (issueTypes.length > 0) {
@@ -26,24 +27,18 @@ const buildJiraSearchQueryUrl = (
   return query;
 };
 
-const buildJiraGetWorkflowsUrl = (apiRootUrl: string, project: string): string => {
-  return buildJiraGetProjectsUrl(apiRootUrl, project, 'statuses');
+const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
+  const url = `${apiRootUrl}/project`;
+  return url;
 };
 
-const buildJiraGetProjectsUrl = (apiRootUrl, project = '', additionalProjectResource = ''): string => {
-  if (project) {
-    if (additionalProjectResource) {
-      return `${apiRootUrl}/project/${project}/${additionalProjectResource}`;
-    } else {
-      return `${apiRootUrl}/project/${project}/`;
-    }
-  } else {
-    return `${apiRootUrl}/project/`;
-  }
+const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
+  const url = `${apiRootUrl}/project/${project}/statuses`;
+  return url;
 };
 
 export {
-  buildJiraSearchQueryUrl,
-  buildJiraGetProjectsUrl,
-  buildJiraGetWorkflowsUrl,
+    buildJiraSearchQueryUrl,
+    buildJiraGetProjectsUrl,
+    buildJiraGetWorkflowsUrl,
 };

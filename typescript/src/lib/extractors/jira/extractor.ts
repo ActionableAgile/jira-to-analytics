@@ -54,7 +54,6 @@ class JiraExtractor {
       apiUrl, projects, issueTypes, filters, workflow, attributes, username, password,
     };
   };
-
   toCSV(workItems, withHeader?) {
     return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
   };
