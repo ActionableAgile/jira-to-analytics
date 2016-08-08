@@ -52,7 +52,7 @@ class WorkItem implements IWorkItem {
     .replace(/,/g, '')
     .replace(/\\/g, '')
     .trim();
-  }
+  };
 };
 
 export {

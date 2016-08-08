@@ -1,6 +1,6 @@
 import 'isomorphic-fetch';
 
-function getHeaders(username?: string, password?: string): Headers {
+const getHeaders = (username?: string, password?: string): Headers => {
   const headers = new Headers();
   headers.append('Accept', 'application/json');
   if (username && password) {
@@ -9,7 +9,7 @@ function getHeaders(username?: string, password?: string): Headers {
   return headers;
 };
 
-function status(response: IResponse): Promise<any> {
+const status = (response: IResponse): Promise<any> => {
   if (response.status >= 200 && response.status < 300) {
     return Promise.resolve(response);
   } else {
@@ -17,11 +17,11 @@ function status(response: IResponse): Promise<any> {
   }
 };
 
-function convertToJson(response: IResponse): Promise<IResponse> {
+const convertToJson = (response: IResponse): Promise<IResponse> => {
   return response.json();
 };
 
-function getJsonFromUrl(url: string, headers: Headers): Promise<any> {
+const getJsonFromUrl = (url: string, headers: Headers): Promise<any> => {
   return fetch(url, { headers })
     .then(status)
     .then(convertToJson);
