@@ -15,8 +15,8 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
     const StartDate: Date = config.Criteria['Start Date'] || null;
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
-    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an array
-
+    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
+    
     const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
     jiraSettings.Criteria = criteria;
   } else {
@@ -40,11 +40,6 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   const attributes = config.Attributes;
   jiraSettings.Attributes = attributes;
 
-  // const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
-  // jiraSettings.CreateInFirstStage = createInFirstStage;
-
-  // const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
-  // jiraSettings.ResolvedInLastStage = resolvedInLastStage;
   return jiraSettings;
 }
 
