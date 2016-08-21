@@ -27,9 +27,6 @@ const buildJiraSearchQueryUrl = (
     clauses.push(`(${customJql})`);
   }
 
-  // project=UT AND issuetype in (Story,Bug) AND (Status CHANGED FROM Backlog AFTER ("2016/08/09") OR (Status = Backlog)) order by key
-  // (Status CHANGED FROM Backlog AFTER ("2016/08/09") OR (Status = Backlog)) order by key
-
   // if (startDate) {
   //   const startWorkflowKey = Object.keys(workflowKeyVal)[0];
   //   const startWorkflowValArray = workflowKeyVal[startWorkflowKey].filter(x => x != '(Created)');
@@ -44,12 +41,17 @@ const buildJiraSearchQueryUrl = (
   // }
 
   // exclude all stories closed after ${date}
-  //todo change startDate
   const dateToExcludeStoriesBefore = startDate;
   if (dateToExcludeStoriesBefore) {
-    // const excludeAllStoriesClosedAfterDateClause = `(status changed to Closed after "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
     const excludeAllStoriesClosedAfterDateClause =  `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
     clauses.push(excludeAllStoriesClosedAfterDateClause);
+  }
+
+    // exclude all stories closed after ${date}
+  const dateToExcludeStoriesAfter = endDate;
+  if (dateToExcludeStoriesAfter) {
+    const excludeAllStoriesClosedBeforeDateClause =  `(resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
+    clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }
 
   // if (endDate) { 

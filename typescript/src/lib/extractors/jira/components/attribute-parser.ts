@@ -34,7 +34,7 @@ const parseAttributeArray = (attributeArray: any[]): string => {
     return parseAttribute(attributeArrayElement);
   });
   if (parsedAttributes.length === 0) {
-    return ''
+    return '';
   }
   const result = parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
   return result;

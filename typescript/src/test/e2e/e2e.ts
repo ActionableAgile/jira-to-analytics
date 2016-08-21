@@ -41,7 +41,7 @@ describe('end to end system tests', () => {
     });
   });
 
-  describe('e2e naive w/ v1 yaml', () => {
+  describe('e2e naive w/ v2 yaml', () => {
     it('should get sample json and convert it to csv correctly', () => {
       const yaml = safeLoad(fs.readFileSync(yamlPathVersion2, 'utf8'));
       yaml.legacy = false;
