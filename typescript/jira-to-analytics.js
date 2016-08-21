@@ -278,19 +278,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var jira_adapter_1 = require('./jira-adapter');
 var work_item_adapter_1 = require('./work-item-adapter');
-var extractBatch = function (apiUrl, projects, issueTypes, filters, workflowKeyVal, attributesKeyVal, startDate, endDate, customJql, username, password, startIndex, batchSize) {
+var extractBatchFromConfig = function (config, startIndex, batchSize) {
     return __awaiter(this, void 0, void 0, function* () {
         if (startIndex === void 0) { startIndex = 0; }
-        if (batchSize === void 0) { batchSize = 1; }
-        var issues = yield jira_adapter_1.getIssues(apiUrl, projects, issueTypes, filters, workflowKeyVal, startDate, endDate, customJql, startIndex, batchSize, username, password);
-        return issues.map(function (issue) { return work_item_adapter_1.convertIssueToWorkItem(issue, workflowKeyVal, attributesKeyVal); });
+        if (batchSize === void 0) { batchSize = 0; }
+        var _a = destructureConfig(config), apiUrl = _a.apiUrl, projects = _a.projects, issueTypes = _a.issueTypes, filters = _a.filters, workflow = _a.workflow, attributes = _a.attributes, startDate = _a.startDate, endDate = _a.endDate, customJql = _a.customJql, username = _a.username, password = _a.password;
+        var issues = yield jira_adapter_1.getIssues(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password);
+        return issues.map(function (issue) { return work_item_adapter_1.convertIssueToWorkItem(issue, workflow, attributes); });
     });
 };
-exports.extractBatch = extractBatch;
-var extractAll = function (apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, batchSize, hook, username, password) {
+exports.extractBatchFromConfig = extractBatchFromConfig;
+var extractAllFromConfig = function (config, batchSize, hook) {
     return __awaiter(this, void 0, void 0, function* () {
         if (batchSize === void 0) { batchSize = 25; }
         if (hook === void 0) { hook = function () { }; }
+        var _a = destructureConfig(config), apiUrl = _a.apiUrl, projects = _a.projects, issueTypes = _a.issueTypes, filters = _a.filters, workflow = _a.workflow, attributes = _a.attributes, startDate = _a.startDate, endDate = _a.endDate, customJql = _a.customJql, username = _a.username, password = _a.password;
         var metadata = yield jira_adapter_1.getMetadata(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, 0, 1, username, password);
         var totalJiras = metadata.total;
         var actualBatchSize = batchSize ? batchSize : totalJiras;
@@ -299,7 +301,7 @@ var extractAll = function (apiUrl, projects, issueTypes, filters, workflow, attr
         var allWorkItems = [];
         for (var i = 0; i < totalBatches; i++) {
             var start = i * actualBatchSize;
-            var workItemBatch = yield extractBatch(apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, start, batchSize);
+            var workItemBatch = yield extractBatchFromConfig(config, start, batchSize);
             allWorkItems.push.apply(allWorkItems, workItemBatch);
             hook(Math.max(actualBatchSize / totalJiras) * 100);
         }
@@ -307,7 +309,96 @@ var extractAll = function (apiUrl, projects, issueTypes, filters, workflow, attr
         return allWorkItems;
     });
 };
-exports.extractAll = extractAll;
+exports.extractAllFromConfig = extractAllFromConfig;
+// Disabled these functions...code smell passing in too many parameters, just using a config obj instead (type IJiraSettings)
+// const extractBatch = async function(
+//   apiUrl: string, 
+//   projects: string[], 
+//   issueTypes: string[], 
+//   filters: string[], 
+//   workflowKeyVal: {}, 
+//   attributesKeyVal: {}, 
+//   startDate,
+//   endDate,
+//   customJql,
+//   username?: string, 
+//   password?: string, 
+//   startIndex: number = 0, 
+//   batchSize: number = 1) {
+//   const issues = await getIssues(apiUrl, projects, issueTypes, filters, workflowKeyVal, startDate, endDate, customJql, startIndex, batchSize, username, password);
+//   return issues.map(issue => convertIssueToWorkItem(issue, workflowKeyVal, attributesKeyVal));
+// };
+// 
+// const extractAll = async function(
+//   apiUrl, 
+//   projects, 
+//   issueTypes, 
+//   filters, 
+//   workflow, 
+//   attributes,
+//   startDate, 
+//   endDate, 
+//   customJql,
+//   batchSize: number = 25, 
+//   hook: Function = () => {}, 
+//   username, 
+//   password) {
+//   const metadata = await getMetadata(
+//     apiUrl, 
+//     projects, 
+//     issueTypes, 
+//     filters, 
+//     workflow, 
+//     startDate,
+//     endDate,
+//     customJql,
+//     0, 
+//     1, 
+//     username, 
+//     password);
+//   const totalJiras: number = metadata.total; 
+//   const actualBatchSize = batchSize ? batchSize : totalJiras;
+//   const totalBatches: number = Math.ceil(totalJiras / batchSize); 
+//   hook(0);
+//   const allWorkItems: IWorkItem[] = [];
+//   for (let i = 0; i < totalBatches; i++) {
+//     const start = i * actualBatchSize;
+//     const workItemBatch = await extractBatch(
+//       apiUrl, 
+//       projects, 
+//       issueTypes, 
+//       filters, 
+//       workflow, 
+//       attributes,
+//       startDate,
+//       endDate,
+//       customJql,
+//       username, 
+//       password, 
+//       start, 
+//       batchSize);
+//     allWorkItems.push(...workItemBatch);
+//     hook(Math.max(actualBatchSize / totalJiras) * 100);
+//   }
+//   hook(100);
+//   return allWorkItems;
+// };
+var destructureConfig = function (config) {
+    var apiUrl = config.Connection.ApiUrl;
+    var projects = config.Criteria.Projects;
+    var issueTypes = config.Criteria.IssueTypes;
+    var filters = config.Criteria.Filters;
+    var workflow = config.Workflow;
+    var attributes = config.Attributes;
+    var username = config.Connection.Username;
+    var password = config.Connection.Password;
+    var startDate = config.Criteria.StartDate;
+    var endDate = config.Criteria.EndDate;
+    var customJql = config.Criteria.JQL;
+    return {
+        apiUrl: apiUrl, projects: projects, issueTypes: issueTypes, filters: filters, workflow: workflow, attributes: attributes, username: username, password: password, startDate: startDate, endDate: endDate, customJql: customJql,
+    };
+};
 
 },{"./jira-adapter":9,"./work-item-adapter":12}],8:[function(require,module,exports){
 "use strict";
@@ -417,8 +508,6 @@ var buildJiraSearchQueryUrl = function (apiRootUrl, projects, issueTypes, filter
     if (customJql) {
         clauses.push("(" + customJql + ")");
     }
-    // project=UT AND issuetype in (Story,Bug) AND (Status CHANGED FROM Backlog AFTER ("2016/08/09") OR (Status = Backlog)) order by key
-    // (Status CHANGED FROM Backlog AFTER ("2016/08/09") OR (Status = Backlog)) order by key
     // if (startDate) {
     //   const startWorkflowKey = Object.keys(workflowKeyVal)[0];
     //   const startWorkflowValArray = workflowKeyVal[startWorkflowKey].filter(x => x != '(Created)');
@@ -432,12 +521,16 @@ var buildJiraSearchQueryUrl = function (apiRootUrl, projects, issueTypes, filter
     //   }
     // }
     // exclude all stories closed after ${date}
-    //todo change startDate
     var dateToExcludeStoriesBefore = startDate;
     if (dateToExcludeStoriesBefore) {
-        // const excludeAllStoriesClosedAfterDateClause = `(status changed to Closed after "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
         var excludeAllStoriesClosedAfterDateClause = "(resolutionDate >= \"" + formatDate(dateToExcludeStoriesBefore) + "\" OR resolution = Unresolved)";
         clauses.push(excludeAllStoriesClosedAfterDateClause);
+    }
+    // exclude all stories closed after ${date}
+    var dateToExcludeStoriesAfter = endDate;
+    if (dateToExcludeStoriesAfter) {
+        var excludeAllStoriesClosedBeforeDateClause = "(resolutionDate <= \"" + formatDate(dateToExcludeStoriesAfter) + "\")";
+        clauses.push(excludeAllStoriesClosedBeforeDateClause);
     }
     // if (endDate) { 
     //   const endWorkflowKey = Object.keys(workflowKeyVal)[Object.keys(workflowKeyVal).length - 1];
@@ -607,7 +700,7 @@ var convertYamlToJiraSettings = function (config) {
         var StartDate = config.Criteria['Start Date'] || null;
         var EndDate = config.Criteria['End Date'] || null;
         var Filters = convertCsvStringToArray(config.Criteria.Filters);
-        var JQL = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an array
+        var JQL = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
         var criteria = { Projects: Projects, IssueTypes: IssueTypes, Filters: Filters, StartDate: StartDate, EndDate: EndDate, JQL: JQL };
         jiraSettings.Criteria = criteria;
     }
@@ -628,10 +721,6 @@ var convertYamlToJiraSettings = function (config) {
     jiraSettings.Workflow = workflow;
     var attributes = config.Attributes;
     jiraSettings.Attributes = attributes;
-    // const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
-    // jiraSettings.CreateInFirstStage = createInFirstStage;
-    // const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
-    // jiraSettings.ResolvedInLastStage = resolvedInLastStage;
     return jiraSettings;
 };
 exports.convertYamlToJiraSettings = convertYamlToJiraSettings;
@@ -674,15 +763,13 @@ var JiraExtractor = (function () {
             return __awaiter(this, void 0, void 0, function* () {
                 var batchSize = this.batchSize || 25;
                 var hook = statusHook || (function () { });
-                var _a = this.destructureConfig(this.config), apiUrl = _a.apiUrl, projects = _a.projects, issueTypes = _a.issueTypes, filters = _a.filters, workflow = _a.workflow, attributes = _a.attributes, startDate = _a.startDate, endDate = _a.endDate, customJql = _a.customJql, username = _a.username, password = _a.password;
-                return extract_1.extractAll(apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, batchSize, hook, username, password);
+                return extract_1.extractAllFromConfig(this.config, batchSize, hook);
             });
         };
         this.extractBatch = function (batchSize, startIndex) {
             return __awaiter(this, void 0, void 0, function* () {
                 if (startIndex === void 0) { startIndex = 0; }
-                var _a = this.destructureConfig(this.config), apiUrl = _a.apiUrl, projects = _a.projects, issueTypes = _a.issueTypes, filters = _a.filters, workflow = _a.workflow, attributes = _a.attributes, startDate = _a.startDate, endDate = _a.endDate, customJql = _a.customJql, username = _a.username, password = _a.password;
-                return extract_1.extractBatch(apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, startIndex, batchSize);
+                return extract_1.extractBatchFromConfig(this.config, startIndex, batchSize);
             });
         };
         this.testConnection = jira_adapter_1.testConnection;
@@ -707,23 +794,6 @@ var JiraExtractor = (function () {
         var config = import_config_1.importConfig(configObjToImport, source);
         this.setConfig(config);
         return this;
-    };
-    ;
-    JiraExtractor.prototype.destructureConfig = function (config) {
-        var apiUrl = this.config.Connection.ApiUrl;
-        var projects = this.config.Criteria.Projects;
-        var issueTypes = this.config.Criteria.IssueTypes;
-        var filters = this.config.Criteria.Filters;
-        var workflow = this.config.Workflow;
-        var attributes = this.config.Attributes;
-        var username = this.config.Connection.Username;
-        var password = this.config.Connection.Password;
-        var startDate = this.config.Criteria.StartDate;
-        var endDate = this.config.Criteria.EndDate;
-        var customJql = this.config.Criteria.JQL;
-        return {
-            apiUrl: apiUrl, projects: projects, issueTypes: issueTypes, filters: filters, workflow: workflow, attributes: attributes, username: username, password: password, startDate: startDate, endDate: endDate, customJql: customJql,
-        };
     };
     ;
     JiraExtractor.prototype.toCSV = function (workItems, withHeader) {
