@@ -31,13 +31,13 @@ class JiraExtractor {
     const batchSize = this.batchSize || 25;
     const hook = statusHook || (() => {});
 
-    const { apiUrl, projects, issueTypes, filters, workflow, attributes, username, password } = this.destructureConfig(this.config);
-    return extractAll(apiUrl, projects, issueTypes, filters, workflow, attributes, batchSize, hook, username, password);
+    const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password } = this.destructureConfig(this.config);
+    return extractAll(apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, batchSize, hook, username, password);
   };
 
   extractBatch = async function(batchSize?, startIndex = 0) {
-    const { apiUrl, projects, issueTypes, filters, workflow, attributes, username, password, } = this.destructureConfig(this.config);
-    return extractBatch(apiUrl, projects, issueTypes, filters, workflow, attributes, username, password, startIndex, batchSize);
+    const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, } = this.destructureConfig(this.config);
+    return extractBatch(apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, startIndex, batchSize);
   };
 
   private destructureConfig(config: IJiraSettings) {
@@ -49,11 +49,15 @@ class JiraExtractor {
     const attributes = this.config.Attributes;
     const username = this.config.Connection.Username;
     const password = this.config.Connection.Password;
+    const startDate = this.config.Criteria.StartDate;
+    const endDate = this.config.Criteria.EndDate;
+    const customJql = this.config.Criteria.JQL;
 
     return {
-      apiUrl, projects, issueTypes, filters, workflow, attributes, username, password,
+      apiUrl, projects, issueTypes, filters, workflow, attributes, username, password, startDate, endDate, customJql,
     };
   };
+  
   toCSV(workItems, withHeader?) {
     return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
   };

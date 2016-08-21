@@ -1,6 +1,6 @@
 import { convertYamlToJiraSettings } from './yaml-converter';
 
-const importConfig = (config: any, source: string) => {
+const importConfig = (config: any, source: string): IJiraSettings => {
   switch (source.toUpperCase()) {
     case 'YAML':
       const parsedSettings = convertYamlToJiraSettings(config);
