@@ -7,25 +7,28 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   const connection = config.Connection;
   jiraSettings.Connection = connection;
   jiraSettings.Connection.ApiUrl = buildApiUrl(jiraSettings.Connection.Domain);
-  console.log(jiraSettings.Connection.ApiUrl);
   
   if (config.legacy) {
     const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
     const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
     const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
+    const StartDate: Date = config.Criteria['Start Date'] || null;
+    const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
     const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an array
 
-    const criteria = { Projects, IssueTypes, Filters, };
+    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
     jiraSettings.Criteria = criteria;
   } else {
     const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
     const IssueTypes: string[] = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
     const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
+    const StartDate: Date = config.Criteria['Start Date'] || null;
+    const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertToArray(config.Criteria.Filters);
     const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : '';
 
-    const criteria = { Projects, IssueTypes, Filters, }
+    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
     jiraSettings.Criteria = criteria;
   }
 

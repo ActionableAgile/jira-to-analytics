@@ -82,7 +82,7 @@ const run = async function(cliArgs: any): Promise<void> {
     try {
       await writeFile(outputPath, data);
     } catch (e) {
-      console.log(`Error writing jira data to ${outputPath}`);
+      log(`Error writing jira data to ${outputPath}`);
     }
 
     const end = new Date().getTime();
@@ -90,7 +90,7 @@ const run = async function(cliArgs: any): Promise<void> {
     
     return;
   } catch (e) {
-    console.log(`Error extracting JIRA Items ${e}`);
+    log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
 };
@@ -99,8 +99,8 @@ const run = async function(cliArgs: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
-    console.log(`Error running ActionableAgile Command Line Tool`);
-    console.log(e);
+    log(`Error running ActionableAgile Command Line Tool`);
+    log(e);
   }
 }(getArgs()));
 

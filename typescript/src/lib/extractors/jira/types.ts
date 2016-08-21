@@ -37,6 +37,9 @@ interface IJiraSettings {
     Projects?: Array<string>,
     IssueTypes?: Array<string>,
     Filters?: Array<string>,
+    StartDate?: Date,
+    EndDate?: Date,
+    JQL: string,
   };
   Workflow?: {};
   Attributes?: {};

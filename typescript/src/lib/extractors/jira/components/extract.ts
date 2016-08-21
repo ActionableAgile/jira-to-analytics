@@ -8,12 +8,15 @@ const extractBatch = async function(
   filters: string[], 
   workflowKeyVal: {}, 
   attributesKeyVal: {}, 
+  startDate,
+  endDate,
+  customJql,
   username?: string, 
   password?: string, 
   startIndex: number = 0, 
   batchSize: number = 1) {
   
-  const issues = await getIssues(apiUrl, projects, issueTypes, filters, startIndex, batchSize, username, password);
+  const issues = await getIssues(apiUrl, projects, issueTypes, filters, workflowKeyVal, startDate, endDate, customJql, startIndex, batchSize, username, password);
   return issues.map(issue => convertIssueToWorkItem(issue, workflowKeyVal, attributesKeyVal));
 };
 
@@ -21,8 +24,12 @@ const extractAll = async function(
   apiUrl, 
   projects, 
   issueTypes, 
-  filters, workflow, 
-  attributes, 
+  filters, 
+  workflow, 
+  attributes,
+  startDate, 
+  endDate, 
+  customJql,
   batchSize: number = 25, 
   hook: Function = () => {}, 
   username, 
@@ -33,6 +40,10 @@ const extractAll = async function(
     projects, 
     issueTypes, 
     filters, 
+    workflow, 
+    startDate,
+    endDate,
+    customJql,
     0, 
     1, 
     username, 
@@ -54,6 +65,9 @@ const extractAll = async function(
       filters, 
       workflow, 
       attributes,
+      startDate,
+      endDate,
+      customJql,
       username, 
       password, 
       start, 

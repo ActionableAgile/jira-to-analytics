@@ -14,6 +14,7 @@ Criteria:
         - Bug
     Filters: 
         - HCPUB Desktop - Closed Major+ Bugs
+    Start Date: 2001-01-23
 
 # Describe the workflow. Each step can be mapped to either a single JIRA
 # status, or a list of statuses that will be treated as equivalent
