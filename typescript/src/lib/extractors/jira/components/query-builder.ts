@@ -40,16 +40,17 @@ const buildJiraSearchQueryUrl = (
   //   }
   // }
 
-  // exclude all stories closed after ${date}
-  const dateToExcludeStoriesBefore = startDate;
-  if (dateToExcludeStoriesBefore) {
+  if (startDate && endDate) {
+    const dateToExcludeStoriesBefore = startDate;
+    const dateToExcludeStoriesAfter = endDate;
+    const dateFilterQuery = `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved) OR (resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
+    clauses.push(dateFilterQuery);
+  } else if (startDate) {
+    const dateToExcludeStoriesBefore = startDate;
     const excludeAllStoriesClosedAfterDateClause =  `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
     clauses.push(excludeAllStoriesClosedAfterDateClause);
-  }
-
-    // exclude all stories closed after ${date}
-  const dateToExcludeStoriesAfter = endDate;
-  if (dateToExcludeStoriesAfter) {
+  } else if (endDate) {
+    const dateToExcludeStoriesAfter = endDate;
     const excludeAllStoriesClosedBeforeDateClause =  `(resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
     clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }

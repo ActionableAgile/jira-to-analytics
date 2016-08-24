@@ -520,15 +520,19 @@ var buildJiraSearchQueryUrl = function (apiRootUrl, projects, issueTypes, filter
     //     clauses.push(startFilterClause);
     //   }
     // }
-    // exclude all stories closed after ${date}
-    var dateToExcludeStoriesBefore = startDate;
-    if (dateToExcludeStoriesBefore) {
+    if (startDate && endDate) {
+        var dateToExcludeStoriesBefore = startDate;
+        var dateToExcludeStoriesAfter = endDate;
+        var dateFilterQuery = "(resolutionDate >= \"" + formatDate(dateToExcludeStoriesBefore) + "\" OR resolution = Unresolved) OR (resolutionDate <= \"" + formatDate(dateToExcludeStoriesAfter) + "\")";
+        clauses.push(dateFilterQuery);
+    }
+    else if (startDate) {
+        var dateToExcludeStoriesBefore = startDate;
         var excludeAllStoriesClosedAfterDateClause = "(resolutionDate >= \"" + formatDate(dateToExcludeStoriesBefore) + "\" OR resolution = Unresolved)";
         clauses.push(excludeAllStoriesClosedAfterDateClause);
     }
-    // exclude all stories closed after ${date}
-    var dateToExcludeStoriesAfter = endDate;
-    if (dateToExcludeStoriesAfter) {
+    else if (endDate) {
+        var dateToExcludeStoriesAfter = endDate;
         var excludeAllStoriesClosedBeforeDateClause = "(resolutionDate <= \"" + formatDate(dateToExcludeStoriesAfter) + "\")";
         clauses.push(excludeAllStoriesClosedBeforeDateClause);
     }
