@@ -81,6 +81,7 @@ The Criteria Section of the config file is simply named "Criteria" (without the 
 - 	Types: a list of the names of the Jira issuetypes you want to extract
 - 	Filters: a list of the names of the filters you want to apply
 - 	Start Date: a date filter in the format YYYY-MM-DD which will exclude issues with resolved dates before the provided date (optional)
+- 	End Date: a date filter in the format YYYY-MM-DD which will include issues with resolved dates before the provided date (optional)
 
 An example of what this section might look like would be:
 
@@ -96,6 +97,7 @@ Criteria:
 		- Epic
 		- User Story
 	Start Date: 2001-01-23
+	End Date: 2019-12-30
 	    
 ```
 
@@ -180,7 +182,7 @@ If the output file is a CSV file, it can be loaded directly into the ActionableA
 
 
 ### Version 
-0.1.0 
+1.1.1 
 
 
 
