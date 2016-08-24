@@ -80,7 +80,7 @@ The Criteria Section of the config file is simply named "Criteria" (without the 
 - 	Projects: a list of the names of the Jira Projects you are querying
 - 	Types: a list of the names of the Jira issuetypes you want to extract
 - 	Filters: a list of the names of the filters you want to apply
-- 	Start Date: a date filter in the format YYYY-MM-DD which will exclude stories with a resolved date before the provided date (optional)
+- 	Start Date: a date filter in the format YYYY-MM-DD which will exclude issues with resolved dates before the provided date (optional)
 
 An example of what this section might look like would be:
 
