@@ -4,6 +4,6 @@ interface IWorkItem {
   Name: string;
   Type: string;
   Attributes: any;
-  toCSV();
+  toCSV(string?);
   toSerializedArray();
 };

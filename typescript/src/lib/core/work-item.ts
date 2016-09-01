@@ -12,10 +12,11 @@ class WorkItem implements IWorkItem {
     this.Attributes = attributes;
   }
 
-  toCSV(): string {
+  toCSV(domainUrl: string): string {
     let s = '';
     s += `${this.Id},`;
-    s += `,${(WorkItem.cleanString(this.Name))}`;
+    s += `${domainUrl}/browse/${this.Id},`
+    s += `${(WorkItem.cleanString(this.Name))}`;
     this.StageDates.forEach(stageDate => s += `,${stageDate}`);
     s += `,${this.Type}`;
 

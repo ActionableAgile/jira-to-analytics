@@ -38,7 +38,7 @@ class JiraExtractor {
   };
 
   toCSV(workItems, withHeader?) {
-    return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
+    return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, this.config.Connection.Domain, withHeader);
   };
 
   toSerializedArray(workItems, withHeader?) {

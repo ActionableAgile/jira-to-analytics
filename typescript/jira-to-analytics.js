@@ -152,11 +152,12 @@ var WorkItem = (function () {
         this.Type = type;
         this.Attributes = attributes;
     }
-    WorkItem.prototype.toCSV = function () {
+    WorkItem.prototype.toCSV = function (domainUrl) {
         var _this = this;
         var s = '';
         s += this.Id + ",";
-        s += "," + (WorkItem.cleanString(this.Name));
+        s += domainUrl + "/browse/" + this.Id + ",";
+        s += "" + (WorkItem.cleanString(this.Name));
         this.StageDates.forEach(function (stageDate) { return s += "," + stageDate; });
         s += "," + this.Type;
         var attributeKeys = Object.keys(this.Attributes);
@@ -249,10 +250,10 @@ exports.parseAttributeArray = parseAttributeArray;
 
 },{}],6:[function(require,module,exports){
 "use strict";
-var toCSV = function (workItems, stages, attributes, withHeader) {
+var toCSV = function (workItems, stages, attributes, domainUrl, withHeader) {
     if (withHeader === void 0) { withHeader = true; }
     var header = "ID,Link,Name," + stages.join(',') + ",Type," + Object.keys(attributes).join(',');
-    var body = workItems.map(function (item) { return item.toCSV(); }).reduce(function (res, cur) { return ((res + cur) + "\n"); }, '');
+    var body = workItems.map(function (item) { return item.toCSV(domainUrl); }).reduce(function (res, cur) { return ((res + cur) + "\n"); }, '');
     var csv = header + "\n" + body;
     return csv;
 };
@@ -801,7 +802,7 @@ var JiraExtractor = (function () {
     };
     ;
     JiraExtractor.prototype.toCSV = function (workItems, withHeader) {
-        return exporter_1.toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
+        return exporter_1.toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, this.config.Connection.Domain, withHeader);
     };
     ;
     JiraExtractor.prototype.toSerializedArray = function (workItems, withHeader) {

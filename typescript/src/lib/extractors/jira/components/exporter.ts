@@ -1,6 +1,6 @@
-const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, withHeader: boolean = true): string => {
+const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, domainUrl: string, withHeader: boolean = true): string => {
   const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
-  const body = workItems.map(item => item.toCSV()).reduce((res, cur) => `${res + cur}\n`, '');
+  const body = workItems.map(item => item.toCSV(domainUrl)).reduce((res, cur) => `${res + cur}\n`, '');
   const csv: string = `${header}\n${body}`;
   return csv;
 };
