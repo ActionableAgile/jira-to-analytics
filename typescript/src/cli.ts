@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { JiraExtractor } from './main';
+import { JiraExtractor, LeanKitExtractor } from './main';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
@@ -33,6 +33,37 @@ const writeFile = (filePath: string, data: any) =>
   });
 
 const run = async function(cliArgs: any): Promise<void> {
+
+  if (cliArgs.leankit) {
+    const leankitConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
+    const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
+    const outputType: string = outputPath.split('.')[1].toUpperCase();
+    if (outputType !== 'CSV') {
+      throw new Error('Only CSV is supported for file output for the LeanKit beta');
+    }
+    // Parse YAML settings
+    let settings: any  = {};
+    try {
+      const yamlConfig = safeLoad(fs.readFileSync(leankitConfigPath, 'utf8'));
+      settings = yamlConfig;
+    } catch (e) {
+      console.log(`Error parsing settings ${e}`);
+      throw e;
+    }
+    log('Beginning extraction process');
+
+    const leankitExtractor = new LeanKitExtractor(settings);
+    const output: string = await leankitExtractor.driver();
+    try {
+      await writeFile(outputPath, output);
+    } catch (e) {
+      log(`Error writing jira data to ${outputPath}`);
+    }
+    log(`Done. Results written to ${outputPath}`);
+    return;
+  }
+
+
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;

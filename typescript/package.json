@@ -48,6 +48,7 @@
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
     "leankit-client": "^1.1.2",
+    "moment": "^2.14.1",
     "progress": "^1.1.8",
     "yargs": "^4.7.1"
   }

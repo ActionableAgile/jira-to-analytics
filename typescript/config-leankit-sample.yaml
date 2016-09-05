@@ -1,0 +1,30 @@
+# How to connect to JIRA?
+Connection:
+    Domain: https://mydomain.leankit.com
+    Username: 
+    Password: 
+
+# What to search for?
+Criteria:
+    Projects: 
+        - Welcome To LeanKit! # Project name
+    IssueTypes: # Which issue types to include
+        - New Feature
+        - Improvement
+        - LeanKit Information
+        - Documentation
+        - Defect
+        - Subtask
+        - Risk / Issue
+
+# Describe the workflow. Each step can be mapped to either a single
+# status, or a list of statuses that will be treated as equivalent
+Workflow:
+    Backlog: 
+        - Future Work
+    Doing Now: 
+        - Doing Now
+    Recently Finished: 
+        - Recently Finished
+    Archive: 
+        - Ready to Archive
