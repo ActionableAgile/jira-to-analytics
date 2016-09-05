@@ -32,6 +32,10 @@ To run the JIRA extraction process, run ```node jira-to-analytics```
 
 ```-l``` or ```--legacy``` will enable the old version of the YAML (from the GO version of the application). 
 
+```--leankit``` will switch the extract source to LeanKit.
+
+```--leankit --setup``` will start a smart wizard to generate the LeanKit configuation file
+
 
 
 
@@ -167,6 +171,15 @@ Attributes:
 These fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
 
 **NOTE**:  None of the fields in this section is required--in fact, this section as a whole is optional.
+
+### LeanKit Automatic Configuration
+
+Run the tool with the --leankit and --setup flags
+
+Example ``` node analytics.js --leankit --setup ```
+
+This will begin a smart wizard. Answer the prompted questions and the configuration will be automatically created for you. The generated config file will be named ```config.yaml```
+
 
 ## Extraction Procedure ##
 The program will read in the properly formatted config file (see The Config File section above) and attempt to connect to Jira using the url and authentication parameters specified.  When a connection is established, the software will extract data using Jira’s REST API according to the parameters specified in the config file.  REST calls are “batched” so as to stay under Jira’s “maxResult” size limit as well as to minimize the chances of server timeout errors when retrieving large datasets.  If a non-fatal error is encountered, the extraction program will retry up to five time before terminating.  The program ignores any Jira issue types that have workflow stages not specified in the config and it handles Jira issues that have moved backward and forward through the workflow.
