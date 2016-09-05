@@ -1,8 +1,9 @@
 import * as fs from 'fs';
 import { JiraExtractor, LeanKitExtractor } from './main';
-import { safeLoad } from 'js-yaml';
+import { safeLoad, safeDump } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
+import { setup } from './lib/cli/leankit-cli';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
@@ -35,6 +36,21 @@ const writeFile = (filePath: string, data: any) =>
 const run = async function(cliArgs: any): Promise<void> {
 
   if (cliArgs.leankit) {
+
+    if (cliArgs.setup) {
+      console.log('Welcome to the LeanKit Extraction Tool Setup');
+      const settingsObject = await setup();
+      try {
+        const output = safeDump(settingsObject);
+        await writeFile(defaultYamlPath, output);
+        console.log(`LeanKit Extraction Tool Setup is complete.`);
+        console.log(`Saved configuration to ${defaultYamlPath}`)
+        console.log('Please rerun the tool without the setup flag to extract');
+        return;
+      } catch (e) {
+        log(`Error writing leankit config data to ${defaultYamlPath}`);
+      }
+    }
     const leankitConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
     const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
     const outputType: string = outputPath.split('.')[1].toUpperCase();

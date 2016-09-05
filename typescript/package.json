@@ -45,11 +45,13 @@
   },
   "dependencies": {
     "core-js": "^2.4.0",
+    "inquirer": "^1.1.3",
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
     "leankit-client": "^1.1.2",
     "moment": "^2.14.1",
     "progress": "^1.1.8",
+    "try-thread-sleep": "^1.0.0",
     "yargs": "^4.7.1"
   }
 }

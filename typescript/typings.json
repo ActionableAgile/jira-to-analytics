@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "chai": "registry:npm/chai#3.5.0+20160415060238",
+    "inquirer": "registry:npm/inquirer#1.0.0+20160723033700",
     "nock": "registry:npm/nock#0.7.0+20160211003958",
     "yargs": "registry:npm/yargs#3.31.0+20160316010718"
   }
