@@ -1,6 +1,6 @@
 {
   "name": "actionableagileimporttool",
-  "version": "1.1.1",
+  "version": "1.2.1",
   "description": "Tool to extract data from JIRA into a format understood by the ActionableAgile metrics tool",
   "main": "dist/main.js",
   "typings": "dist/main",
@@ -14,8 +14,9 @@
     "test": "mocha src/test --recursive --compilers ts:ts-node/register --timeout 10000",
     "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/",
-    "bundle-standalone": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
-    "build-release": "npm run bundle-standalone"
+    "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
+
+    "build-release": "npm run build-bundle"
   },
   "keywords": [
     "typescript",
