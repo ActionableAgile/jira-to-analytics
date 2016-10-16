@@ -1,5 +1,5 @@
 import { toCSV, toSerializedArray } from './components/exporter';
-import { getIssues, getMetadata, testConnection, getProjects, getWorkflows } from './components/jira-adapter';
+// import { getIssues, getMetadata, testConnection, getProjects, getWorkflows } from './components/jira-adapter';
 import { extractBatchFromConfig, extractAllFromConfig } from './components/extract';
 import { importConfig } from './components/import-config';
 
@@ -9,6 +9,8 @@ class JiraExtractor {
 
   constructor(config?: IJiraSettings) {
     this.config = config;
+
+    console.log(config);
   };
 
   setConfig(c: IJiraSettings) {
@@ -45,11 +47,11 @@ class JiraExtractor {
     return toSerializedArray(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
   };
 
-  testConnection = testConnection;
-  getProjects = getProjects;
-  getWorkflows = getWorkflows;
-  getIssues = getIssues;
-  getMetadata = getMetadata;
+  // testConnection = testConnection;
+  // getProjects = getProjects;
+  // getWorkflows = getWorkflows;
+  // getIssues = getIssues;
+  // getMetadata = getMetadata;
 };
 
 export {
