@@ -32,6 +32,7 @@ interface IJiraSettings {
     Username?: string,
     Password?: string,
     ApiUrl?: string,
+    OAuth?: any,
   };
   Criteria?: {
     Projects?: Array<string>,

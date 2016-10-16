@@ -1,11 +1,26 @@
 const restApiPath = '/rest/api/latest';
 const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
+const buildOAuth = (config) => {
+  // const consumer_key = config['Consumer Key']
+  // const private_key = config['Private Key'];
+  // const token = config['Token'];
+  // const token_secret = config['Token Secret'];
+  // const signature_method = 'RSA-SHA1';
+  return {
+    consumer_key: config['Consumer Key'],
+    private_key: config['Private Key'],
+    token: config['Token'],
+    token_secret: config['Token Secret'],
+    signature_method: 'RSA-SHA1',
+  };
+};
 
 const convertYamlToJiraSettings = (config): IJiraSettings => {
   const jiraSettings: IJiraSettings = {};
 
   const connection = config.Connection;
   jiraSettings.Connection = connection;
+  jiraSettings.Connection.OAuth = buildOAuth(jiraSettings.Connection);
   jiraSettings.Connection.ApiUrl = buildApiUrl(jiraSettings.Connection.Domain);
   
   if (config.legacy) {
