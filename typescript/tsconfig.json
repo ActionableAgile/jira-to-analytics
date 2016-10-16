@@ -2,7 +2,7 @@
   "version": "0.3.0",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es5",
+    "target": "es2015",
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
@@ -14,9 +14,16 @@
     "removeComments": false,
     "preserveConstEnums": true,
     "noImplicitReturns": true,
-    "suppressImplicitAnyIndexErrors": true
+    "suppressImplicitAnyIndexErrors": true,
+    "types": ["node"],
+    "lib": [
+      "es7",
+      "dom"
+    ]
   },
   "exclude": [
+    "src/test",
+    "typings",
     "typings/main.d.ts",
     "typings/main",
     "node_modules",
