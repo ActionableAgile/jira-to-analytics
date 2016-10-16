@@ -42,11 +42,7 @@ const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
 const getJsonFromUrl = (url: string, headers: Headers): Promise<any> => {
   return fetch(url, { headers })
     .then(status)
-    .then(convertToJson)
-    .then(x => {
-      console.log(x);
-      return x;
-    });
+    .then(convertToJson);
 };
 
 export {
