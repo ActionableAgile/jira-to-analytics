@@ -16,7 +16,7 @@
     "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/",
     "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
-
+    "build-executable": "nexe -i dist/cli.js -o jira.exe --flags",
     "build-release": "npm run build-bundle"
   },
   "keywords": [
