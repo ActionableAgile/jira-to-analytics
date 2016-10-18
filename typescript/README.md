@@ -79,8 +79,9 @@ Connection:
 #### OAuth Support
 OAuth is now supported. You must get the access token and access token secret on your own by completing the OAuth authorization. 
 
-This application's OAuth configutation requires four inputs:
-Consumer Key, Private Key, Token, and Token Secret:  
+This application's OAuth configutation requires five inputs:
+Domain, Consumer Key, Private Key, Token, and Token Secret:  
+**Domain**: The url to the domain where your Jira instance is hosted  
 **Consumer Key**: This is the user-specified application key inside JIRA  
 **Private Key**: Your private key for the JIRA OAuth  
 **Token**: OAuth Access Token  
