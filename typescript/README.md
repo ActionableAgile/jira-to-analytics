@@ -76,7 +76,30 @@ Connection:
 	Password: MyPassword  
 ```
 
-**NOTE**:  We only support Basic Authentication with Jira at this time
+#### OAuth Support
+OAuth is now supported. You must get the access token and access token secret on your own by completing the OAuth authorization. 
+
+This application's OAuth configutation requires four inputs:
+Consumer Key, Private Key, Token, and Token Secret:  
+**Consumer Key**: This is the user-specified application key inside JIRA  
+**Private Key**: Your private key for the JIRA OAuth  
+**Token**: OAuth Access Token  
+**Token Secret**: OAuth Access Token Secret
+
+```
+Connection:
+    Domain: https://myjiradomain.com
+    Consumer Key: test
+    Private Key: |
+        -----BEGIN RSA PRIVATE KEY-----
+        SWbWRCwrXhDH3JLDpiOdsW1pp6jkaUHxyIydU5c4Hx0cYm4hSrpuOkR+QqUbnRgA
+        MIICXQIBAAKBgQDL7BKtMeBJJfafe0enaTZi1IlMyTMxWutaYVZ0LPf4TKvOqEr4
+        pbmeofMt+/4ddyRQMj91AkBXFGD/me5Fp1R0glMPVE/KnSHo5eAL9n9506n6I4V/
+        jtSDHyFMkwkKvjikGgvaXJ5kjwjKweS/XYdwrq6E+sik
+        -----END RSA PRIVATE KEY-----
+    Token: z9zRCS3o93AiacvbnVSGwI1HkFJbAzLU
+    Token Secret: 2pRmA3X85GFvRgZEtOkOEM0uWP3GOTHC
+````
 
 ### The Criteria Section ###
 The Criteria Section of the config file is simply named "Criteria" (without the quotes) and contains optional Jira attributes that can use to control your data set. Each line in this section contains the name of the Jira attribute you want in your data followed by a colon (:) followed by its corresponding value in your Jira instance.  The fields in this section that we support are:
