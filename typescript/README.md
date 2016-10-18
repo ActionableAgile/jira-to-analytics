@@ -89,7 +89,7 @@ Consumer Key, Private Key, Token, and Token Secret:
 ```
 Connection:
     Domain: https://myjiradomain.com
-    Consumer Key: test
+    Consumer Key: applicationkey
     Private Key: |
         -----BEGIN RSA PRIVATE KEY-----
         SWbWRCwrXhDH3JLDpiOdsW1pp6jkaUHxyIydU5c4Hx0cYm4hSrpuOkR+QqUbnRgA
