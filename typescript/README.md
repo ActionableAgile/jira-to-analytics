@@ -22,6 +22,7 @@ Download jira_to_analytics.js and config.yaml from the releases page on github (
 ## Using the Application
 
 There are two options for running this app:
+
 1. You an run it as a standalone executable using the "jira-to-analytics.exe" file; or,
 2. Run it as a node app using the "jira-to-analytics.js" file (e.g., ```node jira-to-analytics```)
 
