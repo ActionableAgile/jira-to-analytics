@@ -27,6 +27,7 @@ There are two options for running this app:
 2. Run it as a node app using the "jira-to-analytics.js" file (e.g., ```node jira-to-analytics```)
 
 > NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
+
 ##### Configurable settings/flags
 These flags are the same whether you are using the standalone executable or node form of the extraction tool.
 
