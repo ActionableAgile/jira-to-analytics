@@ -22,12 +22,9 @@
     ]
   },
   "exclude": [
-    "src/test",
-    "typings",
-    "typings/main.d.ts",
-    "typings/main",
     "node_modules",
-    "dist"
+    "dist",
+    "test"
   ],
   "compileOnSave": false,
   "buildOnSave": false,

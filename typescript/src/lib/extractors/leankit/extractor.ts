@@ -208,9 +208,8 @@ class LeanKitExtractor {
 
   driver = async function() {
     const { workItems, boardUrl } = await this.run(this.config);
-    const x = toCSV(workItems, Object.keys(this.config.Workflow), {}, boardUrl);
-    console.log(x);
-    return x;
+    const csvString = toCSV(workItems, Object.keys(this.config.Workflow), {}, boardUrl);
+    return csvString;
   }
 };
 

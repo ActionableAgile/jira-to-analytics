@@ -1,9 +1,10 @@
 import * as fs from 'fs';
-import { JiraExtractor, LeanKitExtractor } from './main';
 import { safeLoad, safeDump } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
+
 import { setup } from './lib/cli/leankit-cli';
+import { JiraExtractor, LeanKitExtractor } from './main';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
@@ -14,19 +15,17 @@ const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remain
     total: 100,
 });
 
-const getArgs = () => {
-  return argv;
-};
+const getArgs = () => argv;
 
-const log = (data: any) => {
-  console.log(data)
+const log = (main?: any, ...additionalParams: any[]) => {
+  console.log(main, ...additionalParams)
 };
 
 const writeFile = (filePath: string, data: any) =>
   new Promise((accept, reject) => {
     fs.writeFile(filePath, data, (err => {
       if (err) {
-        console.log(`Error writing file to ${filePath}`);
+        log(`Error writing file to ${filePath}`);
         return reject(err);
       }
       accept();
@@ -38,14 +37,14 @@ const run = async function(cliArgs: any): Promise<void> {
   if (cliArgs.leankit) {
 
     if (cliArgs.setup) {
-      console.log('Welcome to the LeanKit Extraction Tool Setup');
+      log('Welcome to the LeanKit Extraction Tool Setup');
       const settingsObject = await setup();
       try {
         const output = safeDump(settingsObject);
         await writeFile(defaultYamlPath, output);
-        console.log(`LeanKit Extraction Tool Setup is complete.`);
-        console.log(`Saved configuration to ${defaultYamlPath}`)
-        console.log('Please rerun the tool without the setup flag to extract');
+        log(`LeanKit Extraction Tool Setup is complete.`);
+        log(`Saved configuration to ${defaultYamlPath}`)
+        log('Please rerun the tool without the setup flag to extract');
         return;
       } catch (e) {
         log(`Error writing leankit config data to ${defaultYamlPath}`);
@@ -63,7 +62,7 @@ const run = async function(cliArgs: any): Promise<void> {
       const yamlConfig = safeLoad(fs.readFileSync(leankitConfigPath, 'utf8'));
       settings = yamlConfig;
     } catch (e) {
-      console.log(`Error parsing settings ${e}`);
+      log(`Error parsing settings ${e}`);
       throw e;
     }
     log('Beginning extraction process');
@@ -96,7 +95,7 @@ const run = async function(cliArgs: any): Promise<void> {
     settings = yamlConfig;
     settings.legacy = isLegacyYaml;
   } catch (e) {
-    console.log(`Error parsing settings ${e}`);
+    log(`Error parsing settings ${e}`);
     throw e;
   }
   
