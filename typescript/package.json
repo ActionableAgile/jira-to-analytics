@@ -15,7 +15,9 @@
     "outDir": "dist/",
     "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
     "build-executable": "nexe -i dist/cli.js -o jira.exe --flags",
-    "build-release": "npm run build-bundle"
+    "build-release": "npm run build-bundle",
+    "test:improved": "mocha --opts mocha.opts",
+    "test:improved:auto": "mocha --opts mocha.opts --watch"
   },
   "keywords": [
     "typescript",
@@ -35,6 +37,8 @@
   "author": "johnrjj@gmail.com",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
     "browserify": "^13.0.1",
     "chai": "^3.5.0",
     "mocha": "^3.1.2",
