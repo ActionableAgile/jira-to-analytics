@@ -50,12 +50,10 @@ class TrelloExtractor {
     boards.forEach(board => console.log(`Board:\n\tName: ${board.name}\n\tID: ${board.id}`));
 
     const boardCards = await getBoardCards(boardId, this.baseUrl, { key: this.key, token: this.token });
-
     // Attach which list the action happened to to the action object (for every action in every card)...
     boardCards.forEach(card => {
-      card.actions = card.actions.map(applyListToAction);
+      card.actions = card.actions.map(appendListToAction);
     });
-
     boardCards.forEach(card => {
       // CARD context...
       // note, because we are using groupBy, you can't have an event in two different stage categories
@@ -81,7 +79,7 @@ class TrelloExtractor {
       const { uncategorized } = eventsByStageCategory;
       delete eventsByStageCategory['uncategorized'];
 
-      const defaults: ActionsGroupedByWorkflowCategories = {};
+      const defaults: ActionsByWorkflow = {};
       Object.keys(workflow).map(key => {
         defaults[key] = [];
       });
@@ -118,8 +116,8 @@ const convertCardToWorkItem = (card: Card): IWorkItem => {
   return new WorkItem(card.id, card['stagingDates'], card.name, '', {}, 'TRELLO');
 }
 
-const fillOutMissingCategoriesWithEmptyArraysAndSort = (eventsByStageCategory: ActionsGroupedByWorkflowCategories, completeWorkflow: Workflow) => {
-  const sortedEventsByStageCategory: ActionsGroupedByWorkflowCategories = {};
+const fillOutMissingCategoriesWithEmptyArraysAndSort = (eventsByStageCategory: ActionsByWorkflow, completeWorkflow: Workflow) => {
+  const sortedEventsByStageCategory: ActionsByWorkflow = {};
   Object.keys(completeWorkflow).forEach(stageCategory => {
     sortedEventsByStageCategory[stageCategory] = eventsByStageCategory[stageCategory] 
       ? eventsByStageCategory[stageCategory] 
@@ -168,7 +166,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   return stagingDates;
 };
 
-const applyListToAction = (action: Action) => {
+const appendListToAction = (action: Action) => {
   let list = null;
   if (action.type === 'updateCard') {
     if (action.data.list) {

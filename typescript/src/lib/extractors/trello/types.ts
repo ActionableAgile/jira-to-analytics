@@ -31,8 +31,8 @@ interface Workflow {
   [category: string]: Array<string>;
 }
 
-interface ActionsGroupedByWorkflowCategories {
-  [category: string]: Array<Action>;
+interface ActionsByWorkflow {
+  [workflowCategory: string]: Array<Action>;
 }
 
 interface Config {

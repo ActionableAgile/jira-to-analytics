@@ -19,7 +19,7 @@ const getBoardsFromAuthedUserUrl = async (baseUrl, options): Promise<Board[]> =>
   throw new Error('Key and Token not found on options')
 };
 
-// theres also  /1/boards/[board_id]/lists
+// theres also /1/boards/[board_id]/lists
 // https://developers.trello.com/advanced-reference/board#get-1-boards-board-id-cards
 // see which one is better...
 const getBoardInformation = async (boardId, baseUrl, options) => {
@@ -71,7 +71,6 @@ const getBoardHistory = async (boardId, baseUrl, options) => {
   }[] = await response.json();
   return boardHistory;
 };
-
 
 const addQueryParamsToUrl = (url: string, queryParamsObject: any): string => {
   const queryString: string = convertKeyValToQueryString(queryParamsObject);
