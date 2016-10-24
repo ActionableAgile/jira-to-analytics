@@ -18,7 +18,7 @@ class WorkItem implements IWorkItem {
   toCSV(domainUrl: string): string {
     let s = '';
     s += `${this.Id},`;
-    if (this.Source.toUpperCase() === 'LEANKIT') {
+    if (this.Source.toUpperCase() === 'LEANKIT' || this.Source.toUpperCase() === 'TRELLO') {
       s += `${domainUrl}/${this.Id},`
     } else { // it is JIRA
       s += `${domainUrl}/browse/${this.Id},`

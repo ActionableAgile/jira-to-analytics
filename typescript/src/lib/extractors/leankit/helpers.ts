@@ -138,7 +138,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
       return '';
     }
   });
-return stagingDates;
+  return stagingDates;
 };
 
 // const SampleLeanKitSettings: ILeanKitSettings = {
