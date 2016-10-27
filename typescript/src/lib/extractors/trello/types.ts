@@ -1,10 +1,10 @@
-interface Board {
+export interface Board {
   name: string;
   id: string;
   url: string;
 };
 
-interface Card {
+export interface Card {
   id: string;
   due: string;
   closed: boolean;
@@ -14,7 +14,7 @@ interface Card {
   actions: Array<Action>;
 };
 
-interface Action {
+export interface Action {
   id: string;
   idMemberCreator: string;
   data: any;
@@ -27,14 +27,14 @@ interface Action {
   }
 }
 
-interface Workflow {
+export interface Workflow {
   [category: string]: Array<string>;
 }
 
-interface ActionsByWorkflow {
+export interface ActionsByWorkflow {
   [workflowCategory: string]: Array<Action>;
 }
 
-interface Config {
+export interface Config {
     workflow: Workflow;
 }

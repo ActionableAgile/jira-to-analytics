@@ -1,4 +1,9 @@
 import 'isomorphic-fetch';
+import {
+  Board,
+  Card,
+} from './types';
+
 const API_VERSION = '1'
 
 const getBoardsFromAuthedUserUrl = async (baseUrl, options): Promise<Board[]> => {

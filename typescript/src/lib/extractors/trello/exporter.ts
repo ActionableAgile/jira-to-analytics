@@ -1,3 +1,5 @@
+import { IWorkItem } from '../../core/types'; 
+
 const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, domainUrl: string, withHeader: boolean = true): string => {
   const header = `ID,Link,Name,${stages.join(',')},Type`;
   const body = workItems.map(item => item.toCSV(domainUrl)).reduce((res, cur) => `${res + cur}\n`, '');

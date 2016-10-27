@@ -1,12 +1,21 @@
- import { groupBy } from 'ramda';
- import { WorkItem } from '../../core/work-item'; 
- import { toCSV } from './exporter';
- import { 
-   getBoardsFromAuthedUserUrl, 
-   getBoardInformation, 
-   getBoardHistory, 
-   getBoardCards 
-  } from './helpers';
+import { groupBy } from 'ramda';
+import { WorkItem } from '../../core/work-item'; 
+import { IWorkItem } from '../../core/types'; 
+import {
+  Workflow, 
+  ActionsByWorkflow,
+  Card,
+  Board,
+  Action,
+  Config,
+} from './types';
+import { toCSV } from './exporter';
+import { 
+  getBoardsFromAuthedUserUrl, 
+  getBoardInformation, 
+  getBoardHistory, 
+  getBoardCards 
+} from './helpers';
 
 class TrelloExtractor {
 
@@ -23,7 +32,7 @@ class TrelloExtractor {
     this.baseUrl = baseUrl || 'https://api.trello.com';
   }
 
-  public async getAuthedUsersProjects() {
+  public async getAuthedUsersProjects(): Promise<Board[]> {
     return await getBoardsFromAuthedUserUrl(this.baseUrl, { key: this.key, token: this.token });
   }
 
