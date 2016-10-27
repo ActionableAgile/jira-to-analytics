@@ -34,6 +34,8 @@ const writeFile = (filePath: string, data: any) =>
 
 const run = async function(cliArgs: any): Promise<void> {
 
+  log('ActionableAgile Extraction Tool Starting...');
+
   if (cliArgs.leankit) {
 
     if (cliArgs.setup) {
@@ -78,7 +80,7 @@ const run = async function(cliArgs: any): Promise<void> {
     return;
   }
 
-
+  log('JIRA Extractor configuring...');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
@@ -98,9 +100,17 @@ const run = async function(cliArgs: any): Promise<void> {
     log(`Error parsing settings ${e}`);
     throw e;
   }
-  
-  log('Beginning extraction process');
+  log('');
 
+  if (settings['Feature Flags']) {
+    log('Feature Flags detected:');
+    for (let featureName in settings['Feature Flags']) {
+      log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? 'on' : 'off'}`);
+    }
+    log('');
+  }
+
+  log('Beginning extraction process');
   // Progress bar setup
   const updateProgressHook = (bar => {
     bar.tick();

@@ -40,7 +40,7 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
     oauth);
 
   const totalJiras: number = metadata.total; 
-  const actualBatchSize = batchSize ? batchSize : totalJiras;
+  const actualBatchSize: number = batchSize ? batchSize : totalJiras;
   const totalBatches: number = Math.ceil(totalJiras / batchSize); 
 
   hook(0);
@@ -58,6 +58,14 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
   }
 
   hook(100);
+
+  if (config.FeatureFlags['MaskName']) {
+    console.log('Removing NAMES');
+    allWorkItems.forEach(workItem => {
+      delete workItem.Name;
+      workItem.Name = '';
+    });
+  } 
 
   return allWorkItems;
 };

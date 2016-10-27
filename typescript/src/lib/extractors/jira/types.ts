@@ -28,20 +28,23 @@ export interface IIssueList {
 // Internal Jira Extractor Settings Interface
 export interface IJiraSettings {
   Connection?: {
-    Domain?: string,
-    Username?: string,
-    Password?: string,
-    ApiUrl?: string,
-    OAuth?: any,
+    Domain?: string;
+    Username?: string;
+    Password?: string;
+    ApiUrl?: string;
+    OAuth?: any;
   };
   Criteria?: {
-    Projects?: Array<string>,
-    IssueTypes?: Array<string>,
-    Filters?: Array<string>,
-    StartDate?: Date,
-    EndDate?: Date,
-    JQL: string,
+    Projects?: Array<string>;
+    IssueTypes?: Array<string>;
+    Filters?: Array<string>;
+    StartDate?: Date;
+    EndDate?: Date;
+    JQL: string;
   };
   Workflow?: {};
   Attributes?: {};
+  FeatureFlags?: {
+    [index: string]: boolean;
+  };
 };
