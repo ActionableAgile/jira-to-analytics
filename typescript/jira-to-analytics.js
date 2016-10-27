@@ -894,7 +894,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 const exporter_1 = require('./components/exporter');
-// import { getIssues, getMetadata, testConnection, getProjects, getWorkflows } from './components/jira-adapter';
 const extract_1 = require('./components/extract');
 const import_config_1 = require('./components/import-config');
 class JiraExtractor {
