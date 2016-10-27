@@ -44,10 +44,13 @@ These flags are the same whether you are using the standalone executable or node
 
 
 
-For example, to run the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
+For example, to run the node version of the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
 
 ```node jira-to-analytics -i myconfig.yaml -l -o my.csv``` 
 
+Or as another example, to run the exe version of the tool without a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
+
+```jira-to-analytics.exe -i myconfig.yaml -o my.csv``` 
 
 
 ##Config File##
