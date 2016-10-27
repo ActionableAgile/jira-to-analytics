@@ -11,8 +11,6 @@ class JiraExtractor {
 
   constructor(config?: IJiraSettings) {
     this.config = config;
-
-    console.log(config);
   };
 
   setConfig(c: IJiraSettings) {
