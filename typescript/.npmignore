@@ -1,7 +1,10 @@
-src
-typings
+.gitignore
 jira-to-analytics.js
-typings.json
 tsconfig.json
-config.yaml
 tslint.json
+README.md
+config.yaml
+.DS_Store
+.vscode
+*.csv
+*.yaml

@@ -1,5 +1,6 @@
 import { getJsonFromUrl, getHeaders, getJsonFromUrlViaOauth } from '../../../core/http';
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
+import { IIssueList, IIssue } from '../types';
 
 const getIssues = async function(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username: string, password: string, oauth): Promise<IIssue[]> {
   const queryUrl: string = buildJiraSearchQueryUrl(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize);

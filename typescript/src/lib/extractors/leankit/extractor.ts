@@ -3,6 +3,7 @@ import * as clientfactory from 'leankit-client';
 import * as moment from 'moment';
 import { WorkItem } from '../../core/work-item';
 import { toCSV } from './exporter';
+import { ILeanKitSettings } from './types';
 import { 
   getBoards, 
   getBoardInformation, 

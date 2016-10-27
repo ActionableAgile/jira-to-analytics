@@ -1,4 +1,5 @@
 import { convertYamlToJiraSettings } from './yaml-converter';
+import { IJiraSettings } from '../types';
 
 const importConfig = (config: any, source: string): IJiraSettings => {
   switch (source.toUpperCase()) {
