@@ -37,6 +37,7 @@ const writeFile = (filePath, data) => new Promise((accept, reject) => {
 });
 const run = function (cliArgs) {
     return __awaiter(this, void 0, void 0, function* () {
+        log('ActionableAgile Extraction Tool Starting...');
         if (cliArgs.leankit) {
             if (cliArgs.setup) {
                 log('Welcome to the LeanKit Extraction Tool Setup');
@@ -81,6 +82,7 @@ const run = function (cliArgs) {
             log(`Done. Results written to ${outputPath}`);
             return;
         }
+        log('JIRA Extractor configuring...');
         // Parse CLI settings
         const jiraConfigPath = cliArgs.i ? cliArgs.i : defaultYamlPath;
         const isLegacyYaml = (cliArgs.l || cliArgs.legacy) ? true : false;
@@ -99,6 +101,14 @@ const run = function (cliArgs) {
         catch (e) {
             log(`Error parsing settings ${e}`);
             throw e;
+        }
+        log('');
+        if (settings['Feature Flags']) {
+            log('Feature Flags detected:');
+            for (let featureName in settings['Feature Flags']) {
+                log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? 'on' : 'off'}`);
+            }
+            log('');
         }
         log('Beginning extraction process');
         // Progress bar setup
@@ -495,6 +505,13 @@ const extractAllFromConfig = function (config, batchSize = 25, hook = () => { })
             hook(Math.max(actualBatchSize / totalJiras) * 100);
         }
         hook(100);
+        if (config.FeatureFlags['MaskName']) {
+            console.log('Removing NAMES');
+            allWorkItems.forEach(workItem => {
+                delete workItem.Name;
+                workItem.Name = '';
+            });
+        }
         return allWorkItems;
     });
 };
@@ -535,12 +552,13 @@ const importConfig = (config, source) => {
     switch (source.toUpperCase()) {
         case 'YAML':
             const parsedSettings = yaml_converter_1.convertYamlToJiraSettings(config);
-            const { Connection, Attributes, Criteria, Workflow } = parsedSettings;
+            const { Connection, Attributes, Criteria, Workflow, FeatureFlags } = parsedSettings;
             const jiraSettings = {
                 Connection,
                 Attributes,
                 Criteria,
                 Workflow,
+                FeatureFlags,
             };
             return jiraSettings;
         default:
@@ -815,11 +833,6 @@ exports.convertIssueToWorkItem = convertIssueToWorkItem;
 const restApiPath = '/rest/api/latest';
 const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
 const buildOAuth = (config) => {
-    // const consumer_key = config['Consumer Key']
-    // const private_key = config['Private Key'];
-    // const token = config['Token'];
-    // const token_secret = config['Token Secret'];
-    // const signature_method = 'RSA-SHA1';
     return {
         consumer_key: config['Consumer Key'],
         private_key: config['Private Key'],
@@ -862,6 +875,8 @@ const convertYamlToJiraSettings = (config) => {
     jiraSettings.Workflow = workflow;
     const attributes = config.Attributes;
     jiraSettings.Attributes = attributes;
+    const featureFlags = config['Feature Flags'];
+    jiraSettings.FeatureFlags = featureFlags;
     return jiraSettings;
 };
 exports.convertYamlToJiraSettings = convertYamlToJiraSettings;
@@ -912,7 +927,6 @@ class JiraExtractor {
             });
         };
         this.config = config;
-        console.log(config);
     }
     ;
     setConfig(c) {

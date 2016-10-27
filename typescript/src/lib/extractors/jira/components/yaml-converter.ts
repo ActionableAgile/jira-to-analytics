@@ -3,11 +3,6 @@ import { IJiraSettings} from '../types';
 const restApiPath = '/rest/api/latest';
 const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
 const buildOAuth = (config) => {
-  // const consumer_key = config['Consumer Key']
-  // const private_key = config['Private Key'];
-  // const token = config['Token'];
-  // const token_secret = config['Token Secret'];
-  // const signature_method = 'RSA-SHA1';
   return {
     consumer_key: config['Consumer Key'],
     private_key: config['Private Key'],
@@ -56,6 +51,9 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
 
   const attributes = config.Attributes;
   jiraSettings.Attributes = attributes;
+
+  const featureFlags = config['Feature Flags'];
+  jiraSettings.FeatureFlags = featureFlags;
 
   return jiraSettings;
 }
