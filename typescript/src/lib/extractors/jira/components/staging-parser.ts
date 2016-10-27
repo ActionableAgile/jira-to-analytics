@@ -1,3 +1,5 @@
+import { IIssueList, IIssue } from '../types';
+
 const getStagingDates = (issue: IIssue, workflow): string[] => {
 
   // get this out of here, yaml schema shouldnt be coupled to business logic

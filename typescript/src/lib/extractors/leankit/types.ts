@@ -1,5 +1,5 @@
 // Internal Jira Extractor Settings Interface
-interface ILeanKitSettings {
+export interface ILeanKitSettings {
   Connection?: {
     Domain?: string,
     Username?: string,

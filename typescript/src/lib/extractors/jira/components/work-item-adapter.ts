@@ -2,6 +2,8 @@ import { WorkItem } from'../../../core/work-item';
 import { getStagingDates } from './staging-parser';
 import { getAttributes } from './attribute-parser';
 import { IWorkItem } from '../../../core/types';
+import { IIssue } from '../types';
+
 
 const convertIssuesToWorkItems = function(issues: IIssue[], workflow, attributes: any): IWorkItem[] {
   const workItems = issues.map(issue => convertIssueToWorkItem(issue, workflow, attributes)); 

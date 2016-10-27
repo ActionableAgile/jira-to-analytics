@@ -1,3 +1,5 @@
+import { IJiraSettings} from '../types';
+
 const restApiPath = '/rest/api/latest';
 const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
 const buildOAuth = (config) => {

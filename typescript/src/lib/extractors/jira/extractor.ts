@@ -2,6 +2,8 @@ import { toCSV, toSerializedArray } from './components/exporter';
 import { extractBatchFromConfig, extractAllFromConfig } from './components/extract';
 import { importConfig } from './components/import-config';
 import { IWorkItem } from '../../core/types';
+import { IJiraSettings} from './types';
+
 
 class JiraExtractor {
   config: IJiraSettings = null;

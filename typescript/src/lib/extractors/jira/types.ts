@@ -1,32 +1,32 @@
 // JIRA REST API Interfaces (Mappings)
-interface IItem {
+export interface IItem {
   field: string;
   toString: string;
 };
 
-interface IHistory {
+export interface IHistory {
   id: string;
   items: Array<IItem>;
   created: string;
 };
 
-interface IChangeLog {
+export interface IChangeLog {
   total: number;
   histories: Array<IHistory>;
 };
 
-interface IIssue {
+export interface IIssue {
   key: string;
   fields: any;
   changelog: IChangeLog;
 };
 
-interface IIssueList {
+export interface IIssueList {
   issues: Array<IIssue>;
 };
 
 // Internal Jira Extractor Settings Interface
-interface IJiraSettings {
+export interface IJiraSettings {
   Connection?: {
     Domain?: string,
     Username?: string,
