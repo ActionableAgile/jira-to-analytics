@@ -1,3 +1,4 @@
+import { IWorkItem } from './types';
 class WorkItem implements IWorkItem {
   Id: string;
   StageDates: Array<string>;

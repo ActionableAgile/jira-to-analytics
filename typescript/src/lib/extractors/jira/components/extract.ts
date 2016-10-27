@@ -1,5 +1,6 @@
 import { getIssues, getMetadata } from './jira-adapter';
 import { convertIssueToWorkItem } from './work-item-adapter';
+import { IWorkItem } from '../../../core/types';
 
 const extractBatchFromConfig = async function(config: IJiraSettings, startIndex: number = 0, batchSize: number = 0) {
     const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth}  = destructureConfig(config);
