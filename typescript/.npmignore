@@ -1,6 +1,8 @@
-src
+.gitignore
 jira-to-analytics.js
 tsconfig.json
+tslint.json
+README.md
 config.yaml
 .DS_Store
 .vscode

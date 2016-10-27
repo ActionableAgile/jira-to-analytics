@@ -1,6 +1,6 @@
 {
   "name": "actionableagileimporttool",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Tool to extract data from JIRA into a format understood by the ActionableAgile metrics tool",
   "main": "dist/main.js",
   "typings": "dist/main",
