@@ -43,7 +43,7 @@ const run = async function(cliArgs: any): Promise<void> {
     const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
     const outputType: string = outputPath.split('.')[1].toUpperCase();
     if (outputType !== 'CSV') {
-      throw new Error('Only CSV is supported for file output for the LeanKit beta');
+      throw new Error('Only CSV is supported for file output for the Trello beta');
     }
     // Parse YAML settings
     let settings: any  = {};
@@ -77,7 +77,7 @@ const run = async function(cliArgs: any): Promise<void> {
     try {
       await writeFile(outputPath, output);
     } catch (e) {
-      log(`Error writing jira data to ${outputPath}`);
+      log(`Error writing trello data to ${outputPath}`);
     }
     log(`Done. Results written to ${outputPath}`);
     return;
@@ -122,7 +122,7 @@ const run = async function(cliArgs: any): Promise<void> {
     try {
       await writeFile(outputPath, output);
     } catch (e) {
-      log(`Error writing jira data to ${outputPath}`);
+      log(`Error writing leankit data to ${outputPath}`);
     }
     log(`Done. Results written to ${outputPath}`);
     return;
