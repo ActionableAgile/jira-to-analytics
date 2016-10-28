@@ -7,7 +7,7 @@ import {
   Card,
   Board,
   Action,
-  Config,
+  TrelloConfig,
 } from './types';
 import { toCSV } from './exporter';
 import { 
@@ -19,17 +19,15 @@ import {
 
 class TrelloExtractor {
 
-  private config: any = null;
-  private workflow: Workflow = null;
+  private config: TrelloConfig = null;
   private key: string = null;
   private token: string = null;
-  private baseUrl: string = null;
+  private baseUrl: string = 'https://api.trello.com';
 
-  constructor(key: string, token: string, baseUrl?) {
-    this.config = mockConfig();
-    this.key = key;
-    this.token = token;
-    this.baseUrl = baseUrl || 'https://api.trello.com';
+  constructor(config: TrelloConfig) {
+    this.key = config.key;
+    this.token = config.token;
+    this.config = config;
   }
 
   public async getAuthedUsersProjects(): Promise<Board[]> {
@@ -56,7 +54,7 @@ class TrelloExtractor {
     const { workflow } = this.config;
 
     const boards = await getBoardsFromAuthedUserUrl(this.baseUrl, { key: this.key, token: this.token });
-    boards.forEach(board => console.log(`Board:\n\tName: ${board.name}\n\tID: ${board.id}`));
+    // boards.forEach(board => console.log(`Board:\n\tName: ${board.name}\n\tID: ${board.id}`));
 
     const boardCards = await getBoardCards(boardId, this.baseUrl, { key: this.key, token: this.token });
     // Attach which list the action happened to to the action object (for every action in every card)...
@@ -115,7 +113,6 @@ class TrelloExtractor {
 
     const workItems = boardCards.map(convertCardToWorkItem);
     const csvString = toCSV(workItems, Object.keys(workflow), {}, `${this.baseUrl}/c`);
-    console.log(csvString);
     return csvString;
   }
 }
@@ -123,7 +120,7 @@ class TrelloExtractor {
 // REFACTOR THIS....CODE SEMLL
 const convertCardToWorkItem = (card: Card): IWorkItem => {
   return new WorkItem(card.id, card['stagingDates'], card.name, '', {}, 'TRELLO');
-}
+};
 
 const fillOutMissingCategoriesWithEmptyArraysAndSort = (eventsByStageCategory: ActionsByWorkflow, completeWorkflow: Workflow) => {
   const sortedEventsByStageCategory: ActionsByWorkflow = {};
@@ -133,7 +130,7 @@ const fillOutMissingCategoriesWithEmptyArraysAndSort = (eventsByStageCategory: A
       : [];
   });
   return sortedEventsByStageCategory;
-}
+};
 
 const sortByWorklowCategory = (workflow) => (a, b) => {
   // in original order (straight from config...)
@@ -145,17 +142,7 @@ const sortByWorklowCategory = (workflow) => (a, b) => {
 
 const sortObject = (sortFn) => (o) => {
   return Object.keys(o).sort(sortFn).reduce((r, k) => (r[k] = o[k], r), {});
-}
-
-const mockConfig = (): Config => {
-  return {
-    workflow: {
-      Ready: ['Ready'],
-      'In Development': ['In Development'],
-      Closed: ['Done', 'CLOSED_IN_TRELLO_INTERNAL_SYSTEM']
-    }
-  }
-}
+};
 
 const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   let latestValidIssueDateSoFar: string = '';

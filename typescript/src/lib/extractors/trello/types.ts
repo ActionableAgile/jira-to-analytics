@@ -25,16 +25,19 @@ export interface Action {
     id: string;
     name: string;
   }
-}
+};
 
 export interface Workflow {
   [category: string]: Array<string>;
-}
+};
 
 export interface ActionsByWorkflow {
   [workflowCategory: string]: Array<Action>;
-}
+};
 
-export interface Config {
-    workflow: Workflow;
-}
+export interface TrelloConfig {
+  workflow: Workflow;
+  key: string;
+  token: string;
+};
+
