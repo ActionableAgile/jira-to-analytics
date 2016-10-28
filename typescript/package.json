@@ -15,7 +15,9 @@
     "outDir": "dist/",
     "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
     "build-executable": "nexe -i dist/cli.js -o jira.exe --flags",
-    "build-release": "npm run build-bundle"
+    "build-release": "npm run build-bundle",
+    "test:improved": "mocha --opts mocha.opts",
+    "test:improved:auto": "mocha --opts mocha.opts --watch"
   },
   "keywords": [
     "typescript",
@@ -35,6 +37,8 @@
   "author": "johnrjj@gmail.com",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
     "browserify": "^13.0.1",
     "chai": "^3.5.0",
     "mocha": "^3.1.2",
@@ -42,11 +46,13 @@
     "ts-node": "^1.6.0"
   },
   "dependencies": {
+    "@types/core-js": "^0.9.34",
     "@types/inquirer": "0.0.29",
     "@types/isomorphic-fetch": "0.0.31",
     "@types/js-yaml": "^3.5.28",
     "@types/node": "^6.0.45",
     "@types/progress": "^1.1.28",
+    "@types/ramda": "0.0.2",
     "@types/request": "0.0.31",
     "@types/yargs": "0.0.33",
     "core-js": "^2.4.0",
@@ -54,10 +60,10 @@
     "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
     "leankit-client": "^1.1.2",
-    "moment": "^2.14.1",
+    "moment": "^2.15.1",
     "progress": "^1.1.8",
+    "ramda": "^0.22.1",
     "request": "^2.75.0",
-    "try-thread-sleep": "^1.0.0",
     "typescript": "^2.0.3",
     "yargs": "^4.7.1"
   }

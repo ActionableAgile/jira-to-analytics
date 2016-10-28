@@ -4,5 +4,6 @@ build
 dist
 .DS_Store
 .vscode
+*.csv
 *.yaml
 !config.yaml

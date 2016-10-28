@@ -4,7 +4,9 @@ import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
 
 import { setup } from './lib/cli/leankit-cli';
-import { JiraExtractor, LeanKitExtractor } from './main';
+import { JiraExtractor, LeanKitExtractor, TrelloExtractor } from './main';
+
+// import { TrelloExtractor } from './lib/extractors/trello/types';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
@@ -35,6 +37,52 @@ const writeFile = (filePath: string, data: any) =>
 const run = async function(cliArgs: any): Promise<void> {
 
   log('ActionableAgile Extraction Tool Starting...');
+
+  if (cliArgs.trello) {
+    const trelloConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
+    const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
+    const outputType: string = outputPath.split('.')[1].toUpperCase();
+    if (outputType !== 'CSV') {
+      throw new Error('Only CSV is supported for file output for the LeanKit beta');
+    }
+    // Parse YAML settings
+    let settings: any  = {};
+    try {
+      const yamlConfig = safeLoad(fs.readFileSync(trelloConfigPath, 'utf8'));
+      settings = yamlConfig;
+    } catch (e) {
+      log(`Error parsing settings ${e}`);
+      throw e;
+    }
+    log('Beginning extraction process');
+
+    if (settings.Key === null || settings.Key === undefined) {
+      throw new Error('Trello key not set!');
+    }
+
+    if (settings.Token === null || settings.Token === undefined) {
+      throw new Error('Trello token not set!');
+    }
+
+    if (settings.BoardId === null || settings.BoardId === undefined) {
+      throw new Error('Trello BoardId not set!');
+    }
+
+    const trelloExtractor = new TrelloExtractor({
+      workflow: settings.Workflow,
+      key: settings.Key,
+      token: settings.Token,
+    });
+    const output: string = await trelloExtractor.extractToCSV(settings.BoardId);
+    try {
+      await writeFile(outputPath, output);
+    } catch (e) {
+      log(`Error writing jira data to ${outputPath}`);
+    }
+    log(`Done. Results written to ${outputPath}`);
+    return;
+  }
+
 
   if (cliArgs.leankit) {
 

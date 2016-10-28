@@ -4,7 +4,6 @@
     "module": "commonjs",
     "target": "es2015",
     "outDir": "dist",
-    "rootDir": "src",
     "declaration": true,
     "sourceMap": true,
     "emitDecoratorMetadata": true,
@@ -17,8 +16,9 @@
     "suppressImplicitAnyIndexErrors": true,
     "types": ["node"],
     "lib": [
-      "es7",
-      "dom"
+      "dom",
+      "es2017",
+      "es2017.object" 
     ]
   },
   "exclude": [

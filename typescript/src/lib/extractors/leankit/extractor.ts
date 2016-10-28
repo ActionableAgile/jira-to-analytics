@@ -194,7 +194,7 @@ class LeanKitExtractor {
       const id: string = card.Id;
       const name: string = card.Title;
       const stagingDates: string[] = card.FormattedFilteredEvents;
-      const type= card.TypeName ? card.TypeName : '';
+      const type: string = card.TypeName ? card.TypeName : '';
       return new WorkItem(id, stagingDates, name, type, {}, 'LEANKIT');
     });
 
