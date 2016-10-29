@@ -161,7 +161,7 @@ Workflow:
 
 Again, please refer to the sample config file for an example of what the workflow section looks like. 
 
-**NOTE**:  The Workflow section requires a minimum of TWO (2) workflow steps, and the names of the workflow steps must be specified in the order you want them to appear in the output CSV.  The expectation is that all Jira issue types that are requested will follow the exact same workflow steps in the exact same order.
+>NOTE::  The Workflow section requires a minimum of TWO (2) workflow steps, and the names of the workflow steps must be specified in the order you want them to appear in the output CSV.  The expectation is that all Jira issue types that are requested will follow the exact same workflow steps in the exact same order.
 
 
 ### The Attributes Section ###
