@@ -1,8 +1,4 @@
-
-
 # README #
- 
-
 
 # ActionableAgile Analytics Tool
 
@@ -11,21 +7,18 @@ The purpose of this software is to extract flow data from Jira and put that data
 
 This program reads in a well-formed config file (see The Config File section below), connects to Jira and extracts data using the Jira REST API according to the parameters specified in the config file (see the Extraction Procedure Section below), and writes out a CSV file or JSON file that can be directly loaded into ActionableAgile&trade; Analytics (see The Output File section below).  
 
-
-
 ## Installation
->NOTE: Analytics tool requires [Node.js](https://nodejs.org/) v4+ to run. 
-If you don't have Node installed, please install it before continuing. 
+There are two options for running this extract utility: either as a standalone exectuable or as a nodejs app.
 
-Download jira_to_analytics.js and config.yaml from the releases page on github (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which directory you choose doesn’t matter as long as they are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in the previous README. Open a command prompt and run it by simply typing ```node jira-to-analytics``` (no additional command line parameters are needed). If the program succeeds, the output data file will be written in the same directory as the javascript file
-.
+### Option 1:  Using the Standalone Executable
+Download the "jira-to-analytics.exe" and the "config.yaml" files from the releases page for this repository (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which local directory you choose doesn’t matter as long as the two files are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README. Open a command prompt and run it by simply typing ```jira-to-analytics.exe``` (no additional command line parameters are needed to test the app at this point, though you can add additional command line parameters as detailed below). If the program succeeds, the output data file will be written in the same directory as the executable file.
+
+### Option 2:  Running as a Nodejs App
+> NOTE: Option 2 requires Node.js v4+ to run. If you don't have Node installed, please install it before continuing if you want to use this option.
+
+Download the "jira-to-analytics.js" and the "config.yaml" files from the releases page for this repository (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which local directory you choose doesn’t matter as long as the two files are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README. Open a command prompt and run it by simply typing ```node jira-to-analytics``` (no additional command line parameters are needed to test the app at this point, though you can add additional command line parameters as detailed below). If the program succeeds, the output data file will be written in the same directory as the javascript file.
+
 ## Using the Application
-
-There are two options for running this app:
-
-1. You an run it as a standalone executable using the "jira-to-analytics.exe" file; or,
-2. Run it as a node app using the "jira-to-analytics.js" file (e.g., ```node jira-to-analytics```)
-
 > NOTE: There has been an update to the YAML file format. Please see the [config.yaml][config-yaml] file to see an example of the new schema. For those that wish to continue to use the old version of the schema, please enable the legacy flag (```--legacy```). 
 
 ##### Configurable settings/flags
@@ -40,9 +33,6 @@ These flags are the same whether you are using the standalone executable or node
 ```--leankit``` will switch the extract source to LeanKit.
 
 ```--leankit --setup``` will start a smart wizard to generate the LeanKit configuation file
-
-
-
 
 For example, to run the node version of the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
 
@@ -220,16 +210,12 @@ The program will read in the properly formatted config file (see The Config File
 If all goes well, the extraction program will write out a CSV or JSON file that contains all extracted data to the same directory where the program is running.
 
 ## Output File ##
-The output file follows the format required by the ActionableAgile Analytics tool as specified here:  [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/). 
+If successful, the output data file will be written in the same directory in which this utility was run.  The output file follows the format required by the ActionableAgile Analytics tool as specified here:  [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/). 
 
 If the output file is a CSV file, it can be loaded directly into the ActionableAgile Analytics tool from the Home tab using the Load Data button.
 
-
-
 ### Version 
 1.1.1 
-
-
 
 ### Todos
 
