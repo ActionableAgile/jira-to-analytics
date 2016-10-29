@@ -130,7 +130,7 @@ Criteria:
 	    
 ```
 
-**NOTE**:  The fields in this section are optional
+>NOTE:  The fields in this section are optional
 
 ### The Workflow Section ###
 The Workflow Section of the config file is simply named "Workflow" (without the quotes) and contains all the information needed to configure your workflow data.  Each line of the this section contains the name of the workflow column as you want it to appear in the data file, followed by a colon (:) followed by a comma-separated list of all the Jira statuses that you want to map to that column.  For example, a row in your Workflow section that looks like:
@@ -197,7 +197,7 @@ Attributes:
 
 These fields will show up as filter attributes in the generated data file (please visit [https://www.actionableagile.com/format-data-file/](https://www.actionableagile.com/format-data-file/) for more information).
 
-**NOTE**:  None of the fields in this section is required--in fact, this section as a whole is optional.
+>NOTE::  None of the fields in this section is required--in fact, this section as a whole is optional.
 
 ### LeanKit Automatic Configuration
 
