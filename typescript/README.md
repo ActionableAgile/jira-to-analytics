@@ -199,6 +199,30 @@ These fields will show up as filter attributes in the generated data file (pleas
 
 >NOTE::  None of the fields in this section is required--in fact, this section as a whole is optional.
 
+### Advanced Settings ###
+
+The extraction tool also supports more customization and extensibility. 
+
+To enable this, add an more additional section to your JIRA config: 
+```
+Feature Flags:
+```
+
+**Currently supported Feature Flags**
+
+```MaskName```: Masks the 'name' of your JIRA stories, for when JIRA stories contain sensitive data. To turn this feature on, add the following code to your Feature Flags section:
+```
+    MaskName: true 
+```
+
+As an example, a config with the MaskName feature flag enabled would look like:
+```
+Feature Flags:
+    MaskName: true
+```
+
+##### For a complete config example, please see the provided sample config.yaml #####
+ 
 ### LeanKit Automatic Configuration
 
 Run the tool with the --leankit and --setup flags
