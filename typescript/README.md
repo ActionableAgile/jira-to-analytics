@@ -13,6 +13,7 @@ There are two options for running this extract utility: either as a standalone e
 #### Option 1:  Using the Standalone Executable
 Download the "jira-to-analytics.exe" and the "config.yaml" files from the releases page for this repository (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which local directory you choose doesn’t matter as long as the two files are co-located. 
 > NOTE: The executable file that you download will work regardless of what operating system you are using.
+
 Edit the config file and customize it for your specific Jira instance according to the instructions in this README. Open a command prompt and run it by simply typing ```jira-to-analytics.exe``` (no additional command line parameters are needed to test the app at this point, though you can add additional command line parameters as detailed below). If the program succeeds, the output data file will be written in the same directory as the executable file.
 
 #### Option 2:  Running as a Nodejs App
