@@ -10,10 +10,10 @@ This program reads in a well-formed config file (see The Config File section bel
 ## Installation
 There are two options for running this extract utility: either as a standalone exectuable or as a nodejs app.
 
-### Option 1:  Using the Standalone Executable
+#### Option 1:  Using the Standalone Executable
 Download the "jira-to-analytics.exe" and the "config.yaml" files from the releases page for this repository (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which local directory you choose doesn’t matter as long as the two files are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README. Open a command prompt and run it by simply typing ```jira-to-analytics.exe``` (no additional command line parameters are needed to test the app at this point, though you can add additional command line parameters as detailed below). If the program succeeds, the output data file will be written in the same directory as the executable file.
 
-### Option 2:  Running as a Nodejs App
+#### Option 2:  Running as a Nodejs App
 > NOTE: Option 2 requires Node.js v4+ to run. If you don't have Node installed, please install it before continuing if you want to use this option.
 
 Download the "jira-to-analytics.js" and the "config.yaml" files from the releases page for this repository (https://github.com/actionableagile/jira-to-analytics/releases) and put both files in the same directory. Which local directory you choose doesn’t matter as long as the two files are co-located. Edit the config file and customize it for your specific Jira instance according to the instructions in this README. Open a command prompt and run it by simply typing ```node jira-to-analytics``` (no additional command line parameters are needed to test the app at this point, though you can add additional command line parameters as detailed below). If the program succeeds, the output data file will be written in the same directory as the javascript file.
