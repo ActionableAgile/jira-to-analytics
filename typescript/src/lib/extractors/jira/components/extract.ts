@@ -59,13 +59,15 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
 
   hook(100);
 
-  if (config.FeatureFlags['MaskName']) {
-    console.log('Removing NAMES');
-    allWorkItems.forEach(workItem => {
-      delete workItem.Name;
-      workItem.Name = '';
-    });
-  } 
+  if (config.FeatureFlags) {
+    if (config.FeatureFlags['MaskName']) {
+      console.log('Removing NAMES');
+      allWorkItems.forEach(workItem => {
+        delete workItem.Name;
+        workItem.Name = '';
+      });
+    } 
+  }
 
   return allWorkItems;
 };
