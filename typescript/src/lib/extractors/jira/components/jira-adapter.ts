@@ -1,4 +1,4 @@
-import { getJsonFromUrl, getHeaders, getJsonFromUrlViaOauth } from '../../../core/http';
+import { getJsonFromUrl, getHeaders, getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
 import { IIssueList, IIssue } from '../types';
 
@@ -39,14 +39,17 @@ const getMetadata = async function(apiUrl, projects, issueTypes, filters, workfl
 
 const makeRequest =  async function(url, username, password, oauth) {
 
-  if (username == undefined || username === null) {
-    const json: any = await getJsonFromUrlViaOauth(url, oauth);
-    return json;
-  } else {
-    const headers: Headers = getHeaders(username, password);
-    const json: any = await getJsonFromUrl(url, headers);   
-    return json;
-  }
+  const json: any = await getJsonFromSelfSignedSSLUrl(url, username, password);
+  return json;
+
+  // if (username == undefined || username === null) {
+  //   const json: any = await getJsonFromUrlViaOauth(url, oauth);
+  //   return json;
+  // } else {
+  //   const headers: Headers = getHeaders(username, password);
+  //   const json: any = await getJsonFromUrl(url, headers);   
+  //   return json;
+  // }
   // const headers: Headers = getHeaders(username, password);
   // const json: any = await getJsonFromUrl(url, headers);   
   // return json;
