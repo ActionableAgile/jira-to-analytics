@@ -28,9 +28,14 @@ class WorkItem implements IWorkItem {
     s += `,${this.Type}`;
 
     const attributeKeys = Object.keys(this.Attributes);
-    attributeKeys.forEach(attributeKey => {
-      s += `,${WorkItem.cleanString(this.Attributes[attributeKey])}`;
-    });
+
+    if (attributeKeys.length === 0) {
+      s += ',';
+    } else {
+      attributeKeys.forEach(attributeKey => {
+        s += `,${WorkItem.cleanString(this.Attributes[attributeKey])}`;
+      });
+    }
 
     return s;
   }

@@ -72,6 +72,7 @@ const buildJiraSearchQueryUrl = (
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
+  console.log(`\nBuilt JQL: ${jql}\n`);
   const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
 };

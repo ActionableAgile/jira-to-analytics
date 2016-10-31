@@ -35,7 +35,7 @@ const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
         reject(new Error(error));
       } else {
         accept(body);
-      } 
+      }
     });
   });
 };
@@ -43,20 +43,19 @@ const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
 const getJsonFromSelfSignedSSLUrl = (url, username, password) => {
   return new Promise((accept, reject) => {
     request.get(url, {
-      'auth': {
-        'user': username,
-        'pass': password,
-        'sendImmediately': false
+      headers: {
+        'Authorization': `Basic ${new Buffer(username + ':' + password).toString('base64')}`
       },
-      agentOptions: {
-        ca: fs.readFileSync('ca.cert.pem')
-      },
+      // agentOptions: {
+      //   ca: fs.readFileSync('ca.cert.pem')
+      // },
       json: true,
     }, (error, response, body) => {
       if (error) {
         console.log(`Error fetching json from ${url}`);
         reject(new Error(error));
       } else {
+        console.log(`Successfully queried ${url}`);
         accept(body);
       };
     });

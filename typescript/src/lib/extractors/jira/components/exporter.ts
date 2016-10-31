@@ -1,5 +1,10 @@
 import { IWorkItem } from '../../../core/types';
 const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, domainUrl: string, withHeader: boolean = true): string => {
+
+  if (attributes === undefined || attributes === null) {
+    attributes = {};
+  }
+
   const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
   const body = workItems.map(item => item.toCSV(domainUrl)).reduce((res, cur) => `${res + cur}\n`, '');
   const csv: string = `${header}\n${body}`;
