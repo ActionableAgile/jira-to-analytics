@@ -55,7 +55,6 @@ const getJsonFromSelfSignedSSLUrl = (url, username, password) => {
         console.log(`Error fetching json from ${url}`);
         reject(new Error(error));
       } else {
-        console.log(`Successfully queried ${url}`);
         accept(body);
       };
     });

@@ -4,7 +4,7 @@ export interface IWorkItem {
   Name: string;
   Type: string;
   Attributes: any;
-  toCSV(string?);
+  toCSV(string?, any?);
   toSerializedArray();
 };
 

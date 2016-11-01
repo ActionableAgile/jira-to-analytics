@@ -4,10 +4,10 @@ import { IWorkItem } from '../../../core/types';
 import { IJiraSettings } from '../types';
 
 const extractBatchFromConfig = async function(config: IJiraSettings, startIndex: number = 0, batchSize: number = 0) {
-    const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth}  = destructureConfig(config);
-    const issues = await getIssues(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth);
-    const workItems = issues.map(issue => convertIssueToWorkItem(issue, workflow, attributes));
-    return workItems;
+  const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth}  = destructureConfig(config);
+  const issues = await getIssues(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth);
+  const workItems = issues.map(issue => convertIssueToWorkItem(issue, workflow, attributes));
+  return workItems;
 }
 
 const extractAllFromConfig = async function(config: IJiraSettings, batchSize: number = 25, hook: Function = () => {}) {
@@ -62,7 +62,6 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
 
   if (config.FeatureFlags) {
     if (config.FeatureFlags['MaskName']) {
-      console.log('Removing NAMES');
       allWorkItems.forEach(workItem => {
         delete workItem.Name;
         workItem.Name = '';

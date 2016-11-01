@@ -15,13 +15,21 @@ class WorkItem implements IWorkItem {
     this.Source = source;
   }
 
-  toCSV(domainUrl: string): string {
+  toCSV(domainUrl: string, config: any = {}): string {
     let s = '';
     s += `${this.Id},`;
+
+
+
+
     if (this.Source.toUpperCase() === 'LEANKIT' || this.Source.toUpperCase() === 'TRELLO') {
-      s += `${domainUrl}/${this.Id},`
+      s += `${domainUrl}/${this.Id},`;
     } else { // it is JIRA
-      s += `${domainUrl}/browse/${this.Id},`
+      if (config.FeatureFlags && config.FeatureFlags['MaskLink']) {
+        s += ',';
+      } else {
+        s += `${domainUrl}/browse/${this.Id},`;
+      }
     }
     s += `${(WorkItem.cleanString(this.Name))}`;
     this.StageDates.forEach(stageDate => s += `,${stageDate}`);
