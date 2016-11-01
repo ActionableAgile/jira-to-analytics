@@ -43,7 +43,7 @@ const buildJiraSearchQueryUrl = (
   if (startDate && endDate) {
     const dateToExcludeStoriesBefore = startDate;
     const dateToExcludeStoriesAfter = endDate;
-    const dateFilterQuery = `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved) OR (resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
+    const dateFilterQuery = `((resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved) OR (resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}"))`;
     clauses.push(dateFilterQuery);
   } else if (startDate) {
     const dateToExcludeStoriesBefore = startDate;
@@ -72,8 +72,9 @@ const buildJiraSearchQueryUrl = (
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
-  console.log(`\nBuilt JQL: ${jql}\n`);
+  console.log(`\nBuilt JQL:\n${jql}\n`);
   const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
+  console.log(`Built Query URL:\n${query}\n`)
   return query;
 };
 
