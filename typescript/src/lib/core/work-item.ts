@@ -6,7 +6,7 @@ class WorkItem implements IWorkItem {
   Type: string;
   Attributes: any;
   Source: string;
-  constructor(id: string, stageDates: string[], name: string, type: string, attributes: {}, source: string = 'JIRA') {
+  constructor(id: string = '', stageDates: string[] = [], name: string = '', type: string = '', attributes: {} = {}, source: string = 'JIRA') {
     this.Id = id;
     this.StageDates = stageDates;
     this.Name = name;
@@ -18,9 +18,6 @@ class WorkItem implements IWorkItem {
   toCSV(domainUrl: string, config: any = {}): string {
     let s = '';
     s += `${this.Id},`;
-
-
-
 
     if (this.Source.toUpperCase() === 'LEANKIT' || this.Source.toUpperCase() === 'TRELLO') {
       s += `${domainUrl}/${this.Id},`;
@@ -67,7 +64,7 @@ class WorkItem implements IWorkItem {
   };
 
 
-  static cleanString(s: string): string {
+  static cleanString(s: string = ''): string {
     return s.replace(/"/g, '')
     .replace(/'/g, '')
     .replace(/,/g, '')
