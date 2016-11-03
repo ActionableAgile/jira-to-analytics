@@ -16,16 +16,22 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
     return attributesMap;
   }, {});
 };
-
+ 
 const parseAttribute = (attribute: any, custom?: string): string => {
   if (attribute === undefined || attribute == null) {
     return '';
   } else if (typeof attribute === 'string') {
     return attribute;
+  } else if (typeof attribute === 'boolean') {
+    return attribute.toString();
   } else if (typeof attribute === 'number') {
     return attribute.toString();
   } else {
-    return custom ? attribute[custom] : attribute['name'];
+    // is object...find a field in priority order
+    return custom ? attribute[custom] 
+    : attribute['name'] ? attribute['name']
+    : attribute['value'] ? attribute['value']
+    : '';
   }
 };
 
