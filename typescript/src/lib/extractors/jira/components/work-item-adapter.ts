@@ -10,7 +10,7 @@ const convertIssuesToWorkItems = function(issues: IIssue[], workflow, attributes
   return workItems;
 };
 
-const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {}): IWorkItem => {
+const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {
   const key: string = issue.key;
   const name: string = issue.fields['summary'];
   const stagingDates: string[] = getStagingDates(issue, workflow);

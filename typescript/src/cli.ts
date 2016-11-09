@@ -4,6 +4,7 @@ import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
 
 import { setup } from './lib/cli/leankit-cli';
+import { getPassword } from './lib/cli/jira-cli';
 import { JiraExtractor, LeanKitExtractor, TrelloExtractor } from './main';
 
 // import { TrelloExtractor } from './lib/extractors/trello/types';
@@ -148,6 +149,14 @@ const run = async function(cliArgs: any): Promise<void> {
     log(`Error parsing settings ${e}`);
     throw e;
   }
+
+  log('');
+  if (!settings.Connection.Password && !settings.Connection.Token) {
+    const password = await getPassword();
+    settings.Connection.Password = password;
+  }
+
+
   log('');
 
   if (settings['Feature Flags']) {

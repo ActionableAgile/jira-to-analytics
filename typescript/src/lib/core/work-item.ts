@@ -6,7 +6,7 @@ class WorkItem implements IWorkItem {
   Type: string;
   Attributes: any;
   Source: string;
-  constructor(id: string, stageDates: string[], name: string, type: string, attributes: {}, source: string = 'JIRA') {
+  constructor(id: string = '', stageDates: string[] = [], name: string = '', type: string = '', attributes: {} = {}, source: string = 'JIRA') {
     this.Id = id;
     this.StageDates = stageDates;
     this.Name = name;
@@ -15,22 +15,32 @@ class WorkItem implements IWorkItem {
     this.Source = source;
   }
 
-  toCSV(domainUrl: string): string {
+  toCSV(domainUrl: string, config: any = {}): string {
     let s = '';
     s += `${this.Id},`;
+
     if (this.Source.toUpperCase() === 'LEANKIT' || this.Source.toUpperCase() === 'TRELLO') {
-      s += `${domainUrl}/${this.Id},`
+      s += `${domainUrl}/${this.Id},`;
     } else { // it is JIRA
-      s += `${domainUrl}/browse/${this.Id},`
+      if (config.FeatureFlags && config.FeatureFlags['MaskLink']) {
+        s += ',';
+      } else {
+        s += `${domainUrl}/browse/${this.Id},`;
+      }
     }
     s += `${(WorkItem.cleanString(this.Name))}`;
     this.StageDates.forEach(stageDate => s += `,${stageDate}`);
     s += `,${this.Type}`;
 
     const attributeKeys = Object.keys(this.Attributes);
-    attributeKeys.forEach(attributeKey => {
-      s += `,${WorkItem.cleanString(this.Attributes[attributeKey])}`;
-    });
+
+    if (attributeKeys.length === 0) {
+      s += ',';
+    } else {
+      attributeKeys.forEach(attributeKey => {
+        s += `,${WorkItem.cleanString(this.Attributes[attributeKey])}`;
+      });
+    }
 
     return s;
   }
@@ -54,7 +64,7 @@ class WorkItem implements IWorkItem {
   };
 
 
-  static cleanString(s: string): string {
+  static cleanString(s: string = ''): string {
     return s.replace(/"/g, '')
     .replace(/'/g, '')
     .replace(/,/g, '')

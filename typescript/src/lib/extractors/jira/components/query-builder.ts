@@ -1,15 +1,27 @@
-const buildJiraSearchQueryUrl = (
-    apiRootUrl: string, 
-    projects: Array<string>, 
-    issueTypes: Array<string> = [], 
-    filters: Array<string> = [],
-    workflowKeyVal: {} = {},
-    startDate: Date,
-    endDate: Date,
-    customJql: string,
-    startIndex: number = 0, 
-    batchSize: number = 1
-    ): string => {
+export interface IQueryOptions {
+  apiRootUrl: string;
+  projects: Array<string>;
+  issueTypes: Array<string>;
+  filters: Array<string>;
+  startDate: Date;
+  endDate: Date;
+  customJql: string;
+  startIndex: number;
+  batchSize: number;
+}
+
+const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
+  const {
+    apiRootUrl,
+    projects,
+    issueTypes,
+    filters,
+    startDate,
+    endDate,
+    customJql,
+    startIndex,
+    batchSize,
+  } = options;
     
   let clauses: string[] = [];
 
@@ -27,23 +39,10 @@ const buildJiraSearchQueryUrl = (
     clauses.push(`(${customJql})`);
   }
 
-  // if (startDate) {
-  //   const startWorkflowKey = Object.keys(workflowKeyVal)[0];
-  //   const startWorkflowValArray = workflowKeyVal[startWorkflowKey].filter(x => x != '(Created)');
-  //   if (startWorkflowValArray && startWorkflowValArray.length > 0) {
-  //     const clausesToOrTogether = startWorkflowValArray.map(stageName => {
-  //       return `Status CHANGED FROM "${stageName}" AFTER ("${formatDate(startDate)}") OR Status = "${stageName}"`; // AFTER!, still need to format date
-  //     });
-  //     const startFilterClause = `(${clausesToOrTogether.join(' or ')})`;
-  //     console.log(startFilterClause);
-  //     clauses.push(startFilterClause);
-  //   }
-  // }
-
   if (startDate && endDate) {
     const dateToExcludeStoriesBefore = startDate;
     const dateToExcludeStoriesAfter = endDate;
-    const dateFilterQuery = `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved) OR (resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
+    const dateFilterQuery = `((resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved) OR (resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}"))`;
     clauses.push(dateFilterQuery);
   } else if (startDate) {
     const dateToExcludeStoriesBefore = startDate;
@@ -55,24 +54,13 @@ const buildJiraSearchQueryUrl = (
     clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }
 
-  // if (endDate) { 
-  //   const endWorkflowKey = Object.keys(workflowKeyVal)[Object.keys(workflowKeyVal).length - 1];
-  //   const endWorkflowValArray = workflowKeyVal[endWorkflowKey].filter(x => x != '(Resolved)');
-  //   if (endWorkflowValArray && endWorkflowValArray.length > 0) {
-  //     const clausesToOrTogether = endWorkflowValArray.map(stageName => {
-  //       return `Status CHANGED TO "${stageName}" BEFORE ("${formatDate(endDate)}")`; //BEFORE!, still need to format date
-  //     });
-  //     const endFilterClause = `(${clausesToOrTogether.join(' or ')})`;
-  //     console.log(endFilterClause);
-  //     clauses.push(endFilterClause);
-  //   }
-  // }
-
   const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
   clauses.push(...filterClauses);
 
   const jql = `${clauses.join(' AND ')} order by key`;
+  // console.log(`\nBuilt JQL:\n${jql}\n`);
   const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
+  // console.log(`Built Query URL:\n${query}\n`)
   return query;
 };
 
