@@ -28,11 +28,19 @@ export interface IIssueList {
 // Internal Jira Extractor Settings Interface
 export interface IJiraSettings {
   Connection?: {
-    Domain?: string;
+    Domain: string; // whats the difference??
     Username?: string;
     Password?: string;
-    ApiUrl?: string;
-    OAuth?: any;
+    ApiUrl?: string; // whats the difference??
+    OAuth?: {
+      consumer_key: string;
+      private_key: string,
+      token: string;
+      token_secret: string;
+      signature_method: string;
+    };
+    // ProxyUrl: string;
+    // SslSelfSignedCert: string;
   };
   Criteria?: {
     Projects?: Array<string>;
@@ -40,9 +48,11 @@ export interface IJiraSettings {
     Filters?: Array<string>;
     StartDate?: Date;
     EndDate?: Date;
-    JQL: string;
+    CustomJql?: string;
   };
-  Workflow?: {};
+  Workflow?: {
+    [val: string]: Array<string>;
+  };
   Attributes?: {};
   FeatureFlags?: {
     [index: string]: boolean;

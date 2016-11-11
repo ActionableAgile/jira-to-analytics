@@ -27,9 +27,9 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
     const StartDate: Date = config.Criteria['Start Date'] || null;
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
-    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
+    const CustomJql: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
     
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
+    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, CustomJql };
     jiraSettings.Criteria = criteria;
   } else {
     const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
@@ -38,9 +38,9 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
     const StartDate: Date = config.Criteria['Start Date'] || null;
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertToArray(config.Criteria.Filters);
-    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : '';
+    const CustomJql: string = config.Criteria.JQL ? config.Criteria.JQL : '';
 
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
+    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, CustomJql };
     jiraSettings.Criteria = criteria;
   }
 

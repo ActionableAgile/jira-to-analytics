@@ -23,22 +23,27 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     batchSize,
   } = options;
     
-  let clauses: string[] = [];
+  let clauses: Array<string> = [];
 
+  // Handle Projects...
   const projectClause = (projects.length > 1)
-  ? `project in (${projects.join(',')})`
-  : `project=${projects[0]}`;
+    ? `project in (${projects.join(',')})`
+    : `project=${projects[0]}`;
   clauses.push(projectClause);
 
+
+  // Handle Issues...
   if (issueTypes.length > 0) {
     const typeClause = `issuetype in (${issueTypes.join(',')})`;
     clauses.push(typeClause);
   }
 
+  // Handle Custom JQL
   if (customJql) {
     clauses.push(`(${customJql})`);
   }
 
+  // Handle Custom Start/End dates
   if (startDate && endDate) {
     const dateToExcludeStoriesBefore = startDate;
     const dateToExcludeStoriesAfter = endDate;
@@ -54,13 +59,15 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }
 
+  // Handle Filters...
   const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
   clauses.push(...filterClauses);
 
+  // AND together
   const jql = `${clauses.join(' AND ')} order by key`;
-  // console.log(`\nBuilt JQL:\n${jql}\n`);
+
+  // Append JQL to url, also add start and maxresults
   const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
-  // console.log(`Built Query URL:\n${query}\n`)
   return query;
 };
 
@@ -80,7 +87,7 @@ const formatDate = (date: Date): string => {
 }
 
 export {
-    buildJiraSearchQueryUrl,
-    buildJiraGetProjectsUrl,
-    buildJiraGetWorkflowsUrl,
+  buildJiraSearchQueryUrl,
+  buildJiraGetProjectsUrl,
+  buildJiraGetWorkflowsUrl,
 };

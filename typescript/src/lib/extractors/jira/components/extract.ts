@@ -22,7 +22,7 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
   const password = config.Connection.Password;
   const startDate = config.Criteria.StartDate;
   const endDate = config.Criteria.EndDate;
-  const customJql = config.Criteria.JQL;
+  const customJql = config.Criteria.CustomJql;
   const oauth = config.Connection.OAuth;
 
   const metadata = await getMetadata(
@@ -84,7 +84,7 @@ const destructureConfig = (config: IJiraSettings) => {
   const password = config.Connection.Password;
   const startDate = config.Criteria.StartDate;
   const endDate = config.Criteria.EndDate;
-  const customJql = config.Criteria.JQL;
+  const customJql = config.Criteria.CustomJql;
   const oauth = config.Connection.OAuth;
 
   return {

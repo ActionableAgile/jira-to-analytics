@@ -17,7 +17,7 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
   }, {});
 };
  
-const parseAttribute = (attribute: any, custom?: string): string => {
+const parseAttribute = (attribute: any, customProp?: string): string => {
   if (attribute === undefined || attribute == null) {
     return '';
   } else if (typeof attribute === 'string') {
@@ -28,7 +28,7 @@ const parseAttribute = (attribute: any, custom?: string): string => {
     return attribute.toString();
   } else {
     // is object...find a field in priority order
-    return custom ? attribute[custom] 
+    return customProp ? attribute[customProp] 
     : attribute['name'] ? attribute['name']
     : attribute['value'] ? attribute['value']
     : '';

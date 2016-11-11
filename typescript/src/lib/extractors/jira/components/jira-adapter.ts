@@ -1,4 +1,4 @@
-import { getJsonFromUrl, getHeaders, getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
+import { getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
 import { IIssueList, IIssue } from '../types';
 
