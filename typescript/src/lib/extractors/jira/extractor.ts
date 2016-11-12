@@ -1,10 +1,21 @@
 import { IWorkItem } from '../../core/types';
 import { IJiraExtractorConfig, IIssue } from './types';
-import { convertYamlToJiraSettings, convertYamlToNewJiraConfig } from './components/yaml-converter';
+import { convertYamlToJiraSettings } from './components/yaml-converter';
 import { getIssues, getMetadata } from './components/jira-adapter';
 import { WorkItem } from'../../core/work-item';
 import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
+
+const _convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {
+  const key: string = issue.key;
+  const name: string = issue.fields['summary'];
+  const stagingDates: string[] = getStagingDates(issue, workflow);
+  const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+  const requestedAttributeSystemNames: string[] = Object.keys(attributes).map(key => attributes[key]);
+  const attributesKeyVal: {} = getAttributes(issue.fields, requestedAttributeSystemNames);
+  const workItem: WorkItem = new WorkItem(key, stagingDates, name, type, attributesKeyVal);
+  return workItem;
+};
 
 class JiraExtractor {
   config: IJiraExtractorConfig = {};
@@ -17,8 +28,7 @@ class JiraExtractor {
   importSettings(configObjToImport, source) {
     switch (source.toUpperCase()) {
       case 'YAML':
-        const yamlOld = convertYamlToJiraSettings(configObjToImport);
-        const parsedSettings = convertYamlToNewJiraConfig(yamlOld);
+        const parsedSettings = convertYamlToJiraSettings(configObjToImport);
         this.config = parsedSettings;
         return this;
       default:
@@ -43,7 +53,7 @@ class JiraExtractor {
       const start = i * actualBatchSize;
 
       const issues = await getIssues(config, start, batchSize);
-      const workItemBatch = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
+      const workItemBatch = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
       allWorkItems.push(...workItemBatch);
       hook(Math.max(actualBatchSize / totalJiras) * 100);
     }
@@ -58,12 +68,12 @@ class JiraExtractor {
     return allWorkItems;
   };
 
-  extract = async function(opts: { startIndex?: number; batchSize?: number; }) {
+  extract = async function(opts: { startIndex?: number, batchSize?: number }) {
     const config = this.config;
     const { startIndex = 0, batchSize = 25 } = opts;
 
     const issues = await getIssues(config, startIndex, batchSize);
-    const workItems = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
+    const workItems = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
     return workItems;
   };
 
@@ -93,18 +103,6 @@ class JiraExtractor {
   };
 };
 
-const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {
-  const key: string = issue.key;
-  const name: string = issue.fields['summary'];
-  const stagingDates: string[] = getStagingDates(issue, workflow);
-  const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
-  const requestedAttributeSystemNames: string[] = Object.keys(attributes).map(key => attributes[key]);
-  const attributesKeyVal: {} = getAttributes(issue.fields, requestedAttributeSystemNames);
-  const workItem: WorkItem = new WorkItem(key, stagingDates, name, type, attributesKeyVal);
-  return workItem;
-};
-
 export {
   JiraExtractor,
 };
-

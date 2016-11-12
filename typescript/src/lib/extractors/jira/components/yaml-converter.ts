@@ -12,29 +12,6 @@ const buildOAuth = (config) => {
   };
 };
 
-const convertYamlToNewJiraConfig = (j: IJiraSettings) => {
-  const x: IJiraExtractorConfig = {
-    attributes: j.Attributes,
-    connection: {
-      auth: {
-        username: j.Connection.Username,
-        password: j.Connection.Password,
-        oauth: j.Connection.OAuth,
-      },
-      url: j.Connection.Domain, // or domainurl..
-    },
-    customJql: j.Criteria.CustomJql,
-    endDate: j.Criteria.EndDate,
-    featureFlags: j.FeatureFlags,
-    filters: j.Criteria.Filters,
-    issueTypes: j.Criteria.IssueTypes,
-    projects: j.Criteria.Projects,
-    startDate: j.Criteria.StartDate,
-    workflow: j.Workflow,
-  };
-  return x;
-};
-
 const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
   const res = {};
   Object.keys(workflowObject).forEach(key => {
@@ -58,7 +35,7 @@ const convertCsvStringToArray = (s: string): string[] => {
   }
 };
 
-const convertYamlToJiraSettings = (config): IJiraSettings => {
+const convertYamlToJiraSettings = (config: any): IJiraExtractorConfig => {
   const jiraSettings: IJiraSettings = {};
 
   const connection = config.Connection;
@@ -69,7 +46,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   if (config.legacy) {
     const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
     const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
-    const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
+    // const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
     const StartDate: Date = config.Criteria['Start Date'] || null;
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
@@ -80,7 +57,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   } else {
     const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
     const IssueTypes: string[] = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
-    const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
+    // const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
     const StartDate: Date = config.Criteria['Start Date'] || null;
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertToArray(config.Criteria.Filters);
@@ -101,10 +78,29 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   const featureFlags = config['Feature Flags'];
   jiraSettings.FeatureFlags = featureFlags;
 
-  return jiraSettings;
+  const j = jiraSettings;
+  const newJiraSettings: IJiraExtractorConfig = {
+    attributes: j.Attributes,
+    connection: {
+      auth: {
+        username: j.Connection.Username,
+        password: j.Connection.Password,
+        oauth: j.Connection.OAuth,
+      },
+      url: j.Connection.Domain,
+    },
+    customJql: j.Criteria.CustomJql,
+    endDate: j.Criteria.EndDate,
+    featureFlags: j.FeatureFlags,
+    filters: j.Criteria.Filters,
+    issueTypes: j.Criteria.IssueTypes,
+    projects: j.Criteria.Projects,
+    startDate: j.Criteria.StartDate,
+    workflow: j.Workflow,
+  };
+  return newJiraSettings;
 };
 
 export {
   convertYamlToJiraSettings,
-  convertYamlToNewJiraConfig
-}
+};

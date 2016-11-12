@@ -11,6 +11,7 @@ export interface IQueryOptions {
 }
 
 const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
+const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
 
 const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const {
@@ -79,11 +80,6 @@ const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
 const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
   const url = `${buildApiUrl(apiRootUrl)}/project/${project}/statuses`;
   return url;
-};
-
-const formatDate = (date: Date): string => {
-  const formattedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
-  return formattedDate;
 };
 
 export {

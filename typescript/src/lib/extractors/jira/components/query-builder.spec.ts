@@ -20,7 +20,6 @@ describe('query builder', () => {
             startIndex: 0,
         });
 
-
         const actual = 'https://APIROOTURL/rest/api/latest/search?jql=project%20in%20(TESTPROJECT1%2CTESTPROJECT2)%20AND%20issuetype%20in%20(ISSUE_TYPE1%2CISSUE_TYPE2)%20AND%20((resolutionDate%20%3E%3D%20%222016%2F12%2F13%22%20OR%20resolution%20%3D%20Unresolved)%20OR%20(resolutionDate%20%3C%3D%20%222016%2F12%2F26%22))%20AND%20filter%3D%22a%22%20AND%20filter%3D%22b%22%20AND%20filter%3D%22c%22%20order%20by%20key&startAt=0&maxResults=25&expand=changelog';
 
         expect(builtSearchQueryUrl).to.equal(actual);
