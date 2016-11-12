@@ -2,7 +2,7 @@ import { getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../co
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
 import { IIssueList, IIssue } from '../types';
 
-const getIssues = async function(apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username: string, password: string, oauth): Promise<IIssue[]> {
+const getIssues = async function({ apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth }): Promise<IIssue[]> {
   const queryUrl: string = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize });
   const result: IIssueList = await makeRequest(queryUrl, username, password, oauth);
   if (result.issues) {
@@ -13,7 +13,7 @@ const getIssues = async function(apiRootUrl, projects, issueTypes, filters, work
   }
 };
 
-const getMetadata = async function(apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username: string, password: string, oauth): Promise<any> {
+const getMetadata = async function({apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth}): Promise<any> {
   const queryUrl = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize});
   const metadata = await makeRequest(queryUrl, username, password, oauth);
   return metadata;

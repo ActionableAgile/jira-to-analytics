@@ -6,29 +6,31 @@ import { getStagingDates } from './staging-parser';
 import { getAttributes } from './attribute-parser';
 
 const extractBatchFromConfig = async function(config: IJiraSettings, startIndex: number = 0, batchSize: number = 0) {
-  const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth}  = destructureConfig(config);
-  const issues = await getIssues(apiUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth);
+  const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth} = destructureConfig(config);
+  const apiRootUrl = apiUrl;
+  const issues = await getIssues({apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth});
   const workItems = issues.map(issue => convertIssueToWorkItem(issue, workflow, attributes));
   return workItems;
 }
 
 const extractAllFromConfig = async function(config: IJiraSettings, batchSize: number = 25, hook: Function = () => {}) {
 
-  const apiUrl = config.Connection.ApiUrl;
-  const projects = config.Criteria.Projects;
-  const issueTypes = config.Criteria.IssueTypes;
-  const filters = config.Criteria.Filters;
-  const workflow = config.Workflow;
-  const attributes = config.Attributes;
-  const username = config.Connection.Username;
-  const password = config.Connection.Password;
-  const startDate = config.Criteria.StartDate;
-  const endDate = config.Criteria.EndDate;
-  const customJql = config.Criteria.CustomJql;
-  const oauth = config.Connection.OAuth;
+  // const apiUrl = config.Connection.ApiUrl;
+  // const projects = config.Criteria.Projects;
+  // const issueTypes = config.Criteria.IssueTypes;
+  // const filters = config.Criteria.Filters;
+  // const workflow = config.Workflow;
+  // const attributes = config.Attributes;
+  // const username = config.Connection.Username;
+  // const password = config.Connection.Password;
+  // const startDate = config.Criteria.StartDate;
+  // const endDate = config.Criteria.EndDate;
+  // const customJql = config.Criteria.CustomJql;
+  // const oauth = config.Connection.OAuth;
+  const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth} = destructureConfig(config);
 
-  const metadata = await getMetadata(
-    apiUrl,
+  const metadata = await getMetadata({
+    apiRootUrl: apiUrl,
     projects,
     issueTypes,
     filters,
@@ -36,11 +38,11 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
     startDate,
     endDate,
     customJql,
-    0,
-    1,
+    startIndex: 0,
+    batchSize: 1,
     username,
     password,
-    oauth);
+    oauth});
 
   const totalJiras: number = metadata.total;
   const actualBatchSize: number = batchSize ? batchSize : totalJiras;
