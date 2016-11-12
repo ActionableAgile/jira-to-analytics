@@ -31,13 +31,11 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     : `project=${projects[0]}`;
   clauses.push(projectClause);
 
-
   // Handle Issues...
   if (issueTypes.length > 0) {
     const typeClause = `issuetype in (${issueTypes.join(',')})`;
     clauses.push(typeClause);
   }
-
   // Handle Custom JQL
   if (customJql) {
     clauses.push(`(${customJql})`);

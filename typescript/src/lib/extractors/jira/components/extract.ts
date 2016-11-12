@@ -69,7 +69,6 @@ const extractAllFromConfig = async function(config: IJiraSettings, batchSize: nu
     }
   }
 
-
   return allWorkItems;
 };
 

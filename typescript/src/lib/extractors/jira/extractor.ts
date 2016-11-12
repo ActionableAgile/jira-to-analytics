@@ -1,7 +1,7 @@
 import { extractBatchFromConfig, extractAllFromConfig } from './components/extract';
-import { importConfig } from './components/import-config';
 import { IWorkItem } from '../../core/types';
 import { IJiraSettings} from './types';
+import { convertYamlToJiraSettings } from './components/yaml-converter';
 
 
 class JiraExtractor {
@@ -24,9 +24,23 @@ class JiraExtractor {
   };
 
   importSettings(configObjToImport, source) {
-    const config = importConfig(configObjToImport, source);
-    this.setConfig(config);
-    return this;
+    switch (source.toUpperCase()) {
+      case 'YAML':
+        const parsedSettings = convertYamlToJiraSettings(configObjToImport);
+        const { Connection, Attributes, Criteria, Workflow, FeatureFlags } = parsedSettings;
+        const jiraSettings: IJiraSettings = {
+          Connection,
+          Attributes,
+          Criteria,
+          Workflow,
+          FeatureFlags,
+        };
+        const config = jiraSettings;
+        this.setConfig(config);
+        return this;
+      default:
+        throw new Error(`${source} source not found`);
+    }
   };
 
   extractAll = async function(statusHook?) {
@@ -40,11 +54,31 @@ class JiraExtractor {
   };
 
   toCSV(workItems, withHeader?) {
-    return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, this.config.Connection.Domain, withHeader, this.config);
+
+    let attributes = this.config.Attributes;
+    let stages = Object.keys(this.config.Workflow);
+    let domainUrl = this.config.Connection.Domain;
+    let config = this.config;
+
+    if (attributes === undefined || attributes === null) {
+      attributes = {};
+    }
+    const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
+    const body = workItems.map(item => item.toCSV(domainUrl, config)).reduce((res, cur) => `${res + cur}\n`, '');
+    const csv: string = `${header}\n${body}`;
+    return csv;
+
+
   };
 
   toSerializedArray(workItems, withHeader?) {
-    return toSerializedArray(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
+    let stages = Object.keys(this.config.Workflow);
+    let attributes = this.config.Attributes;
+
+    const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
+    const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
+    const serializedData: string = `[${header}${body}]`;
+    return serializedData;
   };
 };
 
@@ -52,20 +86,3 @@ export {
   JiraExtractor,
 };
 
-
-const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, domainUrl: string, withHeader: boolean = true, config: any = {}): string => {
-  if (attributes === undefined || attributes === null) {
-    attributes = {};
-  }
-  const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
-  const body = workItems.map(item => item.toCSV(domainUrl, config)).reduce((res, cur) => `${res + cur}\n`, '');
-  const csv: string = `${header}\n${body}`;
-  return csv;
-};
-
-const toSerializedArray = (workItems: IWorkItem[], stages: string[], attributes: {}, withHeader: boolean = true): string => {
-  const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
-  const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
-  const serializedData: string = `[${header}${body}]`;
-  return serializedData;
-};
