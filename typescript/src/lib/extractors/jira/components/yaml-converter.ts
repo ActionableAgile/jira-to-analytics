@@ -1,4 +1,4 @@
-import { IJiraSettings} from '../types';
+import { IJiraSettings, IJiraExtractorConfig} from '../types';
 
 const restApiPath = '/rest/api/latest';
 const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
@@ -10,6 +10,30 @@ const buildOAuth = (config) => {
     token_secret: config['Token Secret'],
     signature_method: 'RSA-SHA1',
   };
+};
+
+const convertYamlToNewJiraConfig = (j: IJiraSettings) => {
+  const x: IJiraExtractorConfig = {
+    attributes: j.Attributes,
+    connection: {
+      auth: {
+        username: j.Connection.Username,
+        password: j.Connection.Password,
+        oauth: j.Connection.OAuth,
+      },
+      url: j.Connection.Domain, // or domainurl..
+    },
+    customJql: j.Criteria.CustomJql,
+    endDate: j.Criteria.EndDate,
+    featureFlags: j.FeatureFlags,
+    filters: j.Criteria.Filters,
+    issueTypes: j.Criteria.IssueTypes,
+    projects: j.Criteria.Projects,
+    startDate: j.Criteria.StartDate,
+    workflow: j.Workflow,
+  }
+
+  return x;
 };
 
 const convertYamlToJiraSettings = (config): IJiraSettings => {
@@ -78,4 +102,5 @@ const convertCsvStringToArray = (s: string): string[] => {
 
 export {
   convertYamlToJiraSettings,
+  convertYamlToNewJiraConfig
 }

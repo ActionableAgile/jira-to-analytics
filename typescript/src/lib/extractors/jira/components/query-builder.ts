@@ -10,6 +10,9 @@ export interface IQueryOptions {
   batchSize: number;
 }
 
+const restApiPath = '/rest/api/latest';
+const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
+
 const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const {
     apiRootUrl,
@@ -65,17 +68,17 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const jql = `${clauses.join(' AND ')} order by key`;
 
   // Append JQL to url, also add start and maxresults
-  const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
+  const query = `${buildApiUrl(apiRootUrl)}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
 };
 
 const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project`;
+  const url = `${buildApiUrl(apiRootUrl)}/project`;
   return url;
 };
 
 const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project/${project}/statuses`;
+  const url = `${buildApiUrl(apiRootUrl)}/project/${project}/statuses`;
   return url;
 };
 

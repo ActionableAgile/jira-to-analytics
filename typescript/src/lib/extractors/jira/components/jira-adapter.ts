@@ -1,10 +1,22 @@
 import { getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
-import { IIssueList, IIssue } from '../types';
+import { IIssueList, IIssue, IJiraExtractorConfig } from '../types';
 
-const getIssues = async function({ apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth }): Promise<IIssue[]> {
-  const queryUrl: string = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize });
-  const result: IIssueList = await makeRequest(queryUrl, username, password, oauth);
+const getIssues = async function(config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> {
+  console.log(config);
+  const queryUrl: string = buildJiraSearchQueryUrl(
+    { apiRootUrl: config.connection.url, 
+      projects: config.projects, 
+      issueTypes: config.issueTypes, 
+      filters: config.filters,
+      startDate: config.startDate,
+      endDate: config.endDate,
+      customJql: config.customJql, 
+      startIndex, 
+      batchSize
+    }
+  );
+  const result: IIssueList = await makeRequest(queryUrl, config.connection.auth.username, config.connection.auth.password, config.connection.auth.oauth);
   if (result.issues) {
       const issues: IIssue[] = result.issues;
       return issues;
@@ -13,9 +25,20 @@ const getIssues = async function({ apiRootUrl, projects, issueTypes, filters, wo
   }
 };
 
-const getMetadata = async function({apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username, password, oauth}): Promise<any> {
-  const queryUrl = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize});
-  const metadata = await makeRequest(queryUrl, username, password, oauth);
+const getMetadata = async function(config: IJiraExtractorConfig): Promise<any> {
+  console.log(config);
+  const queryUrl = buildJiraSearchQueryUrl(
+    { apiRootUrl: config.connection.url, 
+      projects: config.projects, 
+      issueTypes: config.issueTypes, 
+      filters: config.filters,
+      startDate: config.startDate,
+      endDate: config.endDate,
+      customJql: config.customJql, 
+      startIndex: 0, 
+      batchSize: 1
+    });
+  const metadata = await makeRequest(queryUrl, config.connection.auth.username, config.connection.auth.password, config.connection.auth.oauth);
   return metadata;
 };
 

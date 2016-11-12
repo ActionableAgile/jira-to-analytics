@@ -58,3 +58,36 @@ export interface IJiraSettings {
     [index: string]: boolean;
   };
 };
+
+export interface IJiraExtractorConfig {
+  connection: {
+    url: string;
+    auth: {
+      username?: string;
+      password?: string;
+      oauth?: {
+        consumer_key: string;
+        private_key: string,
+        token: string;
+        token_secret: string;
+        signature_method: string;
+      };
+    };
+  }
+  projects?: Array<string>;
+  issueTypes?: Array<string>;
+  filters?: Array<string>;
+  startDate?: Date;
+  endDate?: Date;
+  customJql?: string;
+  workflow?: {
+    [val: string]: Array<string>;
+  };
+  attributes?: {
+    [val: string]: string;
+  };
+  featureFlags?: {
+    [val: string]: boolean;
+  };
+  batchSize?: number;
+}

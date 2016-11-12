@@ -1,42 +1,28 @@
 import { extractBatchFromConfig, extractAllFromConfig } from './components/extract';
 import { IWorkItem } from '../../core/types';
-import { IJiraSettings} from './types';
-import { convertYamlToJiraSettings } from './components/yaml-converter';
+import { IJiraSettings, IJiraExtractorConfig } from './types';
+import { convertYamlToJiraSettings, convertYamlToNewJiraConfig } from './components/yaml-converter';
 
 
 class JiraExtractor {
-  config: IJiraSettings = null;
+  // config: IJiraSettings = null;
+  config: IJiraExtractorConfig = null;
 
-  batchSize: number;
+  // batchSize: number;
 
-  constructor(config?: IJiraSettings) {
-    this.config = config;
-  };
-
-  setConfig(c: IJiraSettings) {
-    this.config = c;
-    return this;
-  };
+  constructor(config?: IJiraExtractorConfig) {};
 
   setBatchSize(x: number) {
-    this.batchSize = x;
+    this.config.batchSize = x;
     return this;
   };
 
   importSettings(configObjToImport, source) {
     switch (source.toUpperCase()) {
       case 'YAML':
-        const parsedSettings = convertYamlToJiraSettings(configObjToImport);
-        const { Connection, Attributes, Criteria, Workflow, FeatureFlags } = parsedSettings;
-        const jiraSettings: IJiraSettings = {
-          Connection,
-          Attributes,
-          Criteria,
-          Workflow,
-          FeatureFlags,
-        };
-        const config = jiraSettings;
-        this.setConfig(config);
+        const yamlOld = convertYamlToJiraSettings(configObjToImport)
+        const parsedSettings = convertYamlToNewJiraConfig(yamlOld);
+        this.config = parsedSettings;
         return this;
       default:
         throw new Error(`${source} source not found`);
@@ -55,9 +41,9 @@ class JiraExtractor {
 
   toCSV(workItems, withHeader?) {
 
-    let attributes = this.config.Attributes;
-    let stages = Object.keys(this.config.Workflow);
-    let domainUrl = this.config.Connection.Domain;
+    let attributes = this.config.attributes;
+    let stages = Object.keys(this.config.workflow);
+    let domainUrl = this.config.connection.url;
     let config = this.config;
 
     if (attributes === undefined || attributes === null) {
@@ -72,8 +58,8 @@ class JiraExtractor {
   };
 
   toSerializedArray(workItems, withHeader?) {
-    let stages = Object.keys(this.config.Workflow);
-    let attributes = this.config.Attributes;
+    let stages = Object.keys(this.config.workflow);
+    let attributes = this.config.attributes;
 
     const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
     const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
