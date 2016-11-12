@@ -1,7 +1,9 @@
 import { getIssues, getMetadata } from './jira-adapter';
-import { convertIssueToWorkItem } from './work-item-adapter';
 import { IWorkItem } from '../../../core/types';
-import { IJiraSettings } from '../types';
+import { IJiraSettings, IIssue } from '../types';
+import { WorkItem } from'../../../core/work-item';
+import { getStagingDates } from './staging-parser';
+import { getAttributes } from './attribute-parser';
 
 const extractBatchFromConfig = async function(config: IJiraSettings, startIndex: number = 0, batchSize: number = 0) {
   const { apiUrl, projects, issueTypes, filters, workflow, attributes, startDate, endDate, customJql, username, password, oauth}  = destructureConfig(config);
@@ -101,6 +103,23 @@ const destructureConfig = (config: IJiraSettings) => {
     oauth,
   };
 };
+
+const convertIssuesToWorkItems = function(issues: IIssue[], workflow, attributes: any): IWorkItem[] {
+  const workItems = issues.map(issue => convertIssueToWorkItem(issue, workflow, attributes)); 
+  return workItems;
+};
+
+const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {
+  const key: string = issue.key;
+  const name: string = issue.fields['summary'];
+  const stagingDates: string[] = getStagingDates(issue, workflow);
+  const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+  const requestedAttributeSystemNames: string[] = Object.keys(attributes).map(key => attributes[key]);
+  const attributesKeyVal: {} = getAttributes(issue.fields, requestedAttributeSystemNames);
+  const workItem: WorkItem = new WorkItem(key, stagingDates, name, type, attributesKeyVal);
+  return workItem;
+};
+
 
 export {
   extractBatchFromConfig,
