@@ -32,11 +32,8 @@ const convertYamlToNewJiraConfig = (j: IJiraSettings) => {
     startDate: j.Criteria.StartDate,
     workflow: j.Workflow,
   };
-
   return x;
 };
-
-
 
 const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
   const res = {};

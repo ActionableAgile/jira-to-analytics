@@ -93,12 +93,6 @@ class JiraExtractor {
   };
 };
 
-const extractBatchFromConfig = async (config: IJiraExtractorConfig, startIndex: number = 0, batchSize: number = 1) => {
-  const issues = await getIssues(config, startIndex, batchSize);
-  const workItems = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
-  return workItems;
-};
-
 const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {
   const key: string = issue.key;
   const name: string = issue.fields['summary'];

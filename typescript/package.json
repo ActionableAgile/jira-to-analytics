@@ -10,14 +10,13 @@
     "build": "tsc",
     "jira-extract": "node dist/cli",
     "start": "npm run tsc:w",
-    "test": "mocha src/**/*.spec.ts --recursive --compilers ts:ts-node/register",
     "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/",
     "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",
     "build-executable": "nexe -i dist/cli.js -o jira.exe --flags",
     "build-release": "npm run build-bundle",
-    "test:improved": "mocha --opts mocha.opts",
-    "test:improved:auto": "mocha --opts mocha.opts --watch"
+    "test": "mocha --opts mocha.opts",
+    "test:watch": "mocha --opts mocha.opts --watch"
   },
   "keywords": [
     "typescript",
