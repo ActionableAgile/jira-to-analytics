@@ -77,15 +77,12 @@ class JiraExtractor {
     return workItems;
   };
 
-  toCSV(workItems, withHeader?) {
-    let attributes = this.config.attributes;
+  toCSV(workItems, withHeader: boolean = true) {
+    let attributes = this.config.attributes || {};
     let stages = Object.keys(this.config.workflow);
     let domainUrl = this.config.connection.url;
     let config = this.config;
 
-    if (attributes === undefined || attributes === null) {
-      attributes = {};
-    }
     const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
     const body = workItems.map(item => item.toCSV(domainUrl, config)).reduce((res, cur) => `${res + cur}\n`, '');
     const csv: string = `${header}\n${body}`;

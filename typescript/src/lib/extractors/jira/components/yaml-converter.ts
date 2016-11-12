@@ -1,7 +1,5 @@
-import { IJiraSettings, IJiraExtractorConfig} from '../types';
+import { IJiraExtractorConfig} from '../types';
 
-const restApiPath = '/rest/api/latest';
-const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
 const buildOAuth = (config) => {
   return {
     consumer_key: config['Consumer Key'],
@@ -36,69 +34,33 @@ const convertCsvStringToArray = (s: string): string[] => {
 };
 
 const convertYamlToJiraSettings = (config: any): IJiraExtractorConfig => {
-  const jiraSettings: IJiraSettings = {};
+  const c: IJiraExtractorConfig = {};
 
-  const connection = config.Connection;
-  jiraSettings.Connection = connection;
-  jiraSettings.Connection.OAuth = buildOAuth(jiraSettings.Connection);
-  jiraSettings.Connection.ApiUrl = buildApiUrl(jiraSettings.Connection.Domain);
+  c.batchSize = config.BatchSize || 25;
+  c.attributes = config.Attributes;
+  c.connection = {
+    url: config.Connection.Domain || null,
+    auth: {
+      username: config.Connection.Username || null,
+      password: config.Connection.Password || null,
+      oauth: buildOAuth(config.Connection) || null,
+    }
+  };
 
-  if (config.legacy) {
-    const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
-    const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
-    // const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
-    const StartDate: Date = config.Criteria['Start Date'] || null;
-    const EndDate: Date = config.Criteria['End Date'] || null;
-    const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
-    const CustomJql: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
-
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, CustomJql };
-    jiraSettings.Criteria = criteria;
-  } else {
-    const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
-    const IssueTypes: string[] = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
-    // const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
-    const StartDate: Date = config.Criteria['Start Date'] || null;
-    const EndDate: Date = config.Criteria['End Date'] || null;
-    const Filters: string[] = convertToArray(config.Criteria.Filters);
-    const CustomJql: string = config.Criteria.JQL ? config.Criteria.JQL : '';
-
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, CustomJql };
-    jiraSettings.Criteria = criteria;
-  }
-
-  const workflow = config.legacy
+  c.projects = config.legacy ? convertCsvStringToArray(config.Criteria.Projects) : convertToArray(config.Criteria.Project);
+  c.issueTypes = config.legacy ? convertCsvStringToArray(config.Criteria['Types']) : convertToArray(config.Criteria['Issue types']);
+  c.filters = config.legacy ? convertCsvStringToArray(config.Criteria.Filters) : convertToArray(config.Criteria.Filters);
+  c.startDate = config.Criteria['Start Date'] || null;
+  c.endDate = config.Criteria['End Date'] || null;
+  c.customJql = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
+  c.workflow = config.legacy
     ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
     : convertWorkflowToArray(config.Workflow, convertToArray);
-  jiraSettings.Workflow = workflow;
+  c.attributes = config.Attributes;
 
-  const attributes = config.Attributes;
-  jiraSettings.Attributes = attributes;
+  c.featureFlags = config['Feature Flags'];
 
-  const featureFlags = config['Feature Flags'];
-  jiraSettings.FeatureFlags = featureFlags;
-
-  const j = jiraSettings;
-  const newJiraSettings: IJiraExtractorConfig = {
-    attributes: j.Attributes,
-    connection: {
-      auth: {
-        username: j.Connection.Username,
-        password: j.Connection.Password,
-        oauth: j.Connection.OAuth,
-      },
-      url: j.Connection.Domain,
-    },
-    customJql: j.Criteria.CustomJql,
-    endDate: j.Criteria.EndDate,
-    featureFlags: j.FeatureFlags,
-    filters: j.Criteria.Filters,
-    issueTypes: j.Criteria.IssueTypes,
-    projects: j.Criteria.Projects,
-    startDate: j.Criteria.StartDate,
-    workflow: j.Workflow,
-  };
-  return newJiraSettings;
+  return c;
 };
 
 export {
