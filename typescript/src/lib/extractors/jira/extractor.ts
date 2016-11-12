@@ -17,23 +17,54 @@ class JiraExtractor {
   importSettings(configObjToImport, source) {
     switch (source.toUpperCase()) {
       case 'YAML':
-        const yamlOld = convertYamlToJiraSettings(configObjToImport)
+        const yamlOld = convertYamlToJiraSettings(configObjToImport);
         const parsedSettings = convertYamlToNewJiraConfig(yamlOld);
         this.config = parsedSettings;
         return this;
       default:
-        throw new Error(`${source} source not found`);
+        throw new Error(`${source} source not found, cannot import config`);
     }
   };
 
   extractAll = async function(statusHook?) {
+    const config = this.config;
     const batchSize = this.batchSize || 25;
-    const hook = statusHook || (() => {});
-    return extractAllFromConfig(this.config, batchSize, hook);
+    const hook = statusHook || (() => null);
+
+    const metadata = await getMetadata(config);
+
+    const totalJiras: number = metadata.total;
+    const actualBatchSize: number = batchSize ? batchSize : totalJiras;
+    const totalBatches: number = Math.ceil(totalJiras / batchSize);
+
+    hook(0);
+    const allWorkItems: IWorkItem[] = [];
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * actualBatchSize;
+
+      const issues = await getIssues(config, start, batchSize);
+      const workItemBatch = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
+      allWorkItems.push(...workItemBatch);
+      hook(Math.max(actualBatchSize / totalJiras) * 100);
+    }
+    hook(100);
+
+    if (config.featureFlags && config.featureFlags['MaskName']) {
+      allWorkItems.forEach(workItem => {
+        delete workItem.Name;
+        workItem.Name = '';
+      });
+    }
+    return allWorkItems;
   };
 
-  extractBatch = async function(batchSize?, startIndex = 0) {
-    return extractBatchFromConfig(this.config, startIndex, batchSize);
+  extract = async function(opts: { startIndex?: number; batchSize?: number; }) {
+    const config = this.config;
+    const { startIndex = 0, batchSize = 25 } = opts;
+
+    const issues = await getIssues(config, startIndex, batchSize);
+    const workItems = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
+    return workItems;
   };
 
   toCSV(workItems, withHeader?) {
@@ -64,40 +95,8 @@ class JiraExtractor {
 
 const extractBatchFromConfig = async (config: IJiraExtractorConfig, startIndex: number = 0, batchSize: number = 1) => {
   const issues = await getIssues(config, startIndex, batchSize);
-  const workItems = issues.map(issue => {
-    return convertIssueToWorkItem(issue, config.workflow, config.attributes) 
-  });
+  const workItems = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
   return workItems;
-};
-
-const extractAllFromConfig = async (config: IJiraExtractorConfig, batchSize: number = 25, hook: Function = () => {}) => {
-  const metadata = await getMetadata(config);
-
-  const totalJiras: number = metadata.total;
-  const actualBatchSize: number = batchSize ? batchSize : totalJiras;
-  const totalBatches: number = Math.ceil(totalJiras / batchSize);
-
-  hook(0);
-  const allWorkItems: IWorkItem[] = [];
-  for (let i = 0; i < totalBatches; i++) {
-    const start = i * actualBatchSize;
-    const workItemBatch = await extractBatchFromConfig(
-      config,
-      start,
-      batchSize);
-
-    allWorkItems.push(...workItemBatch);
-    hook(Math.max(actualBatchSize / totalJiras) * 100);
-  }
-  hook(100);
-
-  if (config.featureFlags && config.featureFlags['MaskName']) {
-    allWorkItems.forEach(workItem => {
-      delete workItem.Name;
-      workItem.Name = '';
-    });
-  }
-  return allWorkItems;
 };
 
 const convertIssueToWorkItem = (issue: IIssue, workflow: {}, attributes: {} = {}): IWorkItem => {

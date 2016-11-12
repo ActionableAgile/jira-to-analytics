@@ -10,7 +10,7 @@
     "build": "tsc",
     "jira-extract": "node dist/cli",
     "start": "npm run tsc:w",
-    "test": "mocha src/test --recursive --compilers ts:ts-node/register --timeout 10000",
+    "test": "mocha src/**/*.spec.ts --recursive --compilers ts:ts-node/register",
     "lint": "tslint ./src/**/*.ts",
     "outDir": "dist/",
     "build-bundle": "npm run build && browserify dist/cli.js --node --standalone rawjs > jira-to-analytics.js",

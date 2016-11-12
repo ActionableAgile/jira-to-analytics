@@ -1,17 +1,27 @@
 import { getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
-import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
+import { buildJiraSearchQueryUrl } from './query-builder';
 import { IIssueList, IIssue, IJiraExtractorConfig } from '../types';
+
+const makeRequest = async (url, username, password, oauth) => {
+  if (username == undefined || username === null) {
+    const json: any = await getJsonFromUrlViaOauth(url, oauth);
+    return json;
+  } else {
+    const json: any = await getJsonFromSelfSignedSSLUrl(url, username, password);
+    return json;
+  }
+};
 
 const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> => {
   const queryUrl: string = buildJiraSearchQueryUrl(
-    { apiRootUrl: config.connection.url, 
-      projects: config.projects, 
-      issueTypes: config.issueTypes, 
+    { apiRootUrl: config.connection.url,
+      projects: config.projects,
+      issueTypes: config.issueTypes,
       filters: config.filters,
       startDate: config.startDate,
       endDate: config.endDate,
-      customJql: config.customJql, 
-      startIndex, 
+      customJql: config.customJql,
+      startIndex,
       batchSize
     }
   );
@@ -31,14 +41,14 @@ const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batch
 
 const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
   const queryUrl = buildJiraSearchQueryUrl(
-    { apiRootUrl: config.connection.url, 
-      projects: config.projects, 
-      issueTypes: config.issueTypes, 
+    { apiRootUrl: config.connection.url,
+      projects: config.projects,
+      issueTypes: config.issueTypes,
       filters: config.filters,
       startDate: config.startDate,
       endDate: config.endDate,
-      customJql: config.customJql, 
-      startIndex: 0, 
+      customJql: config.customJql,
+      startIndex: 0,
       batchSize: 1
     });
   const metadata = await makeRequest(queryUrl, config.connection.auth.username, config.connection.auth.password, config.connection.auth.oauth);
@@ -62,16 +72,6 @@ const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
 //   const workflows = await makeRequest(url, username, password);
 //   return workflows;
 // };
-
-const makeRequest = async (url, username, password, oauth) => {
-  if (username == undefined || username === null) {
-    const json: any = await getJsonFromUrlViaOauth(url, oauth);
-    return json;
-  } else {
-    const json: any = await getJsonFromSelfSignedSSLUrl(url, username, password);
-    return json;
-  }
-};
 
 export {
   getIssues,

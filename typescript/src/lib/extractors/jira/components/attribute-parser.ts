@@ -1,3 +1,30 @@
+const parseAttribute = (attribute: any, customProp?: string): string => {
+  if (attribute === undefined || attribute == null) {
+    return '';
+  } else if (typeof attribute === 'string') {
+    return attribute;
+  } else if (typeof attribute === 'boolean') {
+    return attribute.toString();
+  } else if (typeof attribute === 'number') {
+    return attribute.toString();
+  } else {
+    // is object...find a field in priority order
+    return customProp ? attribute[customProp]
+    : attribute['name'] ? attribute['name']
+    : attribute['value'] ? attribute['value']
+    : '';
+  }
+};
+
+const parseAttributeArray = (attributeArray: Array<Array<any>>): string => {
+  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => parseAttribute(attributeArrayElement));
+  if (parsedAttributes.length === 0) {
+    return '';
+  }
+  const result = parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
+  return result;
+};
+
 const getAttributes = (fields: any, attributesRequested: string[]) => {
   return attributesRequested.reduce((attributesMap, attributeSystemName) => {
     const attributeData: any = fields[attributeSystemName];
@@ -15,33 +42,6 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
     attributesMap[attributeSystemName] = parsed;
     return attributesMap;
   }, {});
-};
-
-const parseAttribute = (attribute: any, customProp?: string): string => {
-  if (attribute === undefined || attribute == null) {
-    return '';
-  } else if (typeof attribute === 'string') {
-    return attribute;
-  } else if (typeof attribute === 'boolean') {
-    return attribute.toString();
-  } else if (typeof attribute === 'number') {
-    return attribute.toString();
-  } else {
-    // is object...find a field in priority order
-    return customProp ? attribute[customProp] 
-    : attribute['name'] ? attribute['name']
-    : attribute['value'] ? attribute['value']
-    : '';
-  }
-};
-
-const parseAttributeArray = (attributeArray: Array<Array<any>>): string => {
-  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => parseAttribute(attributeArrayElement));
-  if (parsedAttributes.length === 0) {
-    return '';
-  }
-  const result = parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
-  return result;
 };
 
 export {

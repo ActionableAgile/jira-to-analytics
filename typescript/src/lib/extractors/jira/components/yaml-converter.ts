@@ -36,6 +36,31 @@ const convertYamlToNewJiraConfig = (j: IJiraSettings) => {
   return x;
 };
 
+
+
+const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
+  const res = {};
+  Object.keys(workflowObject).forEach(key => {
+    res[key] = extractFunction(workflowObject[key]);
+  });
+  return res;
+};
+
+const convertToArray = (obj: string[] | string): string[] => {
+  if (obj === undefined || obj == null) {
+     return [];
+  }
+  return obj instanceof Array ? obj : [obj];
+};
+
+const convertCsvStringToArray = (s: string): string[] => {
+  if (s === undefined || s == null) {
+    return [];
+  } else {
+    return s.split(',').map(x => x.trim());
+  }
+};
+
 const convertYamlToJiraSettings = (config): IJiraSettings => {
   const jiraSettings: IJiraSettings = {};
 
@@ -68,7 +93,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
     jiraSettings.Criteria = criteria;
   }
 
-  const workflow = config.legacy 
+  const workflow = config.legacy
     ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
     : convertWorkflowToArray(config.Workflow, convertToArray);
   jiraSettings.Workflow = workflow;
@@ -80,24 +105,6 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   jiraSettings.FeatureFlags = featureFlags;
 
   return jiraSettings;
-}
-
-const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
-  const res = {};
-  Object.keys(workflowObject).forEach(key => {
-    res[key] = extractFunction(workflowObject[key]);
-  });
-  return res;
-};
-
-const convertToArray = (obj: string[] | string): string[] => {
-  if (obj === undefined || obj == null) return [];
-  return obj instanceof Array ? obj : [obj];
-};
-
-const convertCsvStringToArray = (s: string): string[] => {
-  if (s === undefined || s == null) return [];
-  return s.split(',').map(x => x.trim());
 };
 
 export {
