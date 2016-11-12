@@ -60,9 +60,9 @@ export interface IJiraSettings {
 };
 
 export interface IJiraExtractorConfig {
-  connection: {
-    url: string;
-    auth: {
+  connection?: {
+    url?: string;
+    auth?: {
       username?: string;
       password?: string;
       oauth?: {

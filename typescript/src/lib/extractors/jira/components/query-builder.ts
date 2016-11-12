@@ -10,8 +10,7 @@ export interface IQueryOptions {
   batchSize: number;
 }
 
-const restApiPath = '/rest/api/latest';
-const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
+const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
 
 const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const {
@@ -25,7 +24,7 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     startIndex,
     batchSize,
   } = options;
-    
+
   let clauses: Array<string> = [];
 
   // Handle Projects...
@@ -85,7 +84,7 @@ const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string =
 const formatDate = (date: Date): string => {
   const formattedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
   return formattedDate;
-}
+};
 
 export {
   buildJiraSearchQueryUrl,

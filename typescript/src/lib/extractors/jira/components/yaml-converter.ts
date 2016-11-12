@@ -31,7 +31,7 @@ const convertYamlToNewJiraConfig = (j: IJiraSettings) => {
     projects: j.Criteria.Projects,
     startDate: j.Criteria.StartDate,
     workflow: j.Workflow,
-  }
+  };
 
   return x;
 };
@@ -43,7 +43,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   jiraSettings.Connection = connection;
   jiraSettings.Connection.OAuth = buildOAuth(jiraSettings.Connection);
   jiraSettings.Connection.ApiUrl = buildApiUrl(jiraSettings.Connection.Domain);
-  
+
   if (config.legacy) {
     const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
     const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
@@ -52,7 +52,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
     const EndDate: Date = config.Criteria['End Date'] || null;
     const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
     const CustomJql: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
-    
+
     const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, CustomJql };
     jiraSettings.Criteria = criteria;
   } else {
@@ -69,7 +69,7 @@ const convertYamlToJiraSettings = (config): IJiraSettings => {
   }
 
   const workflow = config.legacy 
-    ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray) 
+    ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
     : convertWorkflowToArray(config.Workflow, convertToArray);
   jiraSettings.Workflow = workflow;
 

@@ -2,8 +2,7 @@ import { getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../co
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
 import { IIssueList, IIssue, IJiraExtractorConfig } from '../types';
 
-const getIssues = async function(config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> {
-  console.log(config);
+const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> => {
   const queryUrl: string = buildJiraSearchQueryUrl(
     { apiRootUrl: config.connection.url, 
       projects: config.projects, 
@@ -16,7 +15,12 @@ const getIssues = async function(config: IJiraExtractorConfig, startIndex: numbe
       batchSize
     }
   );
-  const result: IIssueList = await makeRequest(queryUrl, config.connection.auth.username, config.connection.auth.password, config.connection.auth.oauth);
+  const result: IIssueList = await makeRequest(
+    queryUrl,
+    config.connection.auth.username,
+    config.connection.auth.password,
+    config.connection.auth.oauth);
+
   if (result.issues) {
       const issues: IIssue[] = result.issues;
       return issues;
@@ -25,8 +29,7 @@ const getIssues = async function(config: IJiraExtractorConfig, startIndex: numbe
   }
 };
 
-const getMetadata = async function(config: IJiraExtractorConfig): Promise<any> {
-  console.log(config);
+const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
   const queryUrl = buildJiraSearchQueryUrl(
     { apiRootUrl: config.connection.url, 
       projects: config.projects, 
@@ -60,7 +63,7 @@ const getMetadata = async function(config: IJiraExtractorConfig): Promise<any> {
 //   return workflows;
 // };
 
-const makeRequest =  async function(url, username, password, oauth) {
+const makeRequest = async (url, username, password, oauth) => {
   if (username == undefined || username === null) {
     const json: any = await getJsonFromUrlViaOauth(url, oauth);
     return json;

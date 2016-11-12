@@ -7,7 +7,7 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
       const multipartAttribute: string[] = attributeSystemName.split('.');
       subAttribute = multipartAttribute[1];
     }
-    
+
     const parsed: string = Array.isArray(attributeData)
       ? parseAttributeArray(attributeData)
       : parseAttribute(attributeData, subAttribute); // subattribute only supported for nonarrays currently
@@ -16,7 +16,7 @@ const getAttributes = (fields: any, attributesRequested: string[]) => {
     return attributesMap;
   }, {});
 };
- 
+
 const parseAttribute = (attribute: any, customProp?: string): string => {
   if (attribute === undefined || attribute == null) {
     return '';
@@ -35,10 +35,8 @@ const parseAttribute = (attribute: any, customProp?: string): string => {
   }
 };
 
-const parseAttributeArray = (attributeArray: any[]): string => {
-  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => {
-    return parseAttribute(attributeArrayElement);
-  });
+const parseAttributeArray = (attributeArray: Array<Array<any>>): string => {
+  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => parseAttribute(attributeArrayElement));
   if (parsedAttributes.length === 0) {
     return '';
   }
