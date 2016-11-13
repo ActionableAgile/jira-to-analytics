@@ -21,8 +21,7 @@ const parseAttributeArray = (attributeArray: Array<any>): string => {
   if (parsedAttributes.length === 0) {
     return '';
   }
-  const result = parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
-  return result;
+  return parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
 };
 
 const getAttributes = (fields: any, attributesRequested: string[]): { [val: string]: string } => {

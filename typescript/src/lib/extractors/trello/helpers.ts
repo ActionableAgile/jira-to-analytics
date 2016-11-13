@@ -4,7 +4,7 @@ import {
   Card,
 } from './types';
 
-const API_VERSION = '1'
+const API_VERSION = '1';
 
 const getBoardsFromAuthedUserUrl = async (baseUrl, options): Promise<Board[]> => {
   const resourceUrl = `${baseUrl}/${API_VERSION}/member/me/boards`;
@@ -19,9 +19,9 @@ const getBoardsFromAuthedUserUrl = async (baseUrl, options): Promise<Board[]> =>
     });
     const boards: Board[] = await response.json();
     return boards;
-  } 
+  }
   console.log('No key and token found, no other auth is supported');
-  throw new Error('Key and Token not found on options')
+  throw new Error('Key and Token not found on options');
 };
 
 // theres also /1/boards/[board_id]/lists
@@ -80,7 +80,7 @@ const getBoardHistory = async (boardId, baseUrl, options) => {
 const addQueryParamsToUrl = (url: string, queryParamsObject: any): string => {
   const queryString: string = convertKeyValToQueryString(queryParamsObject);
   return `${url}?${queryString}`;
-}
+};
 
 const convertKeyValToQueryString = (params: {}): string => {
   const esc = encodeURIComponent;

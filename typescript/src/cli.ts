@@ -2,15 +2,13 @@ import * as fs from 'fs';
 import { safeLoad, safeDump } from 'js-yaml';
 import { argv } from 'yargs';
 import * as ProgressBar from 'progress';
-
 import { setup } from './lib/cli/leankit-cli';
 import { getPassword } from './lib/cli/jira-cli';
 import { JiraExtractor, LeanKitExtractor, TrelloExtractor } from './main';
 
-// import { TrelloExtractor } from './lib/extractors/trello/types';
-
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
+
 const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
     complete: '=',
     incomplete: ' ',
@@ -19,7 +17,6 @@ const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remain
 });
 
 const getArgs = () => argv;
-
 const log = (main?: any, ...additionalParams: any[]) => {
   console.log(main, ...additionalParams);
 };
@@ -36,7 +33,6 @@ const writeFile = (filePath: string, data: any) =>
   });
 
 const run = async function(cliArgs: any): Promise<void> {
-
   log('ActionableAgile Extraction Tool Starting...');
 
   if (cliArgs.trello) {
@@ -177,9 +173,9 @@ const run = async function(cliArgs: any): Promise<void> {
   })(bar);
 
   // Import data
-  const jiraExtractor = new JiraExtractor()
-    .importSettingsFromYaml(settings)
-    .setBatchSize(25);
+  const jiraExtractor = new JiraExtractor(JiraExtractor.ImportSettingsFromYaml(settings));
+
+  await jiraExtractor.testConnection();
 
   try {
     const workItems = await jiraExtractor.extractAll(updateProgressHook);

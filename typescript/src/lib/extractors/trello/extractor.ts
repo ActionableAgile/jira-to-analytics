@@ -1,8 +1,7 @@
 import { groupBy } from 'ramda';
-import { WorkItem } from '../../core/work-item'; 
-import { IWorkItem } from '../../core/types'; 
+import { WorkItem, IWorkItem } from '../../core/work-item';
 import {
-  Workflow, 
+  Workflow,
   ActionsByWorkflow,
   Card,
   Board,
@@ -10,11 +9,11 @@ import {
   TrelloConfig,
 } from './types';
 import { toCSV } from './exporter';
-import { 
-  getBoardsFromAuthedUserUrl, 
-  getBoardInformation, 
-  getBoardHistory, 
-  getBoardCards 
+import {
+  getBoardsFromAuthedUserUrl,
+  getBoardInformation,
+  getBoardHistory,
+  getBoardCards
 } from './helpers';
 
 class TrelloExtractor {
@@ -125,8 +124,8 @@ const convertCardToWorkItem = (card: Card): IWorkItem => {
 const fillOutMissingCategoriesWithEmptyArraysAndSort = (eventsByStageCategory: ActionsByWorkflow, completeWorkflow: Workflow) => {
   const sortedEventsByStageCategory: ActionsByWorkflow = {};
   Object.keys(completeWorkflow).forEach(stageCategory => {
-    sortedEventsByStageCategory[stageCategory] = eventsByStageCategory[stageCategory] 
-      ? eventsByStageCategory[stageCategory] 
+    sortedEventsByStageCategory[stageCategory] = eventsByStageCategory[stageCategory]
+      ? eventsByStageCategory[stageCategory]
       : [];
   });
   return sortedEventsByStageCategory;
@@ -153,8 +152,8 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
     if (validStageDates.length) {
       validStageDates.sort();
       latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
-      const earliestStageDate = validStageDates[0]; 
-      return earliestStageDate; 
+      const earliestStageDate = validStageDates[0];
+      return earliestStageDate;
     } else {
       return '';
     }

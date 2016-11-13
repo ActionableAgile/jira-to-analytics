@@ -1,4 +1,4 @@
-import { IJiraExtractorConfig} from '../types';
+import { IJiraExtractorConfig } from '../types';
 
 const buildOAuth = (oauthYamlObj) => {
   return {
@@ -20,7 +20,7 @@ const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
 
 const convertToArray = (obj: string[] | string): string[] => {
   if (obj === undefined || obj == null) {
-     return [];
+    return [];
   }
   return obj instanceof Array ? obj : [obj];
 };

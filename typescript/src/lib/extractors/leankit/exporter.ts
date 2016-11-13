@@ -1,4 +1,4 @@
-import { IWorkItem } from '../../core/types';
+import { IWorkItem } from '../../core/work-item';
 
 const toCSV = (workItems: IWorkItem[], stages: string[], attributes: {}, domainUrl: string, withHeader: boolean = true): string => {
   const header = `ID,Link,Name,${stages.join(',')},Type`;
