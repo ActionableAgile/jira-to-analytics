@@ -34,7 +34,24 @@ class JiraExtractor {
     return this;
   };
 
+  beforeExtract() {
+    const config = this.config;
+
+    if (!config.connection.url || config.connection.url === '') {
+      throw new Error('URL for extraction not set.');
+    }
+
+    if (!config.projects || config.projects.length < 1) {
+      throw new Error('No project(s) detected in configuration.');
+    }
+
+    if (!config.issueTypes || config.issueTypes.length < 1) {
+      throw new Error('No issue type(s) detected in configuration.');
+    }
+  };
+
   extractAll = async function(statusHook?): Promise<JiraWorkItem[]> {
+    this.beforeExtract();
     const config: IJiraExtractorConfig = this.config;
     const batchSize = config.batchSize || 25;
     const hook = statusHook || (() => null);
@@ -67,6 +84,7 @@ class JiraExtractor {
   };
 
   extract = async function(opts: { startIndex?: number, batchSize?: number }): Promise<JiraWorkItem[]> {
+    this.beforeExtract();
     const config = this.config;
     const { startIndex = 0, batchSize = 25 } = opts;
 
