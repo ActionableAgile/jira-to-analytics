@@ -1,4 +1,4 @@
-import { IIssue } from '../types';
+import { IIssue, IWorkflow } from '../types';
 
 const addCreatedToFirstStage = (issue: IIssue, stageBins: string[][]) => {
   const creationDate: string = issue.fields['created'];
@@ -71,9 +71,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
 return stagingDates;
 };
 
-const getStagingDates = (issue: IIssue, workflow): string[] => {
-
-  // get this out of here, yaml schema shouldnt be coupled to business logic
+const getStagingDates = (issue: IIssue, workflow: IWorkflow): string[] => {
   const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
   const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
 

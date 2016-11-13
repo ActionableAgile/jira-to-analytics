@@ -1,15 +1,34 @@
 import * as request from 'request';
-// import * as fs from 'fs';
+import * as fs from 'fs';
 import { buildJiraSearchQueryUrl } from './query-builder';
-import { IIssueList, IIssue, IJiraExtractorConfig } from '../types';
+import { IIssueList, IIssue, IJiraExtractorConfig, IAuth } from '../types';
 
-const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
+const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
   return new Promise((accept, reject) => {
-    request.get({
+    let options = {
       url,
-      oauth: oauth,
       json: true,
-    }, (error, response, body) => {
+    };
+    if (auth.oauth && auth.oauth.private_key && auth.oauth.token) {
+      // Handle OAuth
+      const oauth = auth.oauth;
+      Object.assign(options, { oauth });
+    } else if (auth.username && auth.password) {
+      // Handle Basic Auth
+      const headers = {
+        'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`
+      };
+      Object.assign(options, { headers });
+    }
+    if (fs.existsSync('ca.cert.pem')) {
+      // Handle Custom Self signed Cert
+      const cert = fs.readFileSync('ca.cert.pem');
+      const agentOptions = {
+        ca: cert,
+      };
+      Object.assign(options, { agentOptions });
+    }
+    request.get(options, (error, response, body) => {
       if (error) {
         console.log(`Error fetching json from ${url}`);
         reject(new Error(error));
@@ -18,37 +37,6 @@ const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
       }
     });
   });
-};
-
-const getJsonFromSelfSignedSSLUrl = (url, username, password) => {
-  return new Promise((accept, reject) => {
-    request.get(url, {
-      headers: {
-        'Authorization': `Basic ${new Buffer(username + ':' + password).toString('base64')}`
-      },
-      // agentOptions: {
-      //   ca: fs.readFileSync('ca.cert.pem')
-      // },
-      json: true,
-    }, (error, response, body) => {
-      if (error) {
-        console.log(`Error fetching json from ${url}`);
-        reject(new Error(error));
-      } else {
-        accept(body);
-      };
-    });
-  });
-};
-
-const makeRequest = async (url, username, password, oauth) => {
-  if (username == undefined || username === null) {
-    const json: any = await getJsonFromUrlViaOauth(url, oauth);
-    return json;
-  } else {
-    const json: any = await getJsonFromSelfSignedSSLUrl(url, username, password);
-    return json;
-  }
 };
 
 const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> => {
@@ -64,11 +52,9 @@ const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batch
       batchSize
     }
   );
-  const result: IIssueList = await makeRequest(
+  const result: IIssueList = await getJson(
     queryUrl,
-    config.connection.auth.username,
-    config.connection.auth.password,
-    config.connection.auth.oauth);
+    config.connection.auth);
 
   if (result.issues) {
       const issues: IIssue[] = result.issues;
@@ -78,8 +64,8 @@ const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batch
   }
 };
 
-const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
-  const queryUrl = buildJiraSearchQueryUrl(
+const getMetadata = async (config: IJiraExtractorConfig): Promise<IIssueList> => {
+  const queryUrl: string = buildJiraSearchQueryUrl(
     { apiRootUrl: config.connection.url,
       projects: config.projects,
       issueTypes: config.issueTypes,
@@ -90,7 +76,7 @@ const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
       startIndex: 0,
       batchSize: 1
     });
-  const metadata = await makeRequest(queryUrl, config.connection.auth.username, config.connection.auth.password, config.connection.auth.oauth);
+  const metadata = await getJson(queryUrl, config.connection.auth);
   return metadata;
 };
 
@@ -115,5 +101,4 @@ const getMetadata = async (config: IJiraExtractorConfig): Promise<any> => {
 export {
   getIssues,
   getMetadata,
-  makeRequest,
 };

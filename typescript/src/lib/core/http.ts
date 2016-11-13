@@ -1,6 +1,6 @@
 // import 'isomorphic-fetch';
 import * as request from 'request';
-import * as fs from 'fs';
+// import * as fs from 'fs';
 
 const getJsonFromUrlViaOauth = (url, oauth): Promise<any> => {
   return new Promise((accept, reject) => {

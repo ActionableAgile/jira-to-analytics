@@ -16,7 +16,7 @@ const parseAttribute = (attribute: any, customProp?: string): string => {
   }
 };
 
-const parseAttributeArray = (attributeArray: Array<Array<any>>): string => {
+const parseAttributeArray = (attributeArray: Array<any>): string => {
   let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => parseAttribute(attributeArrayElement));
   if (parsedAttributes.length === 0) {
     return '';
@@ -25,7 +25,7 @@ const parseAttributeArray = (attributeArray: Array<Array<any>>): string => {
   return result;
 };
 
-const getAttributes = (fields: any, attributesRequested: string[]) => {
+const getAttributes = (fields: any, attributesRequested: string[]): { [val: string]: string } => {
   return attributesRequested.reduce((attributesMap, attributeSystemName) => {
     const attributeData: any = fields[attributeSystemName];
 

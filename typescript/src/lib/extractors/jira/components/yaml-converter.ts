@@ -1,11 +1,11 @@
 import { IJiraExtractorConfig} from '../types';
 
-const buildOAuth = (config) => {
+const buildOAuth = (oauthYamlObj) => {
   return {
-    consumer_key: config['Consumer Key'],
-    private_key: config['Private Key'],
-    token: config['Token'],
-    token_secret: config['Token Secret'],
+    consumer_key: oauthYamlObj['Consumer Key'],
+    private_key: oauthYamlObj['Private Key'],
+    token: oauthYamlObj['Token'],
+    token_secret: oauthYamlObj['Token Secret'],
     signature_method: 'RSA-SHA1',
   };
 };
