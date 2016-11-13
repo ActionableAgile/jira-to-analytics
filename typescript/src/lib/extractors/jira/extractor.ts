@@ -28,15 +28,10 @@ class JiraExtractor {
     return this;
   };
 
-  importSettings(configObjToImport, source): this {
-    switch (source.toUpperCase()) {
-      case 'YAML':
-        const parsedSettings = convertYamlToJiraSettings(configObjToImport);
-        this.config = parsedSettings;
-        return this;
-      default:
-        throw new Error(`${source} source not found, cannot import config`);
-    }
+  importSettingsFromYaml(configObjToImport): this {
+    const parsedSettings = convertYamlToJiraSettings(configObjToImport);
+    this.config = parsedSettings;
+    return this;
   };
 
   extractAll = async function(statusHook?): Promise<JiraWorkItem[]> {

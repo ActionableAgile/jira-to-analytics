@@ -178,7 +178,7 @@ const run = async function(cliArgs: any): Promise<void> {
 
   // Import data
   const jiraExtractor = new JiraExtractor()
-    .importSettings(settings, 'yaml')
+    .importSettingsFromYaml(settings)
     .setBatchSize(25);
 
   try {
