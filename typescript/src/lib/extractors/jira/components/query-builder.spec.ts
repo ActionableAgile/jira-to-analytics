@@ -25,7 +25,7 @@ describe('query builder', () => {
         expect(builtSearchQueryUrl).to.equal(actual);
     });
 
-        it('should build query from single entry arrays', () => {
+    it('should build query from single entry arrays', () => {
 
         const endDate = new Date(2016, 11, 26);
         const startDate = new Date(2016, 11, 13);

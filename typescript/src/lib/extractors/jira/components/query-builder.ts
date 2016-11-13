@@ -11,6 +11,7 @@ export interface IQueryOptions {
 }
 
 const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
+
 const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
 
 const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
@@ -52,11 +53,11 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     clauses.push(dateFilterQuery);
   } else if (startDate) {
     const dateToExcludeStoriesBefore = startDate;
-    const excludeAllStoriesClosedAfterDateClause =  `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
+    const excludeAllStoriesClosedAfterDateClause = `(resolutionDate >= "${formatDate(dateToExcludeStoriesBefore)}" OR resolution = Unresolved)`;
     clauses.push(excludeAllStoriesClosedAfterDateClause);
   } else if (endDate) {
     const dateToExcludeStoriesAfter = endDate;
-    const excludeAllStoriesClosedBeforeDateClause =  `(resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
+    const excludeAllStoriesClosedBeforeDateClause = `(resolutionDate <= "${formatDate(dateToExcludeStoriesAfter)}")`;
     clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }
 

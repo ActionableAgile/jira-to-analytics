@@ -7,7 +7,7 @@ const addCreatedToFirstStage = (issue: IIssue, stageBins: string[][]) => {
 };
 
 const addResolutionDateToClosedStage = (issue: IIssue, stageMap, stageBins) => {
-  if (issue.fields['status'] !== undefined || issue.fields['status'] != null ) {
+  if (issue.fields['status'] !== undefined || issue.fields['status'] != null) {
     if (issue.fields['status'].name === 'Closed') {
       if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
         const resolutionDate: string = issue.fields['resolutiondate'];
@@ -68,7 +68,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
       return '';
     }
   });
-return stagingDates;
+  return stagingDates;
 };
 
 const getStagingDates = (issue: IIssue, workflow: IWorkflow): string[] => {

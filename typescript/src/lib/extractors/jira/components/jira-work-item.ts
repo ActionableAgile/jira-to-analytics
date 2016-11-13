@@ -1,4 +1,3 @@
-// import { IWorkItem } from '../../../core/types';
 import { IJiraExtractorConfig } from '../types';
 
 export class JiraWorkItem  {
@@ -31,8 +30,7 @@ export class JiraWorkItem  {
     this.stageDates.forEach(stageDate => s += `,${stageDate}`);
     s += `,${this.type}`;
 
-    const attributeKeys = Object.keys(this.attributes);
-
+    const attributeKeys = this.attributes ? Object.keys(this.attributes) : [];
     if (attributeKeys.length === 0) {
       s += ',';
     } else {

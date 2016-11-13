@@ -1,5 +1,14 @@
-import { IWorkItem } from './types';
-class WorkItem implements IWorkItem {
+export interface IWorkItem {
+  Id: string;
+  StageDates: Array<string>;
+  Name: string;
+  Type: string;
+  Attributes: any;
+  toCSV(string?, any?);
+  toSerializedArray();
+};
+
+export class WorkItem implements IWorkItem {
   Id: string;
   StageDates: Array<string>;
   Name: string;
@@ -18,16 +27,7 @@ class WorkItem implements IWorkItem {
   toCSV(domainUrl: string, config: any = {}): string {
     let s = '';
     s += `${this.Id},`;
-
-    if (this.Source.toUpperCase() === 'LEANKIT' || this.Source.toUpperCase() === 'TRELLO') {
-      s += `${domainUrl}/${this.Id},`;
-    } else { // it is JIRA
-      if (config.FeatureFlags && config.FeatureFlags['MaskLink']) {
-        s += ',';
-      } else {
-        s += `${domainUrl}/browse/${this.Id},`;
-      }
-    }
+    s += `${domainUrl}/${this.Id},`;
     s += `${(WorkItem.cleanString(this.Name))}`;
     this.StageDates.forEach(stageDate => s += `,${stageDate}`);
     s += `,${this.Type}`;
@@ -70,8 +70,4 @@ class WorkItem implements IWorkItem {
     .replace(/\\/g, '')
     .trim();
   };
-};
-
-export {
-  WorkItem,
 };
