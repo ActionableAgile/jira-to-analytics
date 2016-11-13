@@ -1,27 +1,55 @@
-import { IJiraExtractorConfig, IIssue, IWorkflow, IAttributes, IIssueList } from './types';
+import { IJiraExtractorConfig, IJiraApiIssue, IJiraApiWorkflow, IJiraApiError, IJiraApiIssueList } from './types';
+import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './components/query-builder';
 import { convertYamlToJiraSettings } from './components/yaml-converter';
 import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
-import { buildJiraSearchQueryUrl } from './components/query-builder';
 import { getJson } from './components/jira-adapter';
 
 class JiraExtractor {
   config: IJiraExtractorConfig;
 
-  constructor(config?: IJiraExtractorConfig) {
+  constructor(config: IJiraExtractorConfig) {
+    if (!config) {
+      throw new Error('Configuation null. Configuration must be provided to use JiraExtrator.');
+    }
+
+    if (!config.connection || !config.connection.url) {
+      throw new Error('Error, Jira API Url not set in configuration. API Url is required.');
+    }
     this.config = config;
+    this.config.batchSize = 25;
   }
 
-  setBatchSize(x: number): this {
-    this.config.batchSize = x;
-    return this;
-  };
+  async testConnection(): Promise<boolean> {
+    const url = buildJiraGetProjectsUrl(this.config.connection.url);
+    try {
+      await getJson(url, this.config.connection.auth);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
 
-  importSettingsFromYaml(configObjToImport): this {
+  async getWorkflow(project: string) {
+    const url = buildJiraGetWorkflowsUrl(project, this.config.connection.url);
+    const workflow: Array<IJiraApiWorkflow> & IJiraApiError = await getJson(url, this.config.connection.auth);
+    if (workflow.errorMessages) {
+      throw new Error(workflow.errorMessages.toString());
+    }
+    return workflow.map(workflowType => {
+      const workflowTypeName = workflowType.name; // 'Bug' or 'Story' for example
+      const workflowSteps = workflowType.statuses.map(status => status.name); // ['Backlog, Anaylsis, Dev, Test, Done, etc..];
+      return {
+        name: workflowTypeName,
+        statuses: workflowSteps,
+      };
+    });
+  }
+
+  static ImportSettingsFromYaml(configObjToImport): IJiraExtractorConfig {
     const parsedSettings = convertYamlToJiraSettings(configObjToImport);
-    this.config = parsedSettings;
-    return this;
+    return parsedSettings;
   };
 
   beforeExtract() {
@@ -54,7 +82,7 @@ class JiraExtractor {
     const hook = statusHook;
 
     const batchSize = config.batchSize || 25;
-    const totalJiras = await this.getTotalIssues();
+    const totalJiras = await this.getIssueCountFromJiraApi();
 
     let actualBatchSize: number = batchSize;
     if (batchSize == 0) { // no batching limit
@@ -65,7 +93,7 @@ class JiraExtractor {
     hook(0);
     for (let i = 0; i < totalBatches; i++) {
       const start: number = i * actualBatchSize;
-      const issues = await this.getIssues({ startIndex: start, batchSize });
+      const issues = await this.getIssuesFromJiraApi({ startIndex: start, batchSize });
       const workItemBatch = issues.map(this.convertIssueToWorkItem);
       allWorkItems.push(...workItemBatch);
       hook(Math.max(actualBatchSize / totalJiras) * 100);
@@ -79,7 +107,7 @@ class JiraExtractor {
     this.beforeExtract();
     const { startIndex = 0, batchSize = 25 } = opts;
 
-    const issues = await this.getIssues({ startIndex, batchSize });
+    const issues = await this.getIssuesFromJiraApi({ startIndex, batchSize });
     const workItems = issues.map(this.convertIssueToWorkItem);
     this.afterExtract(workItems); // mutation
     return workItems;
@@ -96,7 +124,7 @@ class JiraExtractor {
     return csv;
   };
 
-  private async requestJson({ startIndex = 0, batchSize = 25 }) {
+  private async getIssueListFromJiraApi({ startIndex = 0, batchSize = 25 }) {
     const config = this.config;
     const queryUrl: string = buildJiraSearchQueryUrl(
       { apiRootUrl: config.connection.url,
@@ -110,27 +138,27 @@ class JiraExtractor {
         batchSize
       }
     );
-    const result: IIssueList = await getJson(queryUrl, config.connection.auth);
+    const result: IJiraApiIssueList = await getJson(queryUrl, config.connection.auth);
     return result;
   }
 
-  private async getTotalIssues(): Promise<number> {
-    const metadata = await this.requestJson({ batchSize: 1, startIndex: 0});
+  private async getIssueCountFromJiraApi(): Promise<number> {
+    const metadata = await this.getIssueListFromJiraApi({ batchSize: 1, startIndex: 0});
     const totalJiras: number = metadata.total;
     return totalJiras;
   }
 
-  private async getIssues({ startIndex, batchSize }) {
-    const json = await this.requestJson({ startIndex, batchSize });
+  private async getIssuesFromJiraApi({ startIndex, batchSize }) {
+    const json = await this.getIssueListFromJiraApi({ startIndex, batchSize });
     if (json.issues) {
-      const issues: IIssue[] = json.issues;
+      const issues: IJiraApiIssue[] = json.issues;
       return issues;
     } else {
       throw new Error('Could not retrieve issues from object');
     }
   };
 
-  private convertIssueToWorkItem = (issue: IIssue): JiraWorkItem => {
+  private convertIssueToWorkItem = (issue: IJiraApiIssue): JiraWorkItem => {
     const workflow = this.config.workflow;
     const attributes = this.config.attributes;
     const key: string = issue.key;

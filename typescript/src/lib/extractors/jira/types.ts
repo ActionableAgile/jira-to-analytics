@@ -1,31 +1,52 @@
 // JIRA REST API Interfaces (Mappings)
-export interface IItem {
+export interface IJiraApiItem {
   field: string;
   toString: string;
 };
 
-export interface IHistory {
+export interface IJiraApiHistory {
   id: string;
-  items: Array<IItem>;
+  items: Array<IJiraApiItem>;
   created: string;
 };
 
-export interface IChangeLog {
+export interface IJiraApiChangeLog {
   total: number;
-  histories: Array<IHistory>;
+  histories: Array<IJiraApiHistory>;
 };
 
-export interface IIssue {
+export interface IJiraApiIssue {
   key: string;
   fields: any;
-  changelog: IChangeLog;
+  changelog: IJiraApiChangeLog;
 };
 
-export interface IIssueList {
-  issues: Array<IIssue>;
+export interface IJiraApiIssueList {
+  issues: Array<IJiraApiIssue>;
   total: number;
 };
 
+export interface IJiraApiWorkflowStatuses {
+  self: string;
+  description: string;
+  name: string;
+  id: string;
+  statusCategory: any;
+}
+
+export interface IJiraApiWorkflow {
+  id: string;
+  name: string;
+  subtask: boolean;
+  statuses: Array<IJiraApiWorkflowStatuses>;
+}
+
+export interface IJiraApiError {
+  errorMessages: Array<string>;
+  errors: any;
+}
+
+// EXTRACTOR interfaces
 export interface IWorkflow {
   [val: string]: Array<string>;
 };

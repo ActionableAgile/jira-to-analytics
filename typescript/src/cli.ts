@@ -173,9 +173,9 @@ const run = async function(cliArgs: any): Promise<void> {
   })(bar);
 
   // Import data
-  const jiraExtractor = new JiraExtractor()
-    .importSettingsFromYaml(settings)
-    .setBatchSize(25);
+  const jiraExtractor = new JiraExtractor(JiraExtractor.ImportSettingsFromYaml(settings));
+
+  await jiraExtractor.testConnection();
 
   try {
     const workItems = await jiraExtractor.extractAll(updateProgressHook);

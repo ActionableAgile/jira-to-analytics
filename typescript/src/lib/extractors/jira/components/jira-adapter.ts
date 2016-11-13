@@ -1,8 +1,8 @@
 import { get } from 'request';
 import { readFileSync, existsSync } from 'fs';
-import { IIssueList, IAuth } from '../types';
+import { IAuth } from '../types';
 
-const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
+const getJson = (url: string, auth: IAuth): Promise<any> => {
   return new Promise((accept, reject) => {
     const options = {
       url,
@@ -32,6 +32,11 @@ const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
         console.log(`Error fetching json from ${url}`);
         reject(new Error(error));
       } else {
+        if (typeof body === 'string') {
+          if (body.includes('<title>Unauthorized (401)</title>')) {
+            reject(new Error('Unauthorized'));
+          }
+        }
         accept(body);
       }
     });
