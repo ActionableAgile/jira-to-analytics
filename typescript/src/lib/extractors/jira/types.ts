@@ -23,28 +23,46 @@ export interface IIssue {
 
 export interface IIssueList {
   issues: Array<IIssue>;
+  total: number;
 };
 
-// Internal Jira Extractor Settings Interface
-export interface IJiraSettings {
-  Connection?: {
-    Domain?: string;
-    Username?: string;
-    Password?: string;
-    ApiUrl?: string;
-    OAuth?: any;
+export interface IWorkflow {
+  [val: string]: Array<string>;
+};
+
+export interface IAttributes {
+  [val: string]: string;
+};
+
+export interface IFeatureFlags {
+  [val: string]: boolean;
+};
+
+export interface IAuth {
+  username?: string;
+  password?: string;
+  oauth?: {
+    consumer_key: string;
+    private_key: string,
+    token: string;
+    token_secret: string;
+    signature_method: string;
   };
-  Criteria?: {
-    Projects?: Array<string>;
-    IssueTypes?: Array<string>;
-    Filters?: Array<string>;
-    StartDate?: Date;
-    EndDate?: Date;
-    JQL: string;
+}
+
+export interface IJiraExtractorConfig {
+  connection?: {
+    url?: string;
+    auth?: IAuth;
   };
-  Workflow?: {};
-  Attributes?: {};
-  FeatureFlags?: {
-    [index: string]: boolean;
-  };
+  projects?: Array<string>;
+  issueTypes?: Array<string>;
+  filters?: Array<string>;
+  startDate?: Date;
+  endDate?: Date;
+  customJql?: string;
+  workflow?: IWorkflow;
+  attributes?: IAttributes;
+  featureFlags?: IFeatureFlags;
+  batchSize?: number;
 };

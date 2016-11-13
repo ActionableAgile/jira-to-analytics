@@ -47,9 +47,9 @@ class WorkItem implements IWorkItem {
 
   toSerializedArray(): string {
     let s = '';
-    s += '['
+    s += '[';
     s += `"${this.Id}",`;
-    s += `"",`
+    s += `"",`;
     s += `"${(WorkItem.cleanString(this.Name))}"`;
     this.StageDates.forEach(stageDate => s += `,"${stageDate}"`);
     s += `,"${this.Type}"`;
@@ -62,7 +62,6 @@ class WorkItem implements IWorkItem {
 
     return s;
   };
-
 
   static cleanString(s: string = ''): string {
     return s.replace(/"/g, '')

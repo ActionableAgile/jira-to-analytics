@@ -7,4 +7,3 @@ export interface IWorkItem {
   toCSV(string?, any?);
   toSerializedArray();
 };
-

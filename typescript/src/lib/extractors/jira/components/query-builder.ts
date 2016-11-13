@@ -10,6 +10,9 @@ export interface IQueryOptions {
   batchSize: number;
 }
 
+const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
+const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
+
 const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const {
     apiRootUrl,
@@ -22,23 +25,26 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     startIndex,
     batchSize,
   } = options;
-    
-  let clauses: string[] = [];
 
+  let clauses: Array<string> = [];
+
+  // Handle Projects...
   const projectClause = (projects.length > 1)
-  ? `project in (${projects.join(',')})`
-  : `project=${projects[0]}`;
+    ? `project in (${projects.join(',')})`
+    : `project=${projects[0]}`;
   clauses.push(projectClause);
 
+  // Handle Issues...
   if (issueTypes.length > 0) {
     const typeClause = `issuetype in (${issueTypes.join(',')})`;
     clauses.push(typeClause);
   }
-
+  // Handle Custom JQL
   if (customJql) {
     clauses.push(`(${customJql})`);
   }
 
+  // Handle Custom Start/End dates
   if (startDate && endDate) {
     const dateToExcludeStoriesBefore = startDate;
     const dateToExcludeStoriesAfter = endDate;
@@ -54,33 +60,30 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
     clauses.push(excludeAllStoriesClosedBeforeDateClause);
   }
 
+  // Handle Filters...
   const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
   clauses.push(...filterClauses);
 
+  // AND together
   const jql = `${clauses.join(' AND ')} order by key`;
-  // console.log(`\nBuilt JQL:\n${jql}\n`);
-  const query = `${apiRootUrl}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
-  // console.log(`Built Query URL:\n${query}\n`)
+
+  // Append JQL to url, also add start and maxresults
+  const query = `${buildApiUrl(apiRootUrl)}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
 };
 
 const buildJiraGetProjectsUrl = (apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project`;
+  const url = `${buildApiUrl(apiRootUrl)}/project`;
   return url;
 };
 
 const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string => {
-  const url = `${apiRootUrl}/project/${project}/statuses`;
+  const url = `${buildApiUrl(apiRootUrl)}/project/${project}/statuses`;
   return url;
 };
 
-const formatDate = (date: Date): string => {
-  const formattedDate = `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
-  return formattedDate;
-}
-
 export {
-    buildJiraSearchQueryUrl,
-    buildJiraGetProjectsUrl,
-    buildJiraGetWorkflowsUrl,
+  buildJiraSearchQueryUrl,
+  buildJiraGetProjectsUrl,
+  buildJiraGetWorkflowsUrl,
 };

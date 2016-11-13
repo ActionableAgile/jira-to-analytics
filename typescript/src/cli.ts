@@ -21,7 +21,7 @@ const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remain
 const getArgs = () => argv;
 
 const log = (main?: any, ...additionalParams: any[]) => {
-  console.log(main, ...additionalParams)
+  console.log(main, ...additionalParams);
 };
 
 const writeFile = (filePath: string, data: any) =>
@@ -84,7 +84,6 @@ const run = async function(cliArgs: any): Promise<void> {
     return;
   }
 
-
   if (cliArgs.leankit) {
 
     if (cliArgs.setup) {
@@ -94,7 +93,7 @@ const run = async function(cliArgs: any): Promise<void> {
         const output = safeDump(settingsObject);
         await writeFile(defaultYamlPath, output);
         log(`LeanKit Extraction Tool Setup is complete.`);
-        log(`Saved configuration to ${defaultYamlPath}`)
+        log(`Saved configuration to ${defaultYamlPath}`);
         log('Please rerun the tool without the setup flag to extract');
         return;
       } catch (e) {
@@ -156,7 +155,6 @@ const run = async function(cliArgs: any): Promise<void> {
     settings.Connection.Password = password;
   }
 
-
   log('');
 
   if (settings['Feature Flags']) {
@@ -172,35 +170,35 @@ const run = async function(cliArgs: any): Promise<void> {
   const updateProgressHook = (bar => {
     bar.tick();
     return (percentDone: number) => {
-      if (percentDone <= 100) 
+      if (percentDone <= 100) {
         bar.tick(percentDone);
-    } 
+      }
+    };
   })(bar);
-  
+
   // Import data
   const jiraExtractor = new JiraExtractor()
     .importSettings(settings, 'yaml')
-    .setBatchSize(25)
+    .setBatchSize(25);
 
   try {
     const workItems = await jiraExtractor.extractAll(updateProgressHook);
 
     // Export data
-    let data: string;
+    let data: string = '';
     if (outputType === 'CSV') {
       data = await jiraExtractor.toCSV(workItems);
     } else if (outputType === 'JSON') {
-      data = jiraExtractor.toSerializedArray(workItems);
+      console.error('JSON not currently supported');
+    //   data = jiraExtractor.toSerializedArray(workItems);
     }
     try {
       await writeFile(outputPath, data);
     } catch (e) {
       log(`Error writing jira data to ${outputPath}`);
     }
-
-    const end = new Date().getTime();
     log(`Done. Results written to ${outputPath}`);
-    
+
     return;
   } catch (e) {
     log(`Error extracting JIRA Items ${e}`);
@@ -216,4 +214,3 @@ const run = async function(cliArgs: any): Promise<void> {
     log(e);
   }
 }(getArgs()));
-

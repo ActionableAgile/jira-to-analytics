@@ -1,23 +1,4 @@
-const getAttributes = (fields: any, attributesRequested: string[]) => {
-  return attributesRequested.reduce((attributesMap, attributeSystemName) => {
-    const attributeData: any = fields[attributeSystemName];
-
-    let subAttribute: string = null;
-    if (attributeSystemName.startsWith('customfield_') && attributeSystemName.split('.').length > 1) {
-      const multipartAttribute: string[] = attributeSystemName.split('.');
-      subAttribute = multipartAttribute[1];
-    }
-    
-    const parsed: string = Array.isArray(attributeData)
-      ? parseAttributeArray(attributeData)
-      : parseAttribute(attributeData, subAttribute); // subattribute only supported for nonarrays currently
-
-    attributesMap[attributeSystemName] = parsed;
-    return attributesMap;
-  }, {});
-};
- 
-const parseAttribute = (attribute: any, custom?: string): string => {
+const parseAttribute = (attribute: any, customProp?: string): string => {
   if (attribute === undefined || attribute == null) {
     return '';
   } else if (typeof attribute === 'string') {
@@ -28,22 +9,39 @@ const parseAttribute = (attribute: any, custom?: string): string => {
     return attribute.toString();
   } else {
     // is object...find a field in priority order
-    return custom ? attribute[custom] 
+    return customProp ? attribute[customProp]
     : attribute['name'] ? attribute['name']
     : attribute['value'] ? attribute['value']
     : '';
   }
 };
 
-const parseAttributeArray = (attributeArray: any[]): string => {
-  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => {
-    return parseAttribute(attributeArrayElement);
-  });
+const parseAttributeArray = (attributeArray: Array<any>): string => {
+  let parsedAttributes: string[] = attributeArray.map(attributeArrayElement => parseAttribute(attributeArrayElement));
   if (parsedAttributes.length === 0) {
     return '';
   }
   const result = parsedAttributes.length === 1 ? parsedAttributes[0] : `[${parsedAttributes.join(';')}]`;
   return result;
+};
+
+const getAttributes = (fields: any, attributesRequested: string[]): { [val: string]: string } => {
+  return attributesRequested.reduce((attributesMap, attributeSystemName) => {
+    const attributeData: any = fields[attributeSystemName];
+
+    let subAttribute: string = null;
+    if (attributeSystemName.startsWith('customfield_') && attributeSystemName.split('.').length > 1) {
+      const multipartAttribute: string[] = attributeSystemName.split('.');
+      subAttribute = multipartAttribute[1];
+    }
+
+    const parsed: string = Array.isArray(attributeData)
+      ? parseAttributeArray(attributeData)
+      : parseAttribute(attributeData, subAttribute); // subattribute only supported for nonarrays currently
+
+    attributesMap[attributeSystemName] = parsed;
+    return attributesMap;
+  }, {});
 };
 
 export {

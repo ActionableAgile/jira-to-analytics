@@ -1,62 +1,14 @@
-import { IJiraSettings} from '../types';
+import { IJiraExtractorConfig} from '../types';
 
-const restApiPath = '/rest/api/latest';
-const buildApiUrl = (rootUrl) => `${rootUrl}${restApiPath}`;
-const buildOAuth = (config) => {
+const buildOAuth = (oauthYamlObj) => {
   return {
-    consumer_key: config['Consumer Key'],
-    private_key: config['Private Key'],
-    token: config['Token'],
-    token_secret: config['Token Secret'],
+    consumer_key: oauthYamlObj['Consumer Key'],
+    private_key: oauthYamlObj['Private Key'],
+    token: oauthYamlObj['Token'],
+    token_secret: oauthYamlObj['Token Secret'],
     signature_method: 'RSA-SHA1',
   };
 };
-
-const convertYamlToJiraSettings = (config): IJiraSettings => {
-  const jiraSettings: IJiraSettings = {};
-
-  const connection = config.Connection;
-  jiraSettings.Connection = connection;
-  jiraSettings.Connection.OAuth = buildOAuth(jiraSettings.Connection);
-  jiraSettings.Connection.ApiUrl = buildApiUrl(jiraSettings.Connection.Domain);
-  
-  if (config.legacy) {
-    const Projects: string[] = convertCsvStringToArray(config.Criteria.Projects); // legacy yaml is Projects (with an s)
-    const IssueTypes: string[] = convertCsvStringToArray(config.Criteria.Types); // legacy yaml is Types
-    const ValidResolutions: string[] = convertCsvStringToArray(config.Criteria['Valid resolutions']); // not used in legacy
-    const StartDate: Date = config.Criteria['Start Date'] || null;
-    const EndDate: Date = config.Criteria['End Date'] || null;
-    const Filters: string[] = convertCsvStringToArray(config.Criteria.Filters);
-    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
-    
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
-    jiraSettings.Criteria = criteria;
-  } else {
-    const Projects: string[] = convertToArray(config.Criteria.Project); // cur yaml is Project
-    const IssueTypes: string[] = convertToArray(config.Criteria['Issue types']); // cur yaml is Issue types
-    const ValidResolutions: string[] = convertToArray(config.Criteria['Valid resolutions']);
-    const StartDate: Date = config.Criteria['Start Date'] || null;
-    const EndDate: Date = config.Criteria['End Date'] || null;
-    const Filters: string[] = convertToArray(config.Criteria.Filters);
-    const JQL: string = config.Criteria.JQL ? config.Criteria.JQL : '';
-
-    const criteria = { Projects, IssueTypes, Filters, StartDate, EndDate, JQL };
-    jiraSettings.Criteria = criteria;
-  }
-
-  const workflow = config.legacy 
-    ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray) 
-    : convertWorkflowToArray(config.Workflow, convertToArray);
-  jiraSettings.Workflow = workflow;
-
-  const attributes = config.Attributes;
-  jiraSettings.Attributes = attributes;
-
-  const featureFlags = config['Feature Flags'];
-  jiraSettings.FeatureFlags = featureFlags;
-
-  return jiraSettings;
-}
 
 const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
   const res = {};
@@ -67,15 +19,50 @@ const convertWorkflowToArray = (workflowObject: any, extractFunction: any) => {
 };
 
 const convertToArray = (obj: string[] | string): string[] => {
-  if (obj === undefined || obj == null) return [];
+  if (obj === undefined || obj == null) {
+     return [];
+  }
   return obj instanceof Array ? obj : [obj];
 };
 
 const convertCsvStringToArray = (s: string): string[] => {
-  if (s === undefined || s == null) return [];
-  return s.split(',').map(x => x.trim());
+  if (s === undefined || s == null) {
+    return [];
+  } else {
+    return s.split(',').map(x => x.trim());
+  }
+};
+
+const convertYamlToJiraSettings = (config: any): IJiraExtractorConfig => {
+  const c: IJiraExtractorConfig = {};
+
+  c.batchSize = config.BatchSize || 25;
+  c.attributes = config.Attributes;
+  c.connection = {
+    url: config.Connection.Domain || null,
+    auth: {
+      username: config.Connection.Username || null,
+      password: config.Connection.Password || null,
+      oauth: buildOAuth(config.Connection) || null,
+    }
+  };
+
+  c.projects = config.legacy ? convertCsvStringToArray(config.Criteria.Projects) : convertToArray(config.Criteria.Project);
+  c.issueTypes = config.legacy ? convertCsvStringToArray(config.Criteria['Types']) : convertToArray(config.Criteria['Issue types']);
+  c.filters = config.legacy ? convertCsvStringToArray(config.Criteria.Filters) : convertToArray(config.Criteria.Filters);
+  c.startDate = config.Criteria['Start Date'] || null;
+  c.endDate = config.Criteria['End Date'] || null;
+  c.customJql = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
+  c.workflow = config.legacy
+    ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
+    : convertWorkflowToArray(config.Workflow, convertToArray);
+  c.attributes = config.Attributes;
+
+  c.featureFlags = config['Feature Flags'];
+
+  return c;
 };
 
 export {
   convertYamlToJiraSettings,
-}
+};

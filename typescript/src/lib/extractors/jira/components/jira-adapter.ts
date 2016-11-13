@@ -1,10 +1,61 @@
-import { getJsonFromUrl, getHeaders, getJsonFromUrlViaOauth, getJsonFromSelfSignedSSLUrl } from '../../../core/http';
-import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './query-builder';
-import { IIssueList, IIssue } from '../types';
+import * as request from 'request';
+import * as fs from 'fs';
+import { buildJiraSearchQueryUrl } from './query-builder';
+import { IIssueList, IIssue, IJiraExtractorConfig, IAuth } from '../types';
 
-const getIssues = async function(apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username: string, password: string, oauth): Promise<IIssue[]> {
-  const queryUrl: string = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize });
-  const result: IIssueList = await makeRequest(queryUrl, username, password, oauth);
+const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
+  return new Promise((accept, reject) => {
+    let options = {
+      url,
+      json: true,
+    };
+    if (auth.oauth && auth.oauth.private_key && auth.oauth.token) {
+      // Handle OAuth
+      const oauth = auth.oauth;
+      Object.assign(options, { oauth });
+    } else if (auth.username && auth.password) {
+      // Handle Basic Auth
+      const headers = {
+        'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`
+      };
+      Object.assign(options, { headers });
+    }
+    if (fs.existsSync('ca.cert.pem')) {
+      // Handle Custom Self signed Cert
+      const cert = fs.readFileSync('ca.cert.pem');
+      const agentOptions = {
+        ca: cert,
+      };
+      Object.assign(options, { agentOptions });
+    }
+    request.get(options, (error, response, body) => {
+      if (error) {
+        console.log(`Error fetching json from ${url}`);
+        reject(new Error(error));
+      } else {
+        accept(body);
+      }
+    });
+  });
+};
+
+const getIssues = async (config: IJiraExtractorConfig, startIndex: number, batchSize: number): Promise<IIssue[]> => {
+  const queryUrl: string = buildJiraSearchQueryUrl(
+    { apiRootUrl: config.connection.url,
+      projects: config.projects,
+      issueTypes: config.issueTypes,
+      filters: config.filters,
+      startDate: config.startDate,
+      endDate: config.endDate,
+      customJql: config.customJql,
+      startIndex,
+      batchSize
+    }
+  );
+  const result: IIssueList = await getJson(
+    queryUrl,
+    config.connection.auth);
+
   if (result.issues) {
       const issues: IIssue[] = result.issues;
       return issues;
@@ -13,9 +64,19 @@ const getIssues = async function(apiRootUrl, projects, issueTypes, filters, work
   }
 };
 
-const getMetadata = async function(apiRootUrl, projects, issueTypes, filters, workflow, startDate, endDate, customJql, startIndex, batchSize, username: string, password: string, oauth): Promise<any> {
-  const queryUrl = buildJiraSearchQueryUrl({ apiRootUrl, projects, issueTypes, filters, startDate, endDate, customJql, startIndex, batchSize});
-  const metadata = await makeRequest(queryUrl, username, password, oauth);
+const getMetadata = async (config: IJiraExtractorConfig): Promise<IIssueList> => {
+  const queryUrl: string = buildJiraSearchQueryUrl(
+    { apiRootUrl: config.connection.url,
+      projects: config.projects,
+      issueTypes: config.issueTypes,
+      filters: config.filters,
+      startDate: config.startDate,
+      endDate: config.endDate,
+      customJql: config.customJql,
+      startIndex: 0,
+      batchSize: 1
+    });
+  const metadata = await getJson(queryUrl, config.connection.auth);
   return metadata;
 };
 
@@ -37,18 +98,7 @@ const getMetadata = async function(apiRootUrl, projects, issueTypes, filters, wo
 //   return workflows;
 // };
 
-const makeRequest =  async function(url, username, password, oauth) {
-  if (username == undefined || username === null) {
-    const json: any = await getJsonFromUrlViaOauth(url, oauth);
-    return json;
-  } else {
-    const json: any = await getJsonFromSelfSignedSSLUrl(url, username, password);
-    return json;
-  }
-};
-
 export {
   getIssues,
   getMetadata,
-  makeRequest,
 };

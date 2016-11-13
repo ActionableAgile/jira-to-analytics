@@ -1,30 +1,4 @@
-import { IIssueList, IIssue } from '../types';
-
-const getStagingDates = (issue: IIssue, workflow): string[] => {
-
-  // get this out of here, yaml schema shouldnt be coupled to business logic
-  const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
-  const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
-
-  const stages = Object.keys(workflow);
-  const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
-    return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
-      return map.set(stageAlias, i);
-    }, map);
-  }, new Map<string, number>());
-
-  let stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
-
-  if (createInFirstStage) {
-    stageBins = addCreatedToFirstStage(issue, stageBins);
-  }
-  if (resolvedInLastStage) {
-    stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
-  }
-  stageBins = populateStages(issue, stageMap, stageBins);
-  const stagingDates = filterAndFlattenStagingDates(stageBins);
-  return stagingDates;
-};
+import { IIssue, IWorkflow } from '../types';
 
 const addCreatedToFirstStage = (issue: IIssue, stageBins: string[][]) => {
   const creationDate: string = issue.fields['created'];
@@ -46,7 +20,6 @@ const addResolutionDateToClosedStage = (issue: IIssue, stageMap, stageBins) => {
 };
 
 const populateStages = (issue: IIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
-
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
@@ -89,13 +62,37 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
     if (validStageDates.length) {
       validStageDates.sort();
       latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
-      const earliestStageDate = validStageDates[0]; 
+      const earliestStageDate = validStageDates[0];
       return earliestStageDate.split('T')[0];
     } else {
       return '';
     }
   });
 return stagingDates;
+};
+
+const getStagingDates = (issue: IIssue, workflow: IWorkflow): string[] => {
+  const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
+  const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
+
+  const stages = Object.keys(workflow);
+  const stageMap = stages.reduce((map: Map<string, number>, stage: string, i: number) => {
+    return workflow[stage].reduce((map: Map<string, number>, stageAlias: string) => {
+      return map.set(stageAlias, i);
+    }, map);
+  }, new Map<string, number>());
+
+  let stageBins: string[][] = stages.map(() => []); // todo, we dont need stages variable....just create array;
+
+  if (createInFirstStage) {
+    stageBins = addCreatedToFirstStage(issue, stageBins);
+  }
+  if (resolvedInLastStage) {
+    stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
+  }
+  stageBins = populateStages(issue, stageMap, stageBins);
+  const stagingDates = filterAndFlattenStagingDates(stageBins);
+  return stagingDates;
 };
 
 export {

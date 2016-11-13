@@ -1,57 +1,104 @@
-import { toCSV, toSerializedArray } from './components/exporter';
-import { extractBatchFromConfig, extractAllFromConfig } from './components/extract';
-import { importConfig } from './components/import-config';
-import { IWorkItem } from '../../core/types';
-import { IJiraSettings} from './types';
+import { IJiraExtractorConfig, IIssue, IWorkflow, IAttributes } from './types';
+import { convertYamlToJiraSettings } from './components/yaml-converter';
+import { getIssues, getMetadata } from './components/jira-adapter';
+import { getStagingDates } from './components/staging-parser';
+import { getAttributes } from './components/attribute-parser';
+import { JiraWorkItem } from './components/jira-work-item';
 
+const _convertIssueToWorkItem = (issue: IIssue, workflow: IWorkflow, attributes: IAttributes = {}): JiraWorkItem => {
+  const key: string = issue.key;
+  const name: string = issue.fields['summary'];
+  const stagingDates: string[] = getStagingDates(issue, workflow);
+  const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+  const requestedAttributeSystemNames: string[] = Object.keys(attributes).map(key => attributes[key]);
+  const attributesKeyVal: {} = getAttributes(issue.fields, requestedAttributeSystemNames);
+  const workItem: JiraWorkItem = new JiraWorkItem(key, stagingDates, name, type, attributesKeyVal);
+  return workItem;
+};
 
 class JiraExtractor {
-  config: IJiraSettings = null;
-  batchSize: number;
+  config: IJiraExtractorConfig;
 
-  constructor(config?: IJiraSettings) {
+  constructor(config?: IJiraExtractorConfig) {
     this.config = config;
-  };
+  }
 
-  setConfig(c: IJiraSettings) {
-    this.config = c;
+  setBatchSize(x: number): this {
+    this.config.batchSize = x;
     return this;
   };
 
-  setBatchSize(x: number) {
-    this.batchSize = x;
-    return this;
+  importSettings(configObjToImport, source): this {
+    switch (source.toUpperCase()) {
+      case 'YAML':
+        const parsedSettings = convertYamlToJiraSettings(configObjToImport);
+        this.config = parsedSettings;
+        return this;
+      default:
+        throw new Error(`${source} source not found, cannot import config`);
+    }
   };
 
-  importSettings(configObjToImport, source) {
-    const config = importConfig(configObjToImport, source);
-    this.setConfig(config);
-    return this;
+  extractAll = async function(statusHook?): Promise<JiraWorkItem[]> {
+    const config: IJiraExtractorConfig = this.config;
+    const batchSize = config.batchSize || 25;
+    const hook = statusHook || (() => null);
+
+    const metadata = await getMetadata(config);
+
+    const totalJiras: number = metadata.total;
+    const actualBatchSize: number = batchSize ? batchSize : totalJiras;
+    const totalBatches: number = Math.ceil(totalJiras / batchSize);
+
+    hook(0);
+    const allWorkItems: JiraWorkItem[] = [];
+    for (let i = 0; i < totalBatches; i++) {
+      const start = i * actualBatchSize;
+
+      const issues = await getIssues(config, start, batchSize);
+      const workItemBatch = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
+      allWorkItems.push(...workItemBatch);
+      hook(Math.max(actualBatchSize / totalJiras) * 100);
+    }
+    hook(100);
+
+    if (config.featureFlags && config.featureFlags['MaskName']) {
+      allWorkItems.forEach(workItem => {
+        delete workItem.name;
+        workItem.name = '';
+      });
+    }
+    return allWorkItems;
   };
 
-  extractAll = async function(statusHook?) {
-    const batchSize = this.batchSize || 25;
-    const hook = statusHook || (() => {});
-    return extractAllFromConfig(this.config, batchSize, hook);
+  extract = async function(opts: { startIndex?: number, batchSize?: number }): Promise<JiraWorkItem[]> {
+    const config = this.config;
+    const { startIndex = 0, batchSize = 25 } = opts;
+
+    const issues = await getIssues(config, startIndex, batchSize);
+    const workItems = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
+    return workItems;
   };
 
-  extractBatch = async function(batchSize?, startIndex = 0) {
-    return extractBatchFromConfig(this.config, startIndex, batchSize);
+  toCSV(workItems: JiraWorkItem[], withHeader: boolean = true) {
+    let attributes = this.config.attributes || {};
+    let stages = Object.keys(this.config.workflow);
+    let config = this.config;
+
+    const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
+    const body = workItems.map(item => item.toCSV(config)).reduce((res, cur) => `${res + cur}\n`, '');
+    const csv: string = `${header}\n${body}`;
+    return csv;
   };
 
-  toCSV(workItems, withHeader?) {
-    return toCSV(workItems, Object.keys(this.config.Workflow), this.config.Attributes, this.config.Connection.Domain, withHeader, this.config);
-  };
-
-  toSerializedArray(workItems, withHeader?) {
-    return toSerializedArray(workItems, Object.keys(this.config.Workflow), this.config.Attributes, withHeader);
-  };
-
-  // testConnection = testConnection;
-  // getProjects = getProjects;
-  // getWorkflows = getWorkflows;
-  // getIssues = getIssues;
-  // getMetadata = getMetadata;
+  // toSerializedArray(workItems, withHeader?) {
+  //   let stages = Object.keys(this.config.workflow);
+  //   let attributes = this.config.attributes;
+  //   const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
+  //   const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
+  //   const serializedData: string = `[${header}${body}]`;
+  //   return serializedData;
+  // };
 };
 
 export {
