@@ -5,7 +5,7 @@ import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
 
-const _convertIssueToWorkItem = (issue: IIssue, workflow: IWorkflow, attributes: IAttributes = {}): JiraWorkItem => {
+const convertIssueToWorkItem = (issue: IIssue, workflow: IWorkflow, attributes: IAttributes = {}): JiraWorkItem => {
   const key: string = issue.key;
   const name: string = issue.fields['summary'];
   const stagingDates: string[] = getStagingDates(issue, workflow);
@@ -68,7 +68,7 @@ class JiraExtractor {
       const start = i * actualBatchSize;
 
       const issues = await getIssues(config, start, batchSize);
-      const workItemBatch = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
+      const workItemBatch = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
       allWorkItems.push(...workItemBatch);
       hook(Math.max(actualBatchSize / totalJiras) * 100);
     }
@@ -89,7 +89,7 @@ class JiraExtractor {
     const { startIndex = 0, batchSize = 25 } = opts;
 
     const issues = await getIssues(config, startIndex, batchSize);
-    const workItems = issues.map(issue => _convertIssueToWorkItem(issue, config.workflow, config.attributes));
+    const workItems = issues.map(issue => convertIssueToWorkItem(issue, config.workflow, config.attributes));
     return workItems;
   };
 

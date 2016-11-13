@@ -1,11 +1,11 @@
-import * as request from 'request';
-import * as fs from 'fs';
-import { buildJiraSearchQueryUrl } from './query-builder';
+import { get } from 'request';
+import { readFileSync, existsSync } from 'fs';
+import { buildJiraSearchQueryUrl } from './query-builder'; // move this dependency around.
 import { IIssueList, IIssue, IJiraExtractorConfig, IAuth } from '../types';
 
 const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
   return new Promise((accept, reject) => {
-    let options = {
+    const options = {
       url,
       json: true,
     };
@@ -16,19 +16,19 @@ const getJson = (url: string, auth: IAuth): Promise<IIssueList> => {
     } else if (auth.username && auth.password) {
       // Handle Basic Auth
       const headers = {
-        'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`
+        'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`,
       };
       Object.assign(options, { headers });
     }
-    if (fs.existsSync('ca.cert.pem')) {
+    if (existsSync('ca.cert.pem')) {
       // Handle Custom Self signed Cert
-      const cert = fs.readFileSync('ca.cert.pem');
+      const cert = readFileSync('ca.cert.pem');
       const agentOptions = {
         ca: cert,
       };
       Object.assign(options, { agentOptions });
     }
-    request.get(options, (error, response, body) => {
+    get(options, (error, response, body) => {
       if (error) {
         console.log(`Error fetching json from ${url}`);
         reject(new Error(error));
