@@ -2,16 +2,11 @@ import * as inquirer from 'inquirer';
 import * as clientfactory from 'leankit-client';
 import { getBoards, getCardTypes, getLanes } from '../extractors/leankit/helpers';
 
-
 const getBoardList = async function(currentAnswers) {
   const client = new clientfactory(`${currentAnswers.domainUrl}`,`${currentAnswers.username}`, `${currentAnswers.password}` );  
   const boards = await getBoards(client);
-
-  // const question
-  // console.log(boards);
   return boards;
 };
-
 
 const questions: any[]= [
   {
