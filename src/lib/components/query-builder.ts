@@ -30,14 +30,16 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   let clauses: Array<string> = [];
 
   // Handle Projects...
-  const projectClause = (projects.length > 1)
-    ? `project in (${projects.join(',')})`
-    : `project=${projects[0]}`;
-  clauses.push(projectClause);
+  if (projects.length > 0) {
+    const projectClause = (projects.length > 1)
+      ? `project in (${projects.join(',')})`
+      : `project=${projects[0]}`;
+    clauses.push(projectClause);
+  }
 
   // Handle Issues...
   if (issueTypes.length > 0) {
-    const typeClause = `issuetype in (${issueTypes.join(',')})`;
+    const typeClause = `issuetype in (${issueTypes.map(issue => `"${issue}"`).join(',')})`;
     clauses.push(typeClause);
   }
   // Handle Custom JQL

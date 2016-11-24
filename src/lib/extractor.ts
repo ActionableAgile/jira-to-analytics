@@ -1,6 +1,5 @@
 import { IJiraExtractorConfig, IJiraApiIssue, IJiraApiWorkflow, IJiraApiError, IJiraApiIssueList } from './types';
 import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './components/query-builder';
-import { convertYamlToJiraSettings } from './components/yaml-converter';
 import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
@@ -47,19 +46,6 @@ class JiraExtractor {
     });
   }
 
-  beforeExtract() {
-    const config = this.config;
-    if (!config.connection.url || config.connection.url === '') {
-      throw new Error('URL for extraction not set.');
-    }
-    if (!config.projects || config.projects.length < 1) {
-      throw new Error('No project(s) detected in configuration.');
-    }
-    if (!config.issueTypes || config.issueTypes.length < 1) {
-      throw new Error('No issue type(s) detected in configuration.');
-    }
-  };
-
   afterExtract(workItems: Array<JiraWorkItem>) {
     const config = this.config;
     if (config.featureFlags && config.featureFlags['MaskName']) {
@@ -71,10 +57,13 @@ class JiraExtractor {
     return workItems;
   }
 
-  async extractAll(statusHook = (n) => null): Promise<JiraWorkItem[]> {
-    this.beforeExtract();
+  async extractAll(statusHook = (n: number) => null): Promise<JiraWorkItem[]> {
     const config: IJiraExtractorConfig = this.config;
     const hook = statusHook;
+
+    if (!config.connection.url || config.connection.url === '') {
+      throw new Error('URL for extraction not set.');
+    }
 
     const batchSize = config.batchSize || 25;
     const totalJiras = await this.getIssueCountFromJiraApi();
@@ -99,7 +88,9 @@ class JiraExtractor {
   };
 
   async extract(opts: { startIndex?: number, batchSize?: number }): Promise<JiraWorkItem[]> {
-    this.beforeExtract();
+    if (!this.config.connection.url || this.config.connection.url === '') {
+      throw new Error('URL for extraction not set.');
+    }
     const { startIndex = 0, batchSize = 25 } = opts;
 
     const issues = await this.getIssuesFromJiraApi({ startIndex, batchSize });
@@ -122,7 +113,8 @@ class JiraExtractor {
   private async getIssueListFromJiraApi({ startIndex = 0, batchSize = 25 }) {
     const config = this.config;
     const queryUrl: string = buildJiraSearchQueryUrl(
-      { apiRootUrl: config.connection.url,
+      {
+        apiRootUrl: config.connection.url,
         projects: config.projects,
         issueTypes: config.issueTypes,
         filters: config.filters,
@@ -138,7 +130,7 @@ class JiraExtractor {
   }
 
   private async getIssueCountFromJiraApi(): Promise<number> {
-    const metadata = await this.getIssueListFromJiraApi({ batchSize: 1, startIndex: 0});
+    const metadata = await this.getIssueListFromJiraApi({ batchSize: 1, startIndex: 0 });
     const totalJiras: number = metadata.total;
     return totalJiras;
   }
@@ -169,16 +161,8 @@ class JiraExtractor {
 
     const workItem: JiraWorkItem = new JiraWorkItem(key, stagingDates, name, type, attributesKeyVal);
     return workItem;
-};
+  };
 
-  // toSerializedArray(workItems, withHeader?) {
-  //   let stages = Object.keys(this.config.workflow);
-  //   let attributes = this.config.attributes;
-  //   const header = `["ID","Link","Name",${stages.map(stage => `"${stage}"`).join(',')},"Type",${Object.keys(attributes).map(attribute => `"${attribute}"`).join(',')}]`;
-  //   const body = workItems.map(item => item.toSerializedArray()).reduce((res, cur) => `${res},\n${cur}`, '');
-  //   const serializedData: string = `[${header}${body}]`;
-  //   return serializedData;
-  // };
 };
 
 export {
