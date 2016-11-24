@@ -1,2 +1,0 @@
-#!/bin/bash
-rm -f jira_to_analytics jira_to_analytics.linux64 jira_to_analytics.mac64 jira_to_analytics.win64.exe
