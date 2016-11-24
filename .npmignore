@@ -8,3 +8,11 @@ config.yaml
 .vscode
 *.csv
 *.yaml
+!config.yaml
+*.log
+regression
+tmp
+*.mac
+*.exe
+*.linux
+build

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
+import * as ProgressBar from 'progress';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
-import * as ProgressBar from 'progress';
 import { prompt } from 'inquirer';
 import { JiraExtractor } from './main';
 import { convertYamlToJiraSettings } from './lib/components/yaml-converter';
