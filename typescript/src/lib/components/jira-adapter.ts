@@ -3,6 +3,14 @@ import { readFileSync, existsSync } from 'fs';
 import { IAuth } from '../types';
 
 const getJson = (url: string, auth: IAuth): Promise<any> => {
+
+  // ssl relaxing opts for request...
+  // rejectUnauthorized: false,
+  // requestCert: true,
+  // agent: false,
+  // strictSSL: false,
+
+
   return new Promise((accept, reject) => {
     const options = {
       url,

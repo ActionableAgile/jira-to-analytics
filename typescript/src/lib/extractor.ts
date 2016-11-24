@@ -47,11 +47,6 @@ class JiraExtractor {
     });
   }
 
-  static ImportSettingsFromYaml(configObjToImport): IJiraExtractorConfig {
-    const parsedSettings = convertYamlToJiraSettings(configObjToImport);
-    return parsedSettings;
-  };
-
   beforeExtract() {
     const config = this.config;
     if (!config.connection.url || config.connection.url === '') {

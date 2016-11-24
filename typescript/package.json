@@ -1,6 +1,6 @@
 {
   "name": "actionableagileimporttool",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Tool to extract data from JIRA into a format understood by the ActionableAgile metrics tool",
   "main": "dist/main.js",
   "types": "dist/main.d.ts",
@@ -42,6 +42,7 @@
     "chai": "^3.5.0",
     "mocha": "^3.1.2",
     "nock": "^8.0.0",
+    "try-thread-sleep": "^1.0.0",
     "ts-node": "^1.6.0"
   },
   "dependencies": {
@@ -56,14 +57,11 @@
     "@types/yargs": "0.0.33",
     "core-js": "^2.4.0",
     "inquirer": "^1.2.2",
-    "isomorphic-fetch": "^2.2.1",
     "js-yaml": "^3.6.1",
-    "leankit-client": "^1.1.2",
     "moment": "^2.15.1",
     "progress": "^1.1.8",
-    "ramda": "^0.22.1",
     "request": "^2.75.0",
-    "typescript": "^2.0.3",
+    "typescript": "^2.2.0-dev.20161123",
     "yargs": "^4.7.1"
   }
 }

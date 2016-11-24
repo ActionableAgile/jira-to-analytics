@@ -1,1 +1,1 @@
-export * from './lib/extractors/extractors';
+export * from './lib/extractor';
