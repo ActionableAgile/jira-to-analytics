@@ -1,0 +1,107 @@
+# How to connect to JIRA?
+Connection:
+    Domain: https://jira.atlassian.com/
+    Username:
+    Password:
+#    Consumer Key: consumer_key
+#    Private Key: |
+#        -----BEGIN RSA PRIVATE KEY-----
+#        MIICXQIBAAKBgQDL7BKtMeBJJfafe0enaTZi1IlMyTMxWutaYVZ0LPf4TKvOqEr4
+#        Evz2xSSJwEwpA2Zqr686M66HmycynlFq9RFrDx/mQhn5R9ejzQKhsZ09rtoENEqY
+#        oPUBYTmITIsfWOXv/SG+fWrBUEDHqqREIzH6XsR6US5JCKZkwF5PpTRnYwIDAQAB
+#        AoGBAKZ4sQJ8rglpGX02SdeMF570vKVXtxf6jhl5TveGYmRsSvFpB9Kexa26YMqn
+#        lkUBBpHfnB/aYzdHDOfQwMydBbq3oqKCs0vqKkNRC7Ssrs4aTqwzhWKTeB/sfE4e
+#        9d8MDt1AnxOVys6LZnqOwMjPgQ0Bf7eW+e7CzhLjVLtbXoxpAkEA8rYzE+c2IJXG
+#        ys2V5bmEBuALXxR/DNjHxiNRVIYvqbgHXbXxOMkiAyH7yU+FrjjzbtmM0zz1QGqs
+#        rnl9PYPH3wJBANcWNN2VDodQf4msjT317GZsceQveOe5WgB4J7VU1KZNvJqFDRJD
+#        VAreH4UoIZD9RtE46ZpvQlBD/5uci+6EIP0CQQDnqC+oV466GzraZs8jrKXvSfiQ
+#        j6eUQ3SqERuXaVwkyZl+QCI06vSlqNIBmv0lBQaUTuCy3gPXr/mRrjNze0xRAkBs
+#        SWbWRCwrXhDH3JLDpiOdsW1pp6jkaUHxyIydU5c4Hx0cYm4hSrpuOkR+QqUbnRgA
+#        pbmeofMt+/4ddyRQMj91AdBXFGD/me5Fp1R0glMPVE/KnSHo5eAL9n9506n6I4V/
+#        jtSDHyFMkwkKvjikGgvaXJ5kjwjKweS/XYdwrq6E+sik
+#        -----END RSA PRIVATE KEY-----
+#    Token: zzRGwI1HkFJbAz3o93AVSLU9CSiacvbn
+#    Token Secret: 2kOuWPtOHCpEM0RmA33GOTX85GFvRgZE
+
+# What to search for?
+Criteria:
+    Project: 
+        - HCPUB # JIRA project key to search
+    Issue types: # Which issue types to include
+        - Sub-task
+        - Story
+        - Bug
+    Filters: 
+        - HCPUB Desktop - Closed Major+ Bugs
+    # Excludes stories closed before the following date:
+    Start Date: 2001-01-23
+    End Date: 2020-12-30
+
+# Describe the workflow. Each step can be mapped to either a single JIRA
+# status, or a list of statuses that will be treated as equivalent
+Workflow:
+    Ready: 
+        - Ready Queue
+        - Queue
+        - Open
+        - (Created)
+    Dev: 
+        - Development
+    Dev Done: Dev Done
+    Test: Test
+    Done: 
+        - Closed
+        - Cancelled
+        - (Resolved)
+
+# Map field names to additional attributes to extract
+Attributes:
+      Team: customfield_10001
+      Release: customfield_10002.name
+      Stage: status
+      Type: issuetype
+      Level: priority
+      Labels: labels
+      Versions: fixVersions
+      Components: components
+      
+Feature Flags:
+    MaskName: false
+
+
+
+
+
+
+
+
+
+################################
+### V1 LEGACY VERSION BELOW ####
+###    RUN WITH --LEGACY    ####
+################################
+
+# Connection:
+#     Domain: https://actionableagile.atlassian.net
+#     Username:
+#     Password:
+
+# Criteria:
+#     Projects: UT
+#     Types: Story, Bug
+
+# Workflow:
+#     Backlog: Backlog, (Created)
+#     Analysis Active: Analysis Active
+#     Analysis Done: Analysis Done
+#     Dev Active: Dev Active
+#     Dev Done: Dev Done
+#     Test: Test
+#     Done: Done
+
+# Attributes:
+#     components: components
+#     fixVersions: fixVersions
+#     labels: labels
+#     priority: priority
+#     resolution: resolution

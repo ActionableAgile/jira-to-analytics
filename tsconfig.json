@@ -1,0 +1,32 @@
+{
+  "version": "0.9.0",
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2015",
+    "outDir": "dist",
+    "declaration": true,
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "noImplicitReturns": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "types": ["node"],
+    "lib": [
+      "dom",
+      "es2017",
+      "es2017.object" 
+    ]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test"
+  ],
+  "compileOnSave": false,
+  "buildOnSave": false,
+  "atom": { "rewriteTsconfig": false }
+}

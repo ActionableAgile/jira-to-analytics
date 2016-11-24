@@ -1,0 +1,16 @@
+node_modules
+typings
+build
+dist
+.DS_Store
+.vscode
+*.csv
+*.yaml
+!config.yaml
+*.log
+regression
+tmp
+*.mac
+*.exe
+*.linux
+jira-to-analytics.js
