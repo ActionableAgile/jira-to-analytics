@@ -77,7 +77,6 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
   const jql = buildJQL(options);
   // Append JQL to url, also add start and maxresults
   const query = `${buildApiUrl(apiRootUrl)}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
-  console.log(query);
   return query;
 };
 

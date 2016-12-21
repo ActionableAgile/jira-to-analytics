@@ -59,7 +59,6 @@ class JiraExtractor {
 
   async extractAll(statusHook = ((n: number) => null), debug: boolean = false): Promise<JiraWorkItem[]> {
     const config: IJiraExtractorConfig = this.config;
-    console.log(config);
     const hook = statusHook;
 
     if (!config.connection.url || config.connection.url === '') {
