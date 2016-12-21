@@ -32,6 +32,17 @@ const writeFile = (filePath: string, data: any) =>
     }));
   });
 
+const getPassword = async (): Promise<string> => {
+  const passwordQuestion = {
+    message: 'Enter your JIRA password: ',
+    type: 'password',
+    name: 'password'
+  };
+  const answers = await prompt(passwordQuestion);
+  const password: string = answers['password'];
+  return password;
+};
+
 const run = async function (cliArgs: any): Promise<void> {
   clearConsole();
   console.log(chalk.underline('ActionableAgile Extraction Tool'));
@@ -57,17 +68,21 @@ const run = async function (cliArgs: any): Promise<void> {
   }
 
   console.log('');
-  if (!settings.Connection.Password && !settings.Connection.Token) {
-    const password = await getPassword();
-    settings.Connection.Password = password;
-    console.log('');
+  if (debugMode) {
+    console.log(`Debug mode: ${chalk.green('ON') }`);
   }
 
   if (settings['Feature Flags']) {
     console.log('Feature Flags detected:');
     for (let featureName in settings['Feature Flags']) {
-      console.log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? 'on' : 'off'}`);
+      console.log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? chalk.green('ON') : chalk.red('OFF')}`);
     }
+    console.log('');
+  }
+
+  if (!settings.Connection.Password && !settings.Connection.Token) {
+    const password = await getPassword();
+    settings.Connection.Password = password;
     console.log('');
   }
 
@@ -95,7 +110,6 @@ const run = async function (cliArgs: any): Promise<void> {
 
   try {
     const workItems = await jiraExtractor.extractAll(updateProgressHook, debugMode);
-
     // Export data
     let data: string = '';
     if (outputType === 'CSV') {
@@ -109,30 +123,18 @@ const run = async function (cliArgs: any): Promise<void> {
       console.log(`Error writing jira data to ${outputPath}`);
     }
     console.log(chalk.green('Successful.'));
-    console.log(`Results written to ${__dirname}/${outputPath}`);
-
+    console.log(`Results written to ${outputPath}`);
     return;
   } catch (e) {
-    console.log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
-};
-
-const getPassword = async (): Promise<string> => {
-  const passwordQuestion = {
-    message: 'Enter your JIRA password: ',
-    type: 'password',
-    name: 'password'
-  };
-  const answers = await prompt(passwordQuestion);
-  const password: string = answers['password'];
-  return password;
 };
 
 (async function (args: any): Promise<void> {
   try {
     await run(args);
   } catch (e) {
+    console.log('');
     console.log(chalk.red(`Error running ActionableAgile command line tool. Please see error below.`));
     console.log(chalk.red(e));
   }

@@ -1,5 +1,5 @@
 import { IJiraExtractorConfig, IJiraApiIssue, IJiraApiWorkflow, IJiraApiError, IJiraApiIssueList } from './types';
-import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl } from './components/query-builder';
+import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl, buildJQL } from './components/query-builder';
 import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
@@ -66,7 +66,24 @@ class JiraExtractor {
     }
 
     const batchSize = config.batchSize || 25;
-    const totalJiras = await this.getIssueCountFromJiraApi();
+
+    if (debug) {
+      const jql = this.getJQL();
+      console.log('');
+      console.log(`Using the following JQL for extracting:\n${jql}`);
+      console.log('');
+    }
+
+    const errors = await this.checkIfValidJQL();
+    if (errors) {
+      throw new Error(errors);
+    }
+
+    const totalJiras = await this.getIssueCountFromJiraApi();  
+    if (totalJiras === 0) {
+      const jql = this.getJQL();
+      throw new Error(`No stories found under search conditions using the following JQL:\n${jql}\nPlease check your configuration.`);
+    }
 
     let actualBatchSize: number = batchSize;
     if (batchSize == 0) { // no batching limit
@@ -110,7 +127,25 @@ class JiraExtractor {
     return csv;
   };
 
-  private buildQuery({ startIndex = 0, batchSize = 25 }): string {
+  private getJQL(startIndex = 0, batchSize = 1) {
+    const config = this.config;
+    const queryUrl: string = buildJQL(
+      {
+        apiRootUrl: config.connection.url,
+        projects: config.projects,
+        issueTypes: config.issueTypes,
+        filters: config.filters,
+        startDate: config.startDate,
+        endDate: config.endDate,
+        customJql: config.customJql,
+        startIndex,
+        batchSize,
+      },
+    );   
+    return queryUrl;  
+  }
+
+  private buildQuery({ startIndex = 0, batchSize = 1 }): string {
     const config = this.config;
     const queryUrl: string = buildJiraSearchQueryUrl(
       {
@@ -123,9 +158,18 @@ class JiraExtractor {
         customJql: config.customJql,
         startIndex,
         batchSize,
-      }
+      },
     );   
     return queryUrl;
+  }
+
+  private async checkIfValidJQL() {
+    const queryUrl = this.buildQuery({ batchSize: 1, startIndex: 0 });
+    const res = await getJson(queryUrl, this.config.connection.auth);
+    if (!res) {
+      return null;
+    } 
+    return res.errorMessages;
   }
 
   private async getIssueCountFromJiraApi(): Promise<number> {

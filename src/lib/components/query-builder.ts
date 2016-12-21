@@ -14,8 +14,8 @@ const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
 
 const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
 
-const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
-  const {
+const buildJQL = (options: IQueryOptions): string => {
+const {
     apiRootUrl,
     projects,
     issueTypes,
@@ -69,7 +69,12 @@ const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
 
   // AND together
   const jql = `${clauses.join(' AND ')} order by key`;
+  return jql;
+};
 
+const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
+  const { apiRootUrl, startIndex, batchSize } = options;
+  const jql = buildJQL(options);
   // Append JQL to url, also add start and maxresults
   const query = `${buildApiUrl(apiRootUrl)}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
@@ -86,6 +91,7 @@ const buildJiraGetWorkflowsUrl = (project: string, apiRootUrl: string): string =
 };
 
 export {
+  buildJQL,
   buildJiraSearchQueryUrl,
   buildJiraGetProjectsUrl,
   buildJiraGetWorkflowsUrl,
