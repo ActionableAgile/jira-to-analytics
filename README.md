@@ -106,7 +106,7 @@ Connection:
 ### The Criteria Section ###
 The Criteria Section of the config file is simply named "Criteria" (without the quotes) and contains optional Jira attributes that can use to control your data set. Each line in this section contains the name of the Jira attribute you want in your data followed by a colon (:) followed by its corresponding value in your Jira instance.  The fields in this section that we support are:
 
-- 	Projects: a list of the names of the Jira Projects you are querying
+- 	Project: a list of the names of the Jira Projects you are querying
 - 	Types: a list of the names of the Jira issuetypes you want to extract
 - 	Filters: a list of the names of the filters you want to apply
 - 	Start Date: a date filter in the format YYYY-MM-DD which will exclude issues with resolved dates before the provided date (optional)
