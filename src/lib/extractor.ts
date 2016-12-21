@@ -57,7 +57,7 @@ class JiraExtractor {
     return workItems;
   }
 
-  async extractAll(statusHook = (n: number) => null): Promise<JiraWorkItem[]> {
+  async extractAll(statusHook = ((n: number) => null), debug: boolean = false): Promise<JiraWorkItem[]> {
     const config: IJiraExtractorConfig = this.config;
     const hook = statusHook;
 
@@ -110,7 +110,7 @@ class JiraExtractor {
     return csv;
   };
 
-  private async getIssueListFromJiraApi({ startIndex = 0, batchSize = 25 }) {
+  private buildQuery({ startIndex = 0, batchSize = 25 }): string {
     const config = this.config;
     const queryUrl: string = buildJiraSearchQueryUrl(
       {
@@ -122,21 +122,22 @@ class JiraExtractor {
         endDate: config.endDate,
         customJql: config.customJql,
         startIndex,
-        batchSize
+        batchSize,
       }
-    );
-    const result: IJiraApiIssueList = await getJson(queryUrl, config.connection.auth);
-    return result;
+    );   
+    return queryUrl;
   }
 
   private async getIssueCountFromJiraApi(): Promise<number> {
-    const metadata = await this.getIssueListFromJiraApi({ batchSize: 1, startIndex: 0 });
+    const queryUrl = this.buildQuery({ batchSize: 1, startIndex: 0 });
+    const metadata = await getJson(queryUrl, this.config.connection.auth);
     const totalJiras: number = metadata.total;
     return totalJiras;
   }
 
   private async getIssuesFromJiraApi({ startIndex, batchSize }) {
-    const json = await this.getIssueListFromJiraApi({ startIndex, batchSize });
+    const queryUrl = this.buildQuery({ startIndex, batchSize });
+    const json: IJiraApiIssueList = await getJson(queryUrl, this.config.connection.auth);
     if (json.issues) {
       const issues: IJiraApiIssue[] = json.issues;
       return issues;

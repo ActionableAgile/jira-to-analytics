@@ -21,6 +21,8 @@ const log = (main?: any, ...additionalParams: any[]) => {
   console.log(main, ...additionalParams);
 };
 
+const consoleReset = () => process.stdout.write('\x1Bc');
+
 const writeFile = (filePath: string, data: any) =>
   new Promise((accept, reject) => {
     fs.writeFile(filePath, data, (err => {
@@ -33,11 +35,13 @@ const writeFile = (filePath: string, data: any) =>
   });
 
 const run = async function (cliArgs: any): Promise<void> {
+  consoleReset();
   log('ActionableAgile Extraction Tool Starting...');
   log('JIRA Extractor configuring...');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
+  const debugMode: boolean = cliArgs.d ? true : false;
   const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
   const outputType: string = outputPath.split('.')[1].toUpperCase();
   if (outputType !== 'CSV' && outputType !== 'JSON') {
@@ -58,9 +62,8 @@ const run = async function (cliArgs: any): Promise<void> {
   if (!settings.Connection.Password && !settings.Connection.Token) {
     const password = await getPassword();
     settings.Connection.Password = password;
+    log('');
   }
-
-  log('');
 
   if (settings['Feature Flags']) {
     log('Feature Flags detected:');
@@ -69,6 +72,17 @@ const run = async function (cliArgs: any): Promise<void> {
     }
     log('');
   }
+
+  // Import data
+  const jiraExtractorConfig = convertYamlToJiraSettings(settings);
+  const jiraExtractor = new JiraExtractor(jiraExtractorConfig);
+
+  log('Authenticating...');
+  const isAuthenticated = await jiraExtractor.testConnection();
+  if (!isAuthenticated) {
+    throw new Error('Unable to authenticate. Please check your provided credentials.');
+  }
+  log('Authentication Successful.\n');
 
   log('Beginning extraction process');
   // Progress bar setup
@@ -81,14 +95,8 @@ const run = async function (cliArgs: any): Promise<void> {
     };
   })(bar);
 
-  // Import data
-  const jiraExtractorConfig = convertYamlToJiraSettings(settings);
-  const jiraExtractor = new JiraExtractor(jiraExtractorConfig);
-
-  await jiraExtractor.testConnection();
-
   try {
-    const workItems = await jiraExtractor.extractAll(updateProgressHook);
+    const workItems = await jiraExtractor.extractAll(updateProgressHook, debugMode);
 
     // Export data
     let data: string = '';
@@ -102,7 +110,7 @@ const run = async function (cliArgs: any): Promise<void> {
     } catch (e) {
       log(`Error writing jira data to ${outputPath}`);
     }
-    log(`Done. Results written to ${outputPath}`);
+    log(`Done. Results written to ${__dirname}/${outputPath}`);
 
     return;
   } catch (e) {

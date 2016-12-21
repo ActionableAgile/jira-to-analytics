@@ -69,7 +69,7 @@ export interface IAuth {
     token_secret: string;
     signature_method: string;
   };
-}
+};
 
 export interface IJiraExtractorConfig {
   connection?: {
