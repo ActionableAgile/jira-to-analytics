@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as ProgressBar from 'progress';
+import * as chalk from 'chalk';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 import { prompt } from 'inquirer';
@@ -9,7 +10,7 @@ import { convertYamlToJiraSettings } from './lib/components/yaml-converter';
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';
 
-const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remaining', {
+const bar = new ProgressBar(chalk.cyan('  Extracting: [:bar] :percent | :eta seconds remaining'), {
   complete: '=',
   incomplete: ' ',
   width: 20,
@@ -17,17 +18,14 @@ const bar = new ProgressBar('  Extracting: [:bar] :percent | :eta seconds remain
 });
 
 const getArgs = () => argv;
-const log = (main?: any, ...additionalParams: any[]) => {
-  console.log(main, ...additionalParams);
-};
 
-const consoleReset = () => process.stdout.write('\x1Bc');
+const clearConsole = () => process.stdout.write('\x1Bc');
 
 const writeFile = (filePath: string, data: any) =>
   new Promise((accept, reject) => {
     fs.writeFile(filePath, data, (err => {
       if (err) {
-        log(`Error writing file to ${filePath}`);
+        console.log(`Error writing file to ${filePath}`);
         return reject(err);
       }
       accept();
@@ -35,9 +33,9 @@ const writeFile = (filePath: string, data: any) =>
   });
 
 const run = async function (cliArgs: any): Promise<void> {
-  consoleReset();
-  log('ActionableAgile Extraction Tool Starting...');
-  log('JIRA Extractor configuring...');
+  clearConsole();
+  console.log(chalk.underline('ActionableAgile Extraction Tool'));
+  console.log('JIRA Extractor configuring...');
   // Parse CLI settings
   const jiraConfigPath: string = cliArgs.i ? cliArgs.i : defaultYamlPath;
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
@@ -54,37 +52,37 @@ const run = async function (cliArgs: any): Promise<void> {
     settings = yamlConfig;
     settings.legacy = isLegacyYaml;
   } catch (e) {
-    log(`Error parsing settings ${e}`);
+    console.log(`Error parsing settings ${e}`);
     throw e;
   }
 
-  log('');
+  console.log('');
   if (!settings.Connection.Password && !settings.Connection.Token) {
     const password = await getPassword();
     settings.Connection.Password = password;
-    log('');
+    console.log('');
   }
 
   if (settings['Feature Flags']) {
-    log('Feature Flags detected:');
+    console.log('Feature Flags detected:');
     for (let featureName in settings['Feature Flags']) {
-      log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? 'on' : 'off'}`);
+      console.log(`  ${featureName}: ${settings['Feature Flags'][featureName] ? 'on' : 'off'}`);
     }
-    log('');
+    console.log('');
   }
 
   // Import data
   const jiraExtractorConfig = convertYamlToJiraSettings(settings);
   const jiraExtractor = new JiraExtractor(jiraExtractorConfig);
 
-  log('Authenticating...');
+  console.log('Authenticating...');
   const isAuthenticated = await jiraExtractor.testConnection();
   if (!isAuthenticated) {
     throw new Error('Unable to authenticate. Please check your provided credentials.');
   }
-  log('Authentication Successful.\n');
+  console.log(chalk.green('Authentication successful.\n'));
 
-  log('Beginning extraction process');
+  console.log('Beginning extraction process');
   // Progress bar setup
   const updateProgressHook = (bar => {
     bar.tick();
@@ -108,13 +106,14 @@ const run = async function (cliArgs: any): Promise<void> {
     try {
       await writeFile(outputPath, data);
     } catch (e) {
-      log(`Error writing jira data to ${outputPath}`);
+      console.log(`Error writing jira data to ${outputPath}`);
     }
-    log(`Done. Results written to ${__dirname}/${outputPath}`);
+    console.log(chalk.green('Successful.'));
+    console.log(`Results written to ${__dirname}/${outputPath}`);
 
     return;
   } catch (e) {
-    log(`Error extracting JIRA Items ${e}`);
+    console.log(`Error extracting JIRA Items ${e}`);
     throw e;
   }
 };
@@ -134,8 +133,8 @@ const getPassword = async (): Promise<string> => {
   try {
     await run(args);
   } catch (e) {
-    log(`Error running ActionableAgile Command Line Tool`);
-    log(e);
+    console.log(chalk.red(`Error running ActionableAgile command line tool. Please see error below.`));
+    console.log(chalk.red(e));
   }
 } (getArgs()));
 
