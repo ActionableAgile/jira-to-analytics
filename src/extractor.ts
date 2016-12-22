@@ -137,7 +137,7 @@ class JiraExtractor {
 
   private getJQL(): string {
     const { projects, issueTypes, filters, startDate, endDate, customJql } = this.config;
-    const queryUrl: string = buildJQL(
+    const jql: string = buildJQL(
       {
         projects,
         issueTypes,
@@ -147,7 +147,7 @@ class JiraExtractor {
         customJql,
       },
     );
-    return queryUrl;
+    return jql;
   }
 
   private convertIssueToWorkItem = (issue: JiraApiIssue): JiraWorkItem => {
