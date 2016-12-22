@@ -33,10 +33,6 @@ These flags are the same whether you are using the standalone executable or node
 
 ```-l``` or ```--legacy``` will enable the old version of the YAML (from the GO version of the application). 
 
-```--leankit``` will switch the extract source to LeanKit.
-
-```--leankit --setup``` will start a smart wizard to generate the LeanKit configuation file
-
 For example, to run the node version of the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
 
 ```node jira-to-analytics -i myconfig.yaml -l -o my.csv``` 
