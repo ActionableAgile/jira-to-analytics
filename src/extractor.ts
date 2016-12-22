@@ -1,9 +1,21 @@
-import { IJiraExtractorConfig, IJiraApiIssue, IJiraApiWorkflow, IJiraApiError, IJiraApiIssueResponse } from './types';
-import { buildJiraSearchQueryUrl, buildJiraGetProjectsUrl, buildJiraGetWorkflowsUrl, buildJQL } from './components/query-builder';
 import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
 import { getJson } from './components/jira-adapter';
+import { 
+  buildJiraSearchQueryUrl,
+  buildJiraGetProjectsUrl,
+  buildJiraGetWorkflowsUrl,
+  buildJQL
+} from './components/query-builder';
+import { 
+  IJiraExtractorConfig,
+  IJiraApiIssue,
+  IJiraApiWorkflow,
+  IJiraApiError,
+  IJiraApiIssueResponse
+} from './types';
+
 
 class JiraExtractor {
   config: IJiraExtractorConfig;
@@ -41,9 +53,7 @@ class JiraExtractor {
         batchSize: 1,
       },
     );
-
     const testResponse: IJiraApiIssueResponse = await getJson(queryUrl, this.config.connection.auth);
-
     if (testResponse.errorMessages) {
       throw new Error(testResponse.errorMessages.join('\n'));
     } else if (!testResponse.total) {
