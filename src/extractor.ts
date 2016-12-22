@@ -63,15 +63,15 @@ class JiraExtractor {
   }
 
   async extractAll(statusHook = ((n: number) => null), debug: boolean = false): Promise<JiraWorkItem[]> {
+    await this.validate();
+
     const config: JiraExtractorConfig = this.config;
     const hook = statusHook;
     const apiRootUrl = config.connection.url;
     const auth = config.connection.auth;
     const batchSize = config.batchSize || 25;
-
-    await this.validate();
-
     const jql = this.getJQL();
+
     if (debug) {
       console.log(`Using the following JQL for extracting:\n${jql}\n`);
     }
