@@ -1,33 +1,37 @@
 import { get } from 'request';
 import { readFileSync, existsSync } from 'fs';
-import { IAuth } from '../types';
+import { Auth } from '../types';
 
-const getJson = (url: string, auth: IAuth): Promise<any> => {
-  return new Promise((accept, reject) => {
-    const options = {
-      url,
-      json: true,
+const configureGetOptions = (url: string, auth: Auth): any => {
+  const options = {
+    url,
+    json: true,
+  };
+  // HANDLE OAUTH
+  if (auth.oauth && auth.oauth.private_key && auth.oauth.token) {
+    const oauth = auth.oauth;
+    Object.assign(options, { oauth });
+  } else if (auth.username && auth.password) {
+    // Handle Basic Auth
+    const headers = {
+      'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`,
     };
-    // HANDLE OAUTH
-    if (auth.oauth && auth.oauth.private_key && auth.oauth.token) {
-      const oauth = auth.oauth;
-      Object.assign(options, { oauth });
-    } else if (auth.username && auth.password) {
-      // Handle Basic Auth
-      const headers = {
-        'Authorization': `Basic ${new Buffer(auth.username + ':' + auth.password).toString('base64')}`,
-      };
-      Object.assign(options, { headers });
-    }
-    // Handle Custom Self signed Cert
-    if (existsSync('ca.cert.pem')) {
-      const ca = readFileSync('ca.cert.pem');
-      const agentOptions = { ca };
-      Object.assign(options, { agentOptions });
-    }
+    Object.assign(options, { headers });
+  }
+  // Handle Custom Self signed Cert
+  if (existsSync('ca.cert.pem')) {
+    const ca = readFileSync('ca.cert.pem');
+    const agentOptions = { ca };
+    Object.assign(options, { agentOptions });
+  }
+  return options;
+};
+
+const getAsync = async (options): Promise<any>  => {
+  return new Promise((accept, reject) => {
     get(options, (error, response, body) => {
       if (error) {
-        console.log(`Error fetching json from ${url}`);
+        console.log(`Error fetching json from ${options.url}`);
         reject(new Error(error));
       } else {
         if (typeof body === 'string') {
@@ -39,6 +43,11 @@ const getJson = (url: string, auth: IAuth): Promise<any> => {
       }
     });
   });
+};
+
+const getJson = async (url, auth) => {
+  const options = configureGetOptions(url, auth);
+  return getAsync(options);
 };
 
 export {

@@ -9,18 +9,17 @@ import {
   buildJQL
 } from './components/query-builder';
 import { 
-  IJiraExtractorConfig,
-  IJiraApiIssue,
-  IJiraApiWorkflow,
-  IJiraApiError,
-  IJiraApiIssueResponse
+  JiraExtractorConfig,
+  JiraApiIssue,
+  JiraApiWorkflow,
+  JiraApiError,
+  JiraApiIssueQueryResponse
 } from './types';
 
-
 class JiraExtractor {
-  config: IJiraExtractorConfig;
+  config: JiraExtractorConfig;
 
-  constructor(config: IJiraExtractorConfig) {
+  constructor(config: JiraExtractorConfig) {
     this.config = config;
     this.config.batchSize = 25; // todo: make configurable
   }
@@ -53,7 +52,7 @@ class JiraExtractor {
         batchSize: 1,
       },
     );
-    const testResponse: IJiraApiIssueResponse = await getJson(queryUrl, this.config.connection.auth);
+    const testResponse: JiraApiIssueQueryResponse = await getJson(queryUrl, this.config.connection.auth);
     if (testResponse.errorMessages) {
       throw new Error(testResponse.errorMessages.join('\n'));
     } else if (!testResponse.total) {
@@ -64,7 +63,7 @@ class JiraExtractor {
   }
 
   async extractAll(statusHook = ((n: number) => null), debug: boolean = false): Promise<JiraWorkItem[]> {
-    const config: IJiraExtractorConfig = this.config;
+    const config: JiraExtractorConfig = this.config;
     const hook = statusHook;
     const apiRootUrl = config.connection.url;
     const auth = config.connection.auth;
@@ -85,7 +84,7 @@ class JiraExtractor {
         batchSize: 1,
       },
     );
-    const metadata: IJiraApiIssueResponse = await getJson(metadataQueryUrl, auth);
+    const metadata: JiraApiIssueQueryResponse = await getJson(metadataQueryUrl, auth);
     const totalJiraCount: number = metadata.total;
     if (totalJiraCount === 0) {
       throw new Error(`No stories found under search conditions using the following JQL:
@@ -99,7 +98,7 @@ class JiraExtractor {
     hook(0);
     for (let i = 0; i < totalBatches; i++) {
       const start: number = i * actualBatchSize;
-      const issues: IJiraApiIssue[] = await this.getIssuesFromJira(jql, start, actualBatchSize);
+      const issues: JiraApiIssue[] = await this.getIssuesFromJira(jql, start, actualBatchSize);
       const workItemBatch = issues.map(this.convertIssueToWorkItem);
       jiraWorkItemsAccumulator.push(...workItemBatch);
       hook(Math.max(actualBatchSize / totalJiraCount) * 100);
@@ -128,7 +127,7 @@ class JiraExtractor {
     const apiRootUrl = this.config.connection.url;
     const auth = this.config.connection.auth;
     const queryUrl: string = buildJiraSearchQueryUrl({ apiRootUrl, jql, startIndex, batchSize });
-    const json: IJiraApiIssueResponse = await getJson(queryUrl, auth);
+    const json: JiraApiIssueQueryResponse = await getJson(queryUrl, auth);
     if (!json.issues) {
       throw new Error('Could not retrieve issues from object');
     }
@@ -150,7 +149,7 @@ class JiraExtractor {
     return queryUrl;
   }
 
-  private convertIssueToWorkItem = (issue: IJiraApiIssue): JiraWorkItem => {
+  private convertIssueToWorkItem = (issue: JiraApiIssue): JiraWorkItem => {
     const workflow = this.config.workflow;
     const attributes = this.config.attributes;
     const key: string = issue.key;

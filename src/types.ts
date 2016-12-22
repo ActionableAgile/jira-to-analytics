@@ -1,35 +1,35 @@
 // JIRA REST API Interfaces (Mappings)
-export interface IJiraApiItem {
+export interface JiraApiBaseItem {
   field: string;
   toString: string;
 };
 
-export interface IJiraApiHistory {
+export interface JiraApiIssueHistory {
   id: string;
-  items: Array<IJiraApiItem>;
+  items: Array<JiraApiBaseItem>;
   created: string;
 };
 
-export interface IJiraApiChangeLog {
+export interface JiraApiIssueChangeLog {
   total: number;
-  histories: Array<IJiraApiHistory>;
+  histories: Array<JiraApiIssueHistory>;
 };
 
-export interface IJiraApiIssue {
+export interface JiraApiIssue {
   key: string;
   fields: any;
-  changelog: IJiraApiChangeLog;
+  changelog: JiraApiIssueChangeLog;
 };
 
-export interface IJiraApiIssueResponse {
-  issues: Array<IJiraApiIssue>;
+export interface JiraApiIssueQueryResponse {
+  issues: Array<JiraApiIssue>;
   startAt: number;
   maxResult: number;
   total: number;
   errorMessages?: Array<string>;
 };
 
-export interface IJiraApiWorkflowStatuses {
+export interface JiraApiWorkflowStatuses {
   self: string;
   description: string;
   name: string;
@@ -37,32 +37,32 @@ export interface IJiraApiWorkflowStatuses {
   statusCategory: any;
 }
 
-export interface IJiraApiWorkflow {
+export interface JiraApiWorkflow {
   id: string;
   name: string;
   subtask: boolean;
-  statuses: Array<IJiraApiWorkflowStatuses>;
+  statuses: Array<JiraApiWorkflowStatuses>;
 }
 
-export interface IJiraApiError {
+export interface JiraApiError {
   errorMessages: Array<string>;
   errors: any;
 }
 
 // EXTRACTOR interfaces
-export interface IWorkflow {
+export interface Workflow {
   [val: string]: Array<string>;
 };
 
-export interface IAttributes {
+export interface Attributes {
   [val: string]: string;
 };
 
-export interface IFeatureFlags {
+export interface FeatureFlags {
   [val: string]: boolean;
 };
 
-export interface IAuth {
+export interface Auth {
   username?: string;
   password?: string;
   oauth?: {
@@ -74,10 +74,10 @@ export interface IAuth {
   };
 };
 
-export interface IJiraExtractorConfig {
+export interface JiraExtractorConfig {
   connection?: {
     url?: string;
-    auth?: IAuth;
+    auth?: Auth;
   };
   projects?: Array<string>;
   issueTypes?: Array<string>;
@@ -85,8 +85,8 @@ export interface IJiraExtractorConfig {
   startDate?: Date;
   endDate?: Date;
   customJql?: string;
-  workflow?: IWorkflow;
-  attributes?: IAttributes;
-  featureFlags?: IFeatureFlags;
+  workflow?: Workflow;
+  attributes?: Attributes;
+  featureFlags?: FeatureFlags;
   batchSize?: number;
 };

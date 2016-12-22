@@ -1,4 +1,4 @@
-import { IJiraExtractorConfig } from '../types';
+import { JiraExtractorConfig } from '../types';
 
 export class JiraWorkItem  {
   id: string;
@@ -16,7 +16,7 @@ export class JiraWorkItem  {
     this.attributes = attributes;
   }
 
-  toCSV(config: IJiraExtractorConfig): string {
+  toCSV(config: JiraExtractorConfig): string {
     let s = '';
     s += `${this.id},`;
 

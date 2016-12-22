@@ -1,4 +1,4 @@
-import { IJiraExtractorConfig } from '../types';
+import { JiraExtractorConfig } from '../types';
 
 const buildOAuth = (oauthYamlObj) => {
   return {
@@ -33,8 +33,8 @@ const convertCsvStringToArray = (s: string): string[] => {
   }
 };
 
-const convertYamlToJiraSettings = (config: any): IJiraExtractorConfig => {
-  const c: IJiraExtractorConfig = {};
+const convertYamlToJiraSettings = (config: any): JiraExtractorConfig => {
+  const c: JiraExtractorConfig = {};
 
   c.batchSize = config.BatchSize || 25;
   c.attributes = config.Attributes;

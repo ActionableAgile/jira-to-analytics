@@ -1,12 +1,12 @@
-import { IJiraApiIssue, IWorkflow } from '../types';
+import { JiraApiIssue, Workflow } from '../types';
 
-const addCreatedToFirstStage = (issue: IJiraApiIssue, stageBins: string[][]) => {
+const addCreatedToFirstStage = (issue: JiraApiIssue, stageBins: string[][]) => {
   const creationDate: string = issue.fields['created'];
   stageBins[0].push(creationDate);
   return stageBins;
 };
 
-const addResolutionDateToClosedStage = (issue: IJiraApiIssue, stageMap, stageBins) => {
+const addResolutionDateToClosedStage = (issue: JiraApiIssue, stageMap, stageBins) => {
   if (issue.fields['status'] !== undefined || issue.fields['status'] != null) {
     if (issue.fields['status'].name === 'Closed') {
       if (issue.fields['resolutiondate'] !== undefined || issue.fields['resolutiondate'] != null) {
@@ -19,7 +19,7 @@ const addResolutionDateToClosedStage = (issue: IJiraApiIssue, stageMap, stageBin
   return stageBins;
 };
 
-const populateStages = (issue: IJiraApiIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
+const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
@@ -71,7 +71,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   return stagingDates;
 };
 
-const getStagingDates = (issue: IJiraApiIssue, workflow: IWorkflow): string[] => {
+const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
   const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
   const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
 
