@@ -28,12 +28,14 @@ class JiraExtractor {
     const url = buildJiraGetProjectsUrl(this.config.connection.url);
     try {
       await getJson(url, this.config.connection.auth);
-      return true;
     } catch (err) {
       return false;
     }
+    return true;
   }
 
+  // Validates configuration before running extraction procedure(s)
+  // If this function passes, it should imply a valid configuration setup
   async validate(): Promise<boolean> {
     const apiRootUrl = this.config.connection.url;
     if (!apiRootUrl) {
@@ -44,21 +46,15 @@ class JiraExtractor {
       throw new Error('Could not authenticate provided credentials.');
     }
     const jql = this.getJQL();
-    const queryUrl: string = buildJiraSearchQueryUrl(
-      {
-        apiRootUrl,
-        jql,
-        startIndex: 0,
-        batchSize: 1,
-      },
-    );
+    const queryUrl: string = this.getJiraIssuesQueryUrl(jql);
+
     const testResponse: JiraApiIssueQueryResponse = await getJson(queryUrl, this.config.connection.auth);
     if (testResponse.errorMessages) {
       throw new Error(testResponse.errorMessages.join('\n'));
-    } else if (!testResponse.total) {
+    }  
+    if (!testResponse.total) {
       throw new Error(`Error calling JIRA API at the following url:\n${queryUrl}\n using JQL: ${jql}`);
     }
-    // If we get no errors thrown by now, we're good to go extract.
     return true;
   }
 
@@ -76,14 +72,7 @@ class JiraExtractor {
       console.log(`Using the following JQL for extracting:\n${jql}\n`);
     }
 
-    const metadataQueryUrl: string = buildJiraSearchQueryUrl(
-      {
-        apiRootUrl,
-        jql,
-        startIndex: 0,
-        batchSize: 1,
-      },
-    );
+    const metadataQueryUrl: string = this.getJiraIssuesQueryUrl(jql);
     const metadata: JiraApiIssueQueryResponse = await getJson(metadataQueryUrl, auth);
     const totalJiraCount: number = metadata.total;
     if (totalJiraCount === 0) {
@@ -123,15 +112,26 @@ class JiraExtractor {
     return csv;
   };
 
-  private async getIssuesFromJira(jql, startIndex, batchSize) {
-    const apiRootUrl = this.config.connection.url;
+  private async getIssuesFromJira(jql, startIndex, batchSize): Promise<JiraApiIssue[]> {
+    const queryUrl = this.getJiraIssuesQueryUrl(jql, startIndex, batchSize);
     const auth = this.config.connection.auth;
-    const queryUrl: string = buildJiraSearchQueryUrl({ apiRootUrl, jql, startIndex, batchSize });
     const json: JiraApiIssueQueryResponse = await getJson(queryUrl, auth);
     if (!json.issues) {
       throw new Error('Could not retrieve issues from object');
     }
     return json.issues;
+  }
+
+  private getJiraIssuesQueryUrl(jql: string, startIndex: number = 0, batchSize:number = 1): string {
+    const apiRootUrl = this.config.connection.url; 
+    const queryUrl: string = buildJiraSearchQueryUrl(
+    {
+      apiRootUrl,
+      jql,
+      startIndex: 0,
+      batchSize: 1,
+    });
+    return queryUrl;
   }
 
   private getJQL(): string {
