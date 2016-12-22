@@ -57,13 +57,14 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   let latestValidIssueDateSoFar: string = '';
   const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
     let validStageDates: string[] = stageBin.filter(date => {
+      // All dates are ISO 8601, so string comparison is fine
       return date >= latestValidIssueDateSoFar ? true : false;
     });
     if (validStageDates.length) {
       validStageDates.sort();
       latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
       const earliestStageDate = validStageDates[0];
-      return earliestStageDate.split('T')[0];
+      return earliestStageDate.split('T')[0]; 
     } else {
       return '';
     }
@@ -97,4 +98,4 @@ const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
 
 export {
   getStagingDates,
-}
+};

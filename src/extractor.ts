@@ -2,18 +2,19 @@ import { getStagingDates } from './components/staging-parser';
 import { getAttributes } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
 import { getJson } from './components/jira-adapter';
-import { 
+import {
   buildJiraSearchQueryUrl,
   buildJiraGetProjectsUrl,
   buildJiraGetWorkflowsUrl,
-  buildJQL
+  buildJQL,
 } from './components/query-builder';
-import { 
+import {
   JiraExtractorConfig,
   JiraApiIssue,
   JiraApiWorkflow,
   JiraApiError,
-  JiraApiIssueQueryResponse
+  JiraApiIssueQueryResponse,
+  Auth,
 } from './types';
 
 class JiraExtractor {
@@ -51,7 +52,7 @@ class JiraExtractor {
     const testResponse: JiraApiIssueQueryResponse = await getJson(queryUrl, this.config.connection.auth);
     if (testResponse.errorMessages) {
       throw new Error(testResponse.errorMessages.join('\n'));
-    }  
+    }
     if (!testResponse.total) {
       throw new Error(`Error calling JIRA API at the following url:\n${queryUrl}\n using JQL: ${jql}`);
     }
@@ -63,10 +64,10 @@ class JiraExtractor {
 
     const config: JiraExtractorConfig = this.config;
     const hook = statusHook;
-    const apiRootUrl = config.connection.url;
-    const auth = config.connection.auth;
-    const batchSize = config.batchSize || 25;
-    const jql = this.getJQL();
+    const apiRootUrl: string = config.connection.url;
+    const auth: Auth = config.connection.auth;
+    const batchSize: number = config.batchSize || 25;
+    const jql: string = this.getJQL();
 
     if (debug) {
       console.log(`Using the following JQL for extracting:\n${jql}\n`);
@@ -122,15 +123,15 @@ class JiraExtractor {
     return json.issues;
   }
 
-  private getJiraIssuesQueryUrl(jql: string, startIndex: number = 0, batchSize:number = 1): string {
-    const apiRootUrl = this.config.connection.url; 
+  private getJiraIssuesQueryUrl(jql: string, startIndex: number = 0, batchSize: number = 1): string {
+    const apiRootUrl = this.config.connection.url;
     const queryUrl: string = buildJiraSearchQueryUrl(
-    {
-      apiRootUrl,
-      jql,
-      startIndex: 0,
-      batchSize: 1,
-    });
+      {
+        apiRootUrl,
+        jql,
+        startIndex: 0,
+        batchSize: 1,
+      });
     return queryUrl;
   }
 

@@ -7,7 +7,7 @@ const configureGetOptions = (url: string, auth: Auth): any => {
     url,
     json: true,
   };
-  // HANDLE OAUTH
+  // Handle OAuth (assumes OAuth handshake has been completed beforehand)
   if (auth.oauth && auth.oauth.private_key && auth.oauth.token) {
     const oauth = auth.oauth;
     Object.assign(options, { oauth });

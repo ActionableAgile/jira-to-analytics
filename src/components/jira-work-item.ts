@@ -1,6 +1,6 @@
 import { JiraExtractorConfig } from '../types';
 
-export class JiraWorkItem  {
+class JiraWorkItem  {
   id: string;
   stageDates: Array<string>;
   name: string;
@@ -67,4 +67,8 @@ export class JiraWorkItem  {
     .replace(/\\/g, '')
     .trim();
   };
+};
+
+export {
+  JiraWorkItem,
 };

@@ -19,7 +19,7 @@ const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
 const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
 
 const buildJQL = (options: JQLOptions): string => {
-const {
+  const {
     projects,
     issueTypes,
     filters,
