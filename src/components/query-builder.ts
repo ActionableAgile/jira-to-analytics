@@ -1,36 +1,37 @@
-export interface IQueryOptions {
-  apiRootUrl: string;
+export interface JQLOptions {
   projects: Array<string>;
   issueTypes: Array<string>;
   filters: Array<string>;
   startDate: Date;
   endDate: Date;
   customJql: string;
+};
+
+export interface QueryBuilderOptions {
+  apiRootUrl: string;
   startIndex: number;
   batchSize: number;
-}
+  jql: string;
+};
 
 const buildApiUrl = (rootUrl) => `${rootUrl}/rest/api/latest`;
 
 const formatDate = (date: Date): string => `${date.getUTCFullYear()}/${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
 
-const buildJQL = (options: IQueryOptions): string => {
+const buildJQL = (options: JQLOptions): string => {
 const {
-    apiRootUrl,
     projects,
     issueTypes,
     filters,
     startDate,
     endDate,
     customJql,
-    startIndex,
-    batchSize,
   } = options;
 
   let clauses: Array<string> = [];
 
   // Handle Projects...
-  if (projects.length > 0) {
+  if (projects && projects.length > 0) {
     const projectClause = (projects.length > 1)
       ? `project in (${projects.join(',')})`
       : `project=${projects[0]}`;
@@ -38,7 +39,7 @@ const {
   }
 
   // Handle Issues...
-  if (issueTypes.length > 0) {
+  if (issueTypes && issueTypes.length > 0) {
     const typeClause = `issuetype in (${issueTypes.map(issue => `"${issue}"`).join(',')})`;
     clauses.push(typeClause);
   }
@@ -64,18 +65,18 @@ const {
   }
 
   // Handle Filters...
-  const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
-  clauses.push(...filterClauses);
+  if (filters) {
+    const filterClauses: string[] = filters.map((filter: string) => `filter="${filter}"`);
+    clauses.push(...filterClauses);
+  }
 
   // AND together
   const jql = `${clauses.join(' AND ')} order by key`;
+
   return jql;
 };
 
-const buildJiraSearchQueryUrl = (options: IQueryOptions): string => {
-  const { apiRootUrl, startIndex, batchSize } = options;
-  const jql = buildJQL(options);
-  // Append JQL to url, also add start and maxresults
+const buildJiraSearchQueryUrl = ({ apiRootUrl, startIndex, batchSize, jql}: QueryBuilderOptions): string => {
   const query = `${buildApiUrl(apiRootUrl)}/search?jql=${encodeURIComponent(jql)}&startAt=${startIndex}&maxResults=${batchSize}&expand=changelog`;
   return query;
 };

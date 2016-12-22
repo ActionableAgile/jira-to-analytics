@@ -4,8 +4,8 @@ import * as chalk from 'chalk';
 import { safeLoad } from 'js-yaml';
 import { argv } from 'yargs';
 import { prompt } from 'inquirer';
-import { JiraExtractor } from './main';
-import { convertYamlToJiraSettings } from './lib/components/yaml-converter';
+import { JiraExtractor } from './index';
+import { convertYamlToJiraSettings } from './src/components/yaml-converter';
 
 const defaultYamlPath = 'config.yaml';
 const defaultOutputPath = 'output.csv';

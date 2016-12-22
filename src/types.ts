@@ -21,9 +21,12 @@ export interface IJiraApiIssue {
   changelog: IJiraApiChangeLog;
 };
 
-export interface IJiraApiIssueList {
+export interface IJiraApiIssueResponse {
   issues: Array<IJiraApiIssue>;
+  startAt: number;
+  maxResult: number;
   total: number;
+  errorMessages?: Array<string>;
 };
 
 export interface IJiraApiWorkflowStatuses {
