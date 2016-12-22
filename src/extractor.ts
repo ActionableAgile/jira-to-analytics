@@ -97,7 +97,7 @@ class JiraExtractor {
 
     // Privacy filters...hides name.
     if (config.featureFlags && config.featureFlags['MaskName']) {
-      jiraWorkItemsAccumulator.map(workItem => Object.assign(workItem, { name: '' }));
+      jiraWorkItemsAccumulator.map(workItem => Object.assign({}, workItem, { name: '' }));
     }
     return jiraWorkItemsAccumulator;
   };
