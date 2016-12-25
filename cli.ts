@@ -19,7 +19,7 @@ const bar = new ProgressBar(chalk.cyan('  Extracting: [:bar] :percent | :eta sec
 
 const getArgs = () => argv;
 
-const clearConsole = () => process.stdout.write('\x1Bc');
+const clearConsole = (): boolean => process.stdout.write('\x1Bc');
 
 const writeFile = (filePath: string, data: any) =>
   new Promise((accept, reject) => {

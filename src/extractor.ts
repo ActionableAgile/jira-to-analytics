@@ -53,6 +53,11 @@ class JiraExtractor {
     if (testResponse.errorMessages) {
       throw new Error(testResponse.errorMessages.join('\n'));
     }
+
+    if (testResponse.total === 0) {
+      throw new Error(`No JIRA Issues found with the generated JQL:\n${jql}\nPlease modify your configuration.`);
+    }
+
     if (!testResponse.total) {
       throw new Error(`Error calling JIRA API at the following url:\n${queryUrl}\n using JQL: ${jql}`);
     }
@@ -83,7 +88,7 @@ class JiraExtractor {
     }
     const actualBatchSize: number = batchSize === 0 ? totalJiraCount : batchSize;
     const totalBatches: number = Math.ceil(totalJiraCount / batchSize);
-    const jiraWorkItemsAccumulator: JiraWorkItem[] = [];
+    let jiraWorkItemsAccumulator: JiraWorkItem[] = [];
 
     hook(0);
     for (let i = 0; i < totalBatches; i++) {
@@ -97,7 +102,7 @@ class JiraExtractor {
 
     // Privacy filters...hides name.
     if (config.featureFlags && config.featureFlags['MaskName']) {
-      jiraWorkItemsAccumulator.map(workItem => Object.assign({}, workItem, { name: '' }));
+      jiraWorkItemsAccumulator = jiraWorkItemsAccumulator.map(workItem => Object.assign({}, workItem, { name: '' }));
     }
     return jiraWorkItemsAccumulator;
   };
