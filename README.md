@@ -1,4 +1,6 @@
 # README #
+
+**Please Note:**  This tool is offered AS-IS with no implied warranty nor support from ActionableAgile, its partners, or subsidiaries.  ActionableAgile has made this utility available via open source in the hope that the community will make contributions to this project in order to improve it.  Please do not contact ActionableAgile with any support questions as, unfortunately, we will be unable to help you.
  
 # ActionableAgile Analytics Tool
 
