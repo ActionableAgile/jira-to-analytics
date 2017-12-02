@@ -197,6 +197,23 @@ These fields will show up as filter attributes in the generated data file (pleas
 
 >NOTE::  None of the fields in this section is required--in fact, this section as a whole is optional.
 
+### Teams ###
+
+The teams section of the config file allows you to assign projects keys to team names, which can then be filtered on in the application.
+
+An example of what this section might look like is:
+
+```
+Teams:
+    TeamOne:
+      - ABC
+      - EFG
+    TeamTwo:
+      - HA
+      - HE
+      - HO
+```
+
 ### Advanced Settings ###
 
 The extraction tool also supports more customization and extensibility. 
