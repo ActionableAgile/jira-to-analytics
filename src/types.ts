@@ -62,6 +62,10 @@ export interface FeatureFlags {
   [val: string]: boolean;
 };
 
+export interface Teams {
+  [val: string]: Array<string>;
+}
+
 export interface Auth {
   username?: string;
   password?: string;
@@ -89,4 +93,5 @@ export interface JiraExtractorConfig {
   attributes?: Attributes;
   featureFlags?: FeatureFlags;
   batchSize?: number;
+  teams?: Teams;
 };

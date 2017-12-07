@@ -58,6 +58,8 @@ const convertYamlToJiraSettings = (config: any): JiraExtractorConfig => {
     : convertWorkflowToArray(config.Workflow, convertToArray);
   c.attributes = config.Attributes;
 
+  c.teams = config.Teams;
+
   c.featureFlags = config['Feature Flags'];
 
   return c;

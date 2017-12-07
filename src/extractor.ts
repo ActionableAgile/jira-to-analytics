@@ -1,5 +1,5 @@
 import { getStagingDates } from './components/staging-parser';
-import { getAttributes } from './components/attribute-parser';
+import { getAttributes, parseAttributeArray } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
 import { getJson } from './components/jira-adapter';
 import {
@@ -112,7 +112,7 @@ class JiraExtractor {
     let stages = Object.keys(this.config.workflow);
     let config = this.config;
 
-    const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}`;
+    const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}${this.config.teams ? ',Team' : ''}`;
     const body = workItems.map(item => item.toCSV(config)).reduce((res, cur) => `${res + cur}\n`, '');
     const csv: string = `${header}\n${body}`;
     return csv;
@@ -158,16 +158,33 @@ class JiraExtractor {
   private convertIssueToWorkItem = (issue: JiraApiIssue): JiraWorkItem => {
     const workflow = this.config.workflow;
     const attributes = this.config.attributes;
+    const teams = this.config.teams;
     const key: string = issue.key;
     const name: string = issue.fields['summary'];
     const stagingDates: string[] = getStagingDates(issue, workflow);
     const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
 
-    let attributesKeyVal = null;
+    let attributesKeyVal = {};
     if (attributes) {
       const requestedAttributeSystemNames: string[] = Object.keys(attributes).map(key => attributes[key]);
       attributesKeyVal = getAttributes(issue.fields, requestedAttributeSystemNames);
     }
+
+    // If project is configured for team, add team attribute
+    if (teams) {
+      const issueProjectkey = issue.fields.project.key;
+
+      const inTeams = Object.keys(teams).filter(team => {
+        const teamProjects = teams[team];
+        return teamProjects.some(project => {
+          return project == issueProjectkey;
+        });
+      });
+
+      attributesKeyVal['team'] = parseAttributeArray(inTeams);
+
+    }
+
     return new JiraWorkItem(key, stagingDates, name, type, attributesKeyVal);
   };
 };
