@@ -134,8 +134,8 @@ class JiraExtractor {
       {
         apiRootUrl,
         jql,
-        startIndex: 0,
-        batchSize: 1,
+        startIndex: startIndex,
+        batchSize: batchSize,
       });
     return queryUrl;
   }
