@@ -33,7 +33,11 @@ These flags are the same whether you are using the standalone executable or node
 
 ```-o``` specifies output file name (must end with .csv or .json, defaults to data.csv)
 
-```-l``` or ```--legacy``` will enable the old version of the YAML (from the GO version of the application). 
+```-u``` specifies the username for the connection to Jira (by default the username in the config.yaml is used)
+
+```-p``` specifies the password for the connection to Jira (by default the password in the config.yaml is used)
+
+```-l``` or ```--legacy``` will enable the old version of the YAML (from the GO version of the application).
 
 For example, to run the node version of the tool with a legacy config file named myconfig.yaml and exporting data to  mydata.csv:
 
