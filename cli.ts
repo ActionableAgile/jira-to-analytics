@@ -52,6 +52,8 @@ const run = async function (cliArgs: any): Promise<void> {
   const isLegacyYaml: boolean = (cliArgs.l || cliArgs.legacy) ? true : false;
   const debugMode: boolean = cliArgs.d ? true : false;
   const outputPath: string = cliArgs.o ? cliArgs.o : defaultOutputPath;
+  const cliUsername: string = cliArgs.u;
+  const cliPassword: string = cliArgs.p;
   const outputType: string = outputPath.split('.')[1].toUpperCase();
   if (outputType !== 'CSV' && outputType !== 'JSON') {
     throw new Error('Only CSV and JSON is currently supported for file output.');
@@ -65,6 +67,13 @@ const run = async function (cliArgs: any): Promise<void> {
   } catch (e) {
     console.log(`Error parsing settings ${e}`);
     throw e;
+  }
+
+  if (cliUsername) {
+    settings.Connection.Username = cliUsername;
+  }
+  if (cliPassword) {
+    settings.Connection.Password = cliPassword;
   }
 
   console.log('');
