@@ -42,6 +42,9 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
           stageBins[stageIndex].push(stageDate);
+        } else if (caseInsensetiveHas(stageMap, stageName)) {
+          const stageIndex: number = caseInsensetiveGet(stageMap, stageName);
+          stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
           unusedStages.set(stageName, count + 1);
@@ -55,6 +58,9 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
 
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
+          stageBins[stageIndex].push(stageDate);
+        } else if (caseInsensetiveHas(stageMap, stageName)) {
+          const stageIndex: number = caseInsensetiveGet(stageMap, stageName);
           stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
