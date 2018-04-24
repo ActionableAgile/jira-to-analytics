@@ -35,8 +35,10 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
       const stageDate: string = history['created'];
+
       if (historyItem['field'] === 'status') {
         const stageName: string = historyItem.toString;
+
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
           stageBins[stageIndex].push(stageDate);
@@ -46,10 +48,11 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
         }
       }
       // naive solution, does not differentiate between epic status stage or status stage/
-      //  (lumpsthem together);
+      //  (lumps them together);
       const customAttributes = ['Epic Status'];
       if (customAttributes.includes(historyItem['field']) && historyItem['fieldtype'] === 'custom') {
         const stageName: string = historyItem.toString;
+
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
           stageBins[stageIndex].push(stageDate);
