@@ -34,11 +34,11 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
+      const stageDate: string = history['created'];
       if (historyItem['field'] === 'status') {
         const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
           stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
@@ -52,7 +52,6 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
         const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
           stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
