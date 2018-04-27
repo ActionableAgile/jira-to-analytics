@@ -107,6 +107,11 @@ const run = async function (cliArgs: any): Promise<void> {
   console.log(chalk.green('Authentication successful.\n'));
 
   console.log('Beginning extraction process');
+
+  if (debugMode) {
+    console.log(`\tConfig file : ${jiraConfigPath}\n\tLegacy YAML : ${isLegacyYaml}\n\tDebug mode  : ${debugMode}\n\tOutput path : ${outputPath}\n\tOutput type : ${outputType}\n\tUsername    : ${cliUsername}\n\tPassword    : ********\n`);
+  }
+
   // Progress bar setup
   const updateProgressHook = (bar => {
     bar.tick();
