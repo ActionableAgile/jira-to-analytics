@@ -75,7 +75,7 @@ class JiraExtractor {
     const jql: string = this.getJQL();
 
     if (debug) {
-      console.log(`Using the following JQL for extracting:\n${jql}\n`);
+      console.log(`\nUsing the following JQL for extracting:\n${jql}\n`);
     }
 
     const metadataQueryUrl: string = this.getJiraIssuesQueryUrl(jql);
