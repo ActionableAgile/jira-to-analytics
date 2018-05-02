@@ -35,12 +35,16 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
+      const stageName: string = historyItem.toString;
+      const stageDate: string = history['created'];
+
       if (historyItem['field'] === 'status') {
-        const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
           stageBins[stageIndex].push(stageDate);
+        } else if (caseInsensetiveHas(stageMap, stageName)) {
+            const stageIndex: number = caseInsensetiveGet(stageMap, stageName);
+            stageBins[stageIndex].push(stageDate);
         } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
           unusedStages.set(stageName, count + 1);
@@ -53,9 +57,11 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
         const stageName: string = historyItem.toString;
         if (stageMap.has(stageName)) {
           const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
           stageBins[stageIndex].push(stageDate);
-        } else {
+        } else if (caseInsensetiveHas(stageMap, stageName)) {
+          const stageIndex: number = caseInsensetiveGet(stageMap, stageName);
+          stageBins[stageIndex].push(stageDate);
+      } else {
           const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
           unusedStages.set(stageName, count + 1);
         }
