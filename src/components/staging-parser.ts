@@ -19,6 +19,18 @@ const addResolutionDateToClosedStage = (issue: JiraApiIssue, stageMap, stageBins
   return stageBins;
 };
 
+const caseInsensetiveGet = (map: Map<string, any>, keyToGet: string) => {
+  const lowerCaseKeyToGet = keyToGet.toLowerCase()
+  const entries = [...map.entries()]
+  const found = entries.find(entry => entry[0].toLowerCase() === lowerCaseKeyToGet)
+  return found !== undefined ? found[1] : undefined
+}
+
+const caseInsensetiveHas = (map: Map<string, any>, keyToCheck: string) => {
+  return caseInsensetiveGet(map, keyToCheck) !== undefined
+}
+
+
 const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
@@ -64,7 +76,7 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
       validStageDates.sort();
       latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
       const earliestStageDate = validStageDates[0];
-      return earliestStageDate.split('T')[0]; 
+      return earliestStageDate.split('T')[0];
     } else {
       return '';
     }
