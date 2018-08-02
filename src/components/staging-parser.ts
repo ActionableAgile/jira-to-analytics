@@ -1,5 +1,7 @@
 import { JiraApiIssue, Workflow } from '../types';
 
+var daysBlocked = 0;
+
 const addCreatedToFirstStage = (issue: JiraApiIssue, stageBins: string[][]) => {
   const creationDate: string = issue.fields['created'];
   stageBins[0].push(creationDate);
@@ -19,7 +21,33 @@ const addResolutionDateToClosedStage = (issue: JiraApiIssue, stageMap, stageBins
   return stageBins;
 };
 
-const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
+const calculateDaysBlockedRounded = (blockedDifferenceInDays: number) => {
+  // mulitply the blocked difference as a decimal of days by 100 and round up to the nearest whole number
+  var roundedBlockedDiffToTwoDecimalPlaces = (Math.round((blockedDifferenceInDays*100)));
+  // peel off the last digit, which would be the unit place value
+  var lastdigit = roundedBlockedDiffToTwoDecimalPlaces.toString().split('').pop();
+  if (lastdigit === "9") {
+    // divide the whole unit difference by 10 round up to the nearest whole number and divide by 10
+    blockedDifferenceInDays = Math.ceil(roundedBlockedDiffToTwoDecimalPlaces / 10)/10;
+  }
+  else {
+    // divide the whole unit difference by 10 round down to the nearest whole number and divide by 10
+    blockedDifferenceInDays = Math.floor(roundedBlockedDiffToTwoDecimalPlaces / 10)/10;
+  }
+  // using the above logic rounds the difference in days up by one 10th if the first two decimals are .85 of one day or higher.
+  // it rounds down by one 10th if less than 0.85 of one day
+  return blockedDifferenceInDays;
+}
+
+const populateStages = (issue: JiraApiIssue, stageMap, stageBins, blockedAttributes: Array<string>, unusedStages = new Map<string, number>()) => {
+  var daysBlockedForCurrentIssue = 0;
+  var currentBlockedDate = null;
+  var blockedDateDifference = 0;
+
+  var msecPerMinute = 1000 * 60;  
+  var msecPerHour = msecPerMinute * 60;  
+  var msecPerDay = msecPerHour * 24; 
+
   // sort status changes into stage bins
   issue.changelog.histories.forEach(history => {
     history.items.forEach(historyItem => {
@@ -34,6 +62,24 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
           unusedStages.set(stageName, count + 1);
         }
       }
+      if (blockedAttributes.length > 0){
+        if (blockedAttributes.indexOf(historyItem['field']) > -1) {  
+          const fromString = historyItem['fromString'];
+          const toString = historyItem['toString'];
+          if (fromString === null && (toString != null || toString != "")) {
+            currentBlockedDate = new Date(history['created']);
+          }
+          else if ((fromString != null || fromString != "") && (toString === null || toString === "")) {
+            const endBlockedDate = new Date (history['created']);
+            if (currentBlockedDate != null) {
+              blockedDateDifference = endBlockedDate.valueOf() - currentBlockedDate.valueOf();
+              daysBlockedForCurrentIssue += calculateDaysBlockedRounded(blockedDateDifference / msecPerDay);
+            }
+            currentBlockedDate = null;
+          }
+        }
+      }
+        
       // naive solution, does not differentiate between epic status stage or status stage/
       //  (lumpsthem together);
       const customAttributes = ['Epic Status'];
@@ -50,6 +96,12 @@ const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages =
       }
     });
   });
+  if (currentBlockedDate != null) {
+    const endBlockedDate = new Date();
+    blockedDateDifference = endBlockedDate.valueOf() - currentBlockedDate.valueOf();
+    daysBlockedForCurrentIssue += calculateDaysBlockedRounded(blockedDateDifference / msecPerDay);
+  }
+  daysBlocked = daysBlockedForCurrentIssue;
   return stageBins;
 };
 
@@ -72,7 +124,20 @@ const filterAndFlattenStagingDates = (stageBins: string[][]) => {
   return stagingDates;
 };
 
-const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
+const fillInBlankStageDatesFromLatestDate = (stagingDates: string[]) => {
+  var latestDate = '';
+  for (var _i = stagingDates.length-1; _i >=0; _i--) {
+    const currentDate = stagingDates[_i];
+    if ( currentDate ) {
+      latestDate = currentDate;
+    } else {
+      stagingDates[_i] = latestDate;
+    }
+  }
+  return stagingDates;
+}
+
+const getStagingDates = (issue: JiraApiIssue, workflow: Workflow, blockedAttributes: Array<string>): string[] => {
   const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
   const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
 
@@ -91,11 +156,17 @@ const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
   if (resolvedInLastStage) {
     stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
   }
-  stageBins = populateStages(issue, stageMap, stageBins);
-  const stagingDates = filterAndFlattenStagingDates(stageBins);
+  stageBins = populateStages(issue, stageMap, stageBins, blockedAttributes);
+  var stagingDates = filterAndFlattenStagingDates(stageBins);
+  stagingDates = fillInBlankStageDatesFromLatestDate(stagingDates);
   return stagingDates;
+};
+
+const getDaysBlocked = () => {
+  return daysBlocked;
 };
 
 export {
   getStagingDates,
+  getDaysBlocked,
 };

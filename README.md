@@ -113,6 +113,22 @@ The Criteria Section of the config file is simply named "Criteria" (without the 
 - 	Filters: a list of the names of the filters you want to apply
 - 	Start Date: a date filter in the format YYYY-MM-DD which will exclude issues with resolved dates before the provided date (optional)
 - 	End Date: a date filter in the format YYYY-MM-DD which will include issues with resolved dates before the provided date (optional)
+-   BlockedAttributes: This optional feature will add and value the ‘Days Blocked’ column to the CSV extract with the number of days blocked for each issue. 
+    -   The number of days blocked is calculated by using the workflow function to block and unblock an issue.
+		Days Blocked is calculated down to the tenth of a day.  For example, the Days Blocked might calculate to 15.4.
+    -   Number of blocked days  = the total of all blocked days across all status values included in the filter.
+    -   Multiple block and unblocks are allowed.
+    -   When enabled, the block values are used in the ScatterPlot, Cycle Time Histogram, and Flow Efficiency.
+        o   Cycle Time:
+               issues are displayed as a red dot instead of a black dot. 
+               Hover over the issue displays the issue detail, including number of blocked days
+               Option has been added to Include/Exclude Blocked days
+        o   Cycle Time Histogram
+               Option has been added to Include/Exclude Blocked days
+        o   Flow Efficiency 
+               Calculation: FE = (Total Cycle time – Blocked Days – Queued Days enabled in Queuing Stages) / Total Cycle Time
+               Option has been added to Include/Exclude Blocked days in the calculation
+-   OutputDateFormat: an optional way to output a particular date format.  This date format can be specified using normal date conventions (i.e., YYYY-MM-DD, MM/DD/YYYY, Mon-DD-YYYY, etc.).  If this is not specified, then the standard date output is used.
 
 An example of what this section might look like would be:
 
@@ -129,6 +145,8 @@ Criteria:
 		- User Story
 	Start Date: 2001-01-23
 	End Date: 2019-12-30
+	BlockedAttributes: Blocked, Blocked-In Progress
+	OutputDateFormat: YYYYMMDD
 
 ```
 

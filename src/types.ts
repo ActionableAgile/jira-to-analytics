@@ -86,6 +86,8 @@ export interface JiraExtractorConfig {
   projects?: Array<string>;
   issueTypes?: Array<string>;
   filters?: Array<string>;
+  blockedAttributes?: Array<string>;
+  outputDateformat?: string;
   startDate?: Date;
   endDate?: Date;
   customJql?: string;
