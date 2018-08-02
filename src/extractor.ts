@@ -1,4 +1,5 @@
 import { getStagingDates } from './components/staging-parser';
+import { getDaysBlocked } from './components/staging-parser';
 import { getAttributes, parseAttributeArray } from './components/attribute-parser';
 import { JiraWorkItem } from './components/jira-work-item';
 import { getJson } from './components/jira-adapter';
@@ -112,7 +113,11 @@ class JiraExtractor {
     let stages = Object.keys(this.config.workflow);
     let config = this.config;
 
-    const header = `ID,Link,Name,${stages.join(',')},Type,${Object.keys(attributes).join(',')}${this.config.teams ? ',Team' : ''}`;
+    var header = `ID,Link,Name,${stages.join(',')},`;
+    if (config.blockedAttributes.length > 0){
+      header += `Days Blocked,`;
+    }
+    header += `Type,${Object.keys(attributes).join(',')}${this.config.teams ? ',Team' : ''}`;
     const body = workItems.map(item => item.toCSV(config)).reduce((res, cur) => `${res + cur}\n`, '');
     const csv: string = `${header}\n${body}`;
     return csv;
@@ -161,8 +166,9 @@ class JiraExtractor {
     const teams = this.config.teams;
     const key: string = issue.key;
     const name: string = issue.fields['summary'];
-    const stagingDates: string[] = getStagingDates(issue, workflow);
+    const stagingDates: string[] = getStagingDates(issue, workflow, this.config.blockedAttributes);
     const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
+    const daysBlocked: number = getDaysBlocked();
 
     let attributesKeyVal = {};
     if (attributes) {
@@ -185,7 +191,7 @@ class JiraExtractor {
 
     }
 
-    return new JiraWorkItem(key, stagingDates, name, type, attributesKeyVal);
+    return new JiraWorkItem(key, stagingDates, name, type, daysBlocked, attributesKeyVal);
   };
 };
 

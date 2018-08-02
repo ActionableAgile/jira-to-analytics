@@ -33,6 +33,11 @@ const convertCsvStringToArray = (s: string): string[] => {
   }
 };
 
+const replaceDashInBlockedAttributes = (blockedAttributes): string => {
+  var re = new RegExp(String.fromCharCode(8211), 'gi');
+  return blockedAttributes.replace(re, String.fromCharCode(45));
+};
+
 const convertYamlToJiraSettings = (config: any): JiraExtractorConfig => {
   const c: JiraExtractorConfig = {};
 
@@ -50,6 +55,13 @@ const convertYamlToJiraSettings = (config: any): JiraExtractorConfig => {
   c.projects = config.legacy ? convertCsvStringToArray(config.Criteria.Projects) : convertToArray(config.Criteria.Project);
   c.issueTypes = config.legacy ? convertCsvStringToArray(config.Criteria['Types']) : convertToArray(config.Criteria['Issue types']);
   c.filters = config.legacy ? convertCsvStringToArray(config.Criteria.Filters) : convertToArray(config.Criteria.Filters);
+  if ((config.Criteria['BlockedAttributes'] == undefined) || (config.Criteria['BlockedAttributes'] == null)) {
+    c.blockedAttributes = config.legacy ? convertCsvStringToArray((config.Criteria['BlockedAttributes'])) : convertToArray(config.Criteria['BlockedAttributes']);
+  } else {
+    c.blockedAttributes = config.Criteria['BlockedAttributes'].indexOf(",") ? convertCsvStringToArray(replaceDashInBlockedAttributes(config.Criteria['BlockedAttributes'])) : convertToArray(config.Criteria['BlockedAttributes']);    
+  }
+  
+  c.outputDateformat = config.Criteria['OutputDateFormat'] || null;
   c.startDate = config.Criteria['Start Date'] || null;
   c.endDate = config.Criteria['End Date'] || null;
   c.customJql = config.Criteria.JQL ? config.Criteria.JQL : ''; // fix this, need to put this in an Array
