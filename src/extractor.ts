@@ -118,6 +118,23 @@ class JiraExtractor {
     return csv;
   };
 
+  toJSON(workItems: JiraWorkItem[], withHeader: boolean = true) {
+    let attributes = this.config.attributes || {};
+    let stages = Object.keys(this.config.workflow);
+    let config = this.config;
+
+    const header:any = ['ID','Link','Name'].concat(stages, ['Type'], Object.keys(attributes));
+    if(this.config.teams) {
+      header.push('Team');
+    }
+    
+    const result = [];
+    result.push(header);
+    workItems.forEach(item => result.push(item.toJSON(config)));
+
+    return result;
+  };
+
   private async getIssuesFromJira(jql, startIndex, batchSize): Promise<JiraApiIssue[]> {
     const queryUrl = this.getJiraIssuesQueryUrl(jql, startIndex, batchSize);
     const auth = this.config.connection.auth;

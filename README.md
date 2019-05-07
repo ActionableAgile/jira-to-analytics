@@ -267,7 +267,6 @@ If the output file is a CSV file, it can be loaded directly into the ActionableA
 
  - Write Tests
  - Add support for attributes with dot notation
- - Add JSON support
  - Add more extractor sources
 
 License

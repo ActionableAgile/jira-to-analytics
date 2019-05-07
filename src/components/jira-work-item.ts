@@ -42,6 +42,33 @@ class JiraWorkItem  {
     return s;
   }
 
+  toJSON(config: JiraExtractorConfig): string {
+    let s:any = [];
+    s.push(this.id);
+    
+    if (config.featureFlags && config.featureFlags['MaskLink']) {
+      s.push(null);
+    } else {
+      s.push(`${config.connection.url}/browse/${this.id}`);
+    }
+
+    s.push(`${(JiraWorkItem.cleanString(this.name))}`);
+    
+    this.stageDates.forEach(stageDate => s.push(stageDate));
+    s.push(this.type);
+
+    const attributeKeys = this.attributes ? Object.keys(this.attributes) : [];
+    if (attributeKeys.length === 0) {
+      s.push(null);
+    } else {
+      attributeKeys.forEach(attributeKey => {
+        s.push(JiraWorkItem.cleanString(this.attributes[attributeKey]));
+      });
+    }
+
+    return s;
+  }
+
   toSerializedArray(): string {
     let s = '';
     s += '[';
