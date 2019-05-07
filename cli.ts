@@ -124,7 +124,7 @@ const run = async function (cliArgs: any): Promise<void> {
     if (outputType === 'CSV') {
       data = await jiraExtractor.toCSV(workItems);
     } else if (outputType === 'JSON') {
-      console.error('JSON not currently supported');
+      data = JSON.stringify(await jiraExtractor.toJSON(workItems));
     }
     try {
       await writeFile(outputPath, data);
