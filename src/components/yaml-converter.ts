@@ -56,6 +56,7 @@ const convertYamlToJiraSettings = (config: any): JiraExtractorConfig => {
   c.workflow = config.legacy
     ? convertWorkflowToArray(config.Workflow, convertCsvStringToArray)
     : convertWorkflowToArray(config.Workflow, convertToArray);
+  c.activeStatuses = config.ActiveStatuses;
   c.attributes = config.Attributes;
 
   c.teams = config.Teams;

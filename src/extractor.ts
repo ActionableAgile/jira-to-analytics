@@ -156,12 +156,13 @@ class JiraExtractor {
   }
 
   private convertIssueToWorkItem = (issue: JiraApiIssue): JiraWorkItem => {
+    const activeStatuses = this.config.activeStatuses;
     const workflow = this.config.workflow;
     const attributes = this.config.attributes;
     const teams = this.config.teams;
     const key: string = issue.key;
     const name: string = issue.fields['summary'];
-    const stagingDates: string[] = getStagingDates(issue, workflow);
+    const stagingDates: string[] = getStagingDates(issue, workflow, activeStatuses);
     const type: string = issue.fields.issuetype.name ? issue.fields.issuetype.name : '';
 
     let attributesKeyVal = {};

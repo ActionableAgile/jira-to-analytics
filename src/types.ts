@@ -1,8 +1,21 @@
 // JIRA REST API Interfaces (Mappings)
 export interface JiraApiBaseItem {
   field: string;
+  fromString: string;
   toString: string;
 };
+
+export interface JiraComputedItem {
+  fromString: string;
+  toString: string;
+  previousCreated: string;
+  created: string;
+}
+
+export interface StagePassedDays {
+  didHappen: boolean;
+  passedDays: number;
+}
 
 export interface JiraApiIssueHistory {
   id: string;
@@ -90,6 +103,7 @@ export interface JiraExtractorConfig {
   endDate?: Date;
   customJql?: string;
   workflow?: Workflow;
+  activeStatuses?: Array<string>;
   attributes?: Attributes;
   featureFlags?: FeatureFlags;
   batchSize?: number;

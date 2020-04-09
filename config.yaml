@@ -25,13 +25,13 @@ Connection:
 
 # What to search for?
 Criteria:
-    Project: 
+    Project:
         - HCPUB # JIRA project key to search
     Issue types: # Which issue types to include
         - Sub-task
         - Story
         - Bug
-    Filters: 
+    Filters:
         - HCPUB Desktop - Closed Major+ Bugs
     # Excludes stories closed before the following date:
     Start Date: 2001-01-23
@@ -40,19 +40,31 @@ Criteria:
 # Describe the workflow. Each step can be mapped to either a single JIRA
 # status, or a list of statuses that will be treated as equivalent
 Workflow:
-    Ready: 
-        - Ready Queue
-        - Queue
-        - Open
-        - (Created)
-    Dev: 
-        - Development
-    Dev Done: Dev Done
-    Test: Test
-    Done: 
-        - Closed
-        - Cancelled
-        - (Resolved)
+    To Do:
+      - To Do
+    Blocked:
+      - Blocked
+    In Progress:
+      - In Progress
+    To Build:
+      - To Build
+    To Test:
+      - To Test
+    Testing:
+      - Testing
+    Product Review:
+      - Product Review
+    Done:
+      - Done
+    Invalid:
+      - Invalid
+
+ActiveStatuses:
+  - In Progress
+  - To Build
+  - To Test
+  - Testing
+  - Product Review
 
 # Map field names to additional attributes to extract
 Attributes:
@@ -64,7 +76,7 @@ Attributes:
       Labels: labels
       Versions: fixVersions
       Components: components
-      
+
 Feature Flags:
     MaskName: false
 

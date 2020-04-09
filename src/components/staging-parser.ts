@@ -1,4 +1,5 @@
-import { JiraApiIssue, Workflow } from '../types';
+import * as moment from 'moment';
+import { JiraApiBaseItem, JiraApiIssue, JiraComputedItem, StagePassedDays, Workflow } from '../types';
 
 const addCreatedToFirstStage = (issue: JiraApiIssue, stageBins: string[][]) => {
   const creationDate: string = issue.fields['created'];
@@ -19,60 +20,66 @@ const addResolutionDateToClosedStage = (issue: JiraApiIssue, stageMap, stageBins
   return stageBins;
 };
 
-const populateStages = (issue: JiraApiIssue, stageMap, stageBins, unusedStages = new Map<string, number>()) => {
-  // sort status changes into stage bins
-  issue.changelog.histories.forEach(history => {
-    history.items.forEach(historyItem => {
-      if (historyItem['field'] === 'status') {
-        const stageName: string = historyItem.toString;
-        if (stageMap.has(stageName)) {
-          const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
-          stageBins[stageIndex].push(stageDate);
-        } else {
-          const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
-          unusedStages.set(stageName, count + 1);
-        }
-      }
-      // naive solution, does not differentiate between epic status stage or status stage/
-      //  (lumpsthem together);
-      const customAttributes = ['Epic Status'];
-      if (customAttributes.includes(historyItem['field']) && historyItem['fieldtype'] === 'custom') {
-        const stageName: string = historyItem.toString;
-        if (stageMap.has(stageName)) {
-          const stageIndex: number = stageMap.get(stageName);
-          const stageDate: string = history['created'];
-          stageBins[stageIndex].push(stageDate);
-        } else {
-          const count: number = unusedStages.has(stageName) ? unusedStages.get(stageName) : 0;
-          unusedStages.set(stageName, count + 1);
-        }
-      }
-    });
-  });
-  return stageBins;
-};
-
-const filterAndFlattenStagingDates = (stageBins: string[][]) => {
-  let latestValidIssueDateSoFar: string = '';
-  const stagingDates = stageBins.map((stageBin: string[], idx: number) => {
-    let validStageDates: string[] = stageBin.filter(date => {
-      // All dates are ISO 8601, so string comparison is fine
-      return date >= latestValidIssueDateSoFar ? true : false;
-    });
-    if (validStageDates.length) {
-      validStageDates.sort();
-      latestValidIssueDateSoFar = validStageDates[validStageDates.length - 1];
-      const earliestStageDate = validStageDates[0];
-      return earliestStageDate.split('T')[0]; 
-    } else {
-      return '';
+const processHistories = (issue: JiraApiIssue): [JiraComputedItem] => {
+  const sortedItems: [JiraComputedItem] = [].concat.apply([], issue.changelog.histories
+    .map(history => [
+      history.created,
+      history.items.filter(historyItem => historyItem['field'] === 'status')]
+    )
+    .filter(entry => entry[1].length > 0)
+    .map(entry => (<[JiraApiBaseItem]>entry[1])
+      .map(item => ({
+        fromString: item.fromString,
+        toString: item.toString,
+        created: entry[0]
+      }))
+    )
+  ).sort((a, b) => a.created < b.created ? -1 : 1);
+  let previousCreated: string;
+  sortedItems.forEach(item => {
+    if (previousCreated) {
+      item.previousCreated = previousCreated;
     }
+    previousCreated = item.created;
   });
-  return stagingDates;
+  return sortedItems;
 };
 
-const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
+const processActiveStatuses = (issue: JiraApiIssue, stages: string[], activeStatuses: string[], sortedItems: [JiraComputedItem], activeStatusesPassedDays: Map<string, StagePassedDays>): moment.Moment => {
+  let activeStatusDate: moment.Moment;
+  stages
+    .filter(stage => activeStatuses.includes(stage))
+    .forEach(stage => {
+      activeStatusesPassedDays[stage] = sortedItems
+        .filter(item => item.fromString === stage)
+        .reduce(({ didHappen, passedDays }, item) => {
+          if (!item.previousCreated) {
+            // account for issues that start with an active status (i.e. Test type of issues start with a TO TEST status)
+            item.previousCreated = issue.fields.created;
+          }
+          const [statusStart, statusEnd] = [item.previousCreated, item.created].map(created => moment(created.split('T')[0]));
+          if (!activeStatusDate) {
+            // assume the stages array has the correct first active status as first element
+            activeStatusDate = statusStart;
+          }
+          // count the passed days for active statuses
+          return { didHappen: true, passedDays: passedDays + statusEnd.diff(statusStart, 'days') };
+        }, <StagePassedDays>{ didHappen: false, passedDays: 0 });
+    });
+  return activeStatusDate;
+};
+
+const processInactiveStates = (stages: string[], activeStatuses: string[], sortedItems: [JiraComputedItem], inactiveStatusesDates: Map<string, moment.Moment>) => {
+  stages
+    .filter(stage => !activeStatuses.includes(stage))
+    .forEach(stage => {
+      const firstStageItem = sortedItems.find(item => item.toString === stage);
+      if (!firstStageItem) { return; }
+      inactiveStatusesDates[stage] = moment(firstStageItem.created.split('T')[0]);
+    });
+};
+
+const getStagingDates = (issue: JiraApiIssue, workflow: Workflow, activeStatuses: Array<string>): string[] => {
   const createInFirstStage = workflow[Object.keys(workflow)[0]].includes('(Created)');
   const resolvedInLastStage = workflow[Object.keys(workflow)[Object.keys(workflow).length - 1]].includes('(Resolved)');
 
@@ -91,9 +98,40 @@ const getStagingDates = (issue: JiraApiIssue, workflow: Workflow): string[] => {
   if (resolvedInLastStage) {
     stageBins = addResolutionDateToClosedStage(issue, stageMap, stageBins);
   }
-  stageBins = populateStages(issue, stageMap, stageBins);
-  const stagingDates = filterAndFlattenStagingDates(stageBins);
-  return stagingDates;
+
+  const sortedItems: [JiraComputedItem] = processHistories(issue);
+
+  // at this point, we have an array of `JiraComputedItem` with both `previousCreated` and `created` properties, which
+  // reflects the time range the `fromString` status happened
+  const inactiveStatusesDates = new Map<string, moment.Moment>();
+  const activeStatusesPassedDays = new Map<string, StagePassedDays>();
+
+  // process active statuses
+  let activeStatusDate: moment.Moment = processActiveStatuses(issue, stages, activeStatuses, sortedItems, activeStatusesPassedDays);
+
+  // process inactive statuses
+  processInactiveStates(stages, activeStatuses, sortedItems, inactiveStatusesDates);
+
+  return stages.map(stage => {
+    const isDone = stage.toLowerCase() === 'done';
+    if (!activeStatuses.includes(stage) && !isDone) {
+      const date = inactiveStatusesDates[stage];
+      return (date && date.format('YYYY-MM-DD')) || '';
+    }
+    // account for non done tasks
+    if (isDone && !inactiveStatusesDates[stage]) { return ''; }
+    if (isDone) {
+      // return previous active status date + its passed days
+      return activeStatusDate.format('YYYY-MM-DD');
+    }
+    const passedDaysResult: StagePassedDays = activeStatusesPassedDays[stage];
+    if (!passedDaysResult.didHappen) { return ''; }
+    // save for return for this status
+    const stageDate = moment(activeStatusDate);
+    // add passed days for next status
+    activeStatusDate.add(passedDaysResult.passedDays, 'days');
+    return stageDate.format('YYYY-MM-DD');
+  });
 };
 
 export {
